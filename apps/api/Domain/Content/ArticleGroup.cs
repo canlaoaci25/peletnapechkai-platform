@@ -23,4 +23,10 @@ public sealed class ArticleGroup
     public DateTimeOffset UpdatedAt { get; private set; }
 
     public ICollection<ArticleLocalization> Localizations { get; } = [];
+
+    public ICollection<Author> Authors { get; } = [];
+
+    public ICollection<Source> Sources { get; } = [];
+
+    public ICollection<MediaAsset> MediaAssets { get; } = [];
 }

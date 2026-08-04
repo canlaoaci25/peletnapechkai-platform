@@ -36,4 +36,11 @@ Remove-Item Env:RUN_DATABASE_TESTS
 ```
 
 These tests verify connectivity, seeded locales and regions, and the runtime account's
-schema restriction.
+schema restriction. They also verify read access to the Phase 2 publishing tables.
+
+## Phase 2 publishing schema
+
+Categories and tags are locale-specific. Authors, sources, and media assets are shared by
+an article group. Revisions and SEO metadata belong to a localized article. Audit logs are
+append-only at the application layer. JSON details and structured data use PostgreSQL
+`jsonb`; callers must still treat stored content and metadata as untrusted input.

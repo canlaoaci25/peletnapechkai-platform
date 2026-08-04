@@ -67,4 +67,12 @@ public sealed class ArticleLocalization
     public DateTimeOffset CreatedAt { get; private set; }
 
     public DateTimeOffset UpdatedAt { get; private set; }
+
+    public SeoMetadata? SeoMetadata { get; private set; }
+
+    public ICollection<ArticleRevision> Revisions { get; } = [];
+
+    public ICollection<Category> Categories { get; } = [];
+
+    public ICollection<Tag> Tags { get; } = [];
 }

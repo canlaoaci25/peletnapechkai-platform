@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Peletnapechkai.Api.Domain.Auditing;
 using Peletnapechkai.Api.Domain.Content;
 using Peletnapechkai.Api.Domain.Localization;
 using Peletnapechkai.Api.Infrastructure.Persistence;
@@ -25,6 +26,14 @@ public sealed class PublishingModelTests
         Assert.NotNull(context.Model.FindEntityType(typeof(Locale)));
         Assert.NotNull(context.Model.FindEntityType(typeof(ArticleGroup)));
         Assert.NotNull(context.Model.FindEntityType(typeof(ArticleLocalization)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(Category)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(Tag)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(Author)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(Source)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(MediaAsset)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(ArticleRevision)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(SeoMetadata)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(AuditLog)));
     }
 
     [Fact]
@@ -49,5 +58,44 @@ public sealed class PublishingModelTests
         Assert.Equal(3, SeedData.Locales.Length);
         Assert.Single(SeedData.Locales, locale => locale.IsDefault);
         Assert.All(SeedData.Locales, locale => Assert.True(locale.IsEnabled));
+    }
+
+    [Fact]
+    public void SupportingContent_HasRequiredUniqueIndexes()
+    {
+        using var context = CreateContext();
+
+        AssertUniqueIndex(context, typeof(Category), "ux_categories_locale_slug");
+        AssertUniqueIndex(context, typeof(Tag), "ux_tags_locale_slug");
+        AssertUniqueIndex(context, typeof(Author), "ux_authors_slug");
+        AssertUniqueIndex(context, typeof(Source), "ux_sources_url");
+        AssertUniqueIndex(context, typeof(MediaAsset), "ux_media_assets_storage_key");
+        AssertUniqueIndex(context, typeof(ArticleRevision), "ux_article_revisions_article_number");
+    }
+
+    private static void AssertUniqueIndex(PublishingDbContext context, Type entityType, string databaseName)
+    {
+        var entity = context.Model.FindEntityType(entityType);
+        Assert.NotNull(entity);
+        Assert.Contains(entity.GetIndexes(), index => index.IsUnique && index.GetDatabaseName() == databaseName);
+    }
+
+    [Fact]
+    public void AuditLog_CannotBeModified()
+    {
+        using var context = CreateContext();
+        var auditLog = new AuditLog(null, "article.created", "ArticleGroup", Guid.CreateVersion7(), null, DateTimeOffset.UtcNow);
+        context.Attach(auditLog).State = EntityState.Modified;
+
+        var exception = Assert.Throws<InvalidOperationException>(() => context.SaveChanges());
+
+        Assert.Equal("Audit log records are append-only.", exception.Message);
+    }
+
+    [Fact]
+    public void Source_RejectsNonHttpUrls()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            new Source("Local file", new Uri("file:///private/source.txt"), DateTimeOffset.UtcNow));
     }
 }

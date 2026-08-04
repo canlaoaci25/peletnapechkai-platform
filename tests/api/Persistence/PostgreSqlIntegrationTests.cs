@@ -33,6 +33,14 @@ public sealed class PostgreSqlIntegrationTests
         Assert.True(await context.Database.CanConnectAsync());
         Assert.Equal(3, await context.Locales.CountAsync());
         Assert.Equal(3, await context.Regions.CountAsync());
+        Assert.Equal(0, await context.Categories.CountAsync());
+        Assert.Equal(0, await context.Tags.CountAsync());
+        Assert.Equal(0, await context.Authors.CountAsync());
+        Assert.Equal(0, await context.Sources.CountAsync());
+        Assert.Equal(0, await context.MediaAssets.CountAsync());
+        Assert.Equal(0, await context.ArticleRevisions.CountAsync());
+        Assert.Equal(0, await context.SeoMetadata.CountAsync());
+        Assert.Equal(0, await context.AuditLogs.CountAsync());
 
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync();
