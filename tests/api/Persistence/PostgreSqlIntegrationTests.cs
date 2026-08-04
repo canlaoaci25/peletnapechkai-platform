@@ -33,16 +33,20 @@ public sealed class PostgreSqlIntegrationTests
         Assert.True(await context.Database.CanConnectAsync());
         Assert.Equal(3, await context.Locales.CountAsync());
         Assert.Equal(3, await context.Regions.CountAsync());
-        Assert.Equal(0, await context.Categories.CountAsync());
-        Assert.Equal(0, await context.Tags.CountAsync());
-        Assert.Equal(0, await context.Authors.CountAsync());
-        Assert.Equal(0, await context.Sources.CountAsync());
-        Assert.Equal(0, await context.MediaAssets.CountAsync());
-        Assert.Equal(0, await context.ArticleRevisions.CountAsync());
-        Assert.Equal(0, await context.SeoMetadata.CountAsync());
-        Assert.Equal(0, await context.AuditLogs.CountAsync());
+        _ = await context.Categories.CountAsync();
+        _ = await context.Tags.CountAsync();
+        _ = await context.Authors.CountAsync();
+        _ = await context.Sources.CountAsync();
+        _ = await context.MediaAssets.CountAsync();
+        _ = await context.ArticleRevisions.CountAsync();
+        _ = await context.SeoMetadata.CountAsync();
+        _ = await context.AuditLogs.CountAsync();
         Assert.Equal(6, await context.Roles.CountAsync());
-        Assert.Equal(0, await context.Users.CountAsync());
+        Assert.All(await context.Users.ToListAsync(), user =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(user.Email));
+            Assert.False(string.IsNullOrWhiteSpace(user.SecurityStamp));
+        });
 
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync();

@@ -40,7 +40,7 @@ public sealed class PublishingModelTests
     }
 
     [Fact]
-    public void IdentitySeed_HasAllDistinctRoles_AndNoUsers()
+    public void IdentitySeed_HasAllDistinctRoles()
     {
         Assert.Equal(RoleNames.All.Length, IdentitySeedData.Roles.Length);
         Assert.Equal(RoleNames.All, IdentitySeedData.Roles.Select(role => role.Name));

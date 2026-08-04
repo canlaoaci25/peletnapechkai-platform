@@ -34,7 +34,8 @@ Windows service identity read/write access without broadening access to ordinary
 
 1. Call `GET /api/v1/auth/csrf` with cookies enabled and read the returned `token`.
 2. Send that token as `X-CSRF-TOKEN` when calling `POST /api/v1/auth/login`.
-3. Continue sending cookies for authenticated API requests.
+3. After login, request a new CSRF token because antiforgery tokens are bound to the
+   current identity. Continue sending cookies for authenticated API requests.
 4. Use `GET /api/v1/auth/session` to read the current account and roles.
 5. Send a current CSRF token to `POST /api/v1/auth/logout`.
 

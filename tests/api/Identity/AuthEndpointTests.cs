@@ -88,6 +88,37 @@ public sealed class AuthEndpointTests : IClassFixture<AuthEndpointTests.ApiFacto
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    [Trait("Category", "Database")]
+    public async Task Owner_LoginSessionAndLogout_WorksAgainstConfiguredDatabase()
+    {
+        if (!string.Equals(Environment.GetEnvironmentVariable("RUN_OWNER_AUTH_TEST"), "true", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var password = Environment.GetEnvironmentVariable("OWNER_AUTH_PASSWORD");
+        Assert.False(string.IsNullOrWhiteSpace(password));
+        var csrf = await GetCsrfTokenAsync();
+        using var loginRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/login")
+        {
+            Content = JsonContent.Create(new { email = "prgramlamaw@gmail.com", password })
+        };
+        loginRequest.Headers.Add("X-CSRF-TOKEN", csrf);
+
+        var login = await client.SendAsync(loginRequest);
+        var session = await client.GetFromJsonAsync<SessionResponse>("/api/v1/auth/session");
+        var authenticatedCsrf = await GetCsrfTokenAsync();
+        using var logoutRequest = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/logout");
+        logoutRequest.Headers.Add("X-CSRF-TOKEN", authenticatedCsrf);
+        var logout = await client.SendAsync(logoutRequest);
+
+        Assert.Equal(HttpStatusCode.NoContent, login.StatusCode);
+        Assert.Equal("prgramlamaw@gmail.com", session?.Email);
+        Assert.Contains("Owner", session?.Roles ?? []);
+        Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
+    }
+
     private async Task<string> GetCsrfTokenAsync()
     {
         var response = await client.GetFromJsonAsync<CsrfResponse>("/api/v1/auth/csrf");
@@ -99,11 +130,15 @@ public sealed class AuthEndpointTests : IClassFixture<AuthEndpointTests.ApiFacto
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Development");
-            builder.UseSetting(
-                "ConnectionStrings:Database",
-                "Host=127.0.0.1;Database=endpoint_tests;Username=none;Password=none");
+            if (!string.Equals(Environment.GetEnvironmentVariable("RUN_OWNER_AUTH_TEST"), "true", StringComparison.OrdinalIgnoreCase))
+            {
+                builder.UseSetting(
+                    "ConnectionStrings:Database",
+                    "Host=127.0.0.1;Database=endpoint_tests;Username=none;Password=none");
+            }
         }
     }
 
     private sealed record CsrfResponse(string Token);
+    private sealed record SessionResponse(Guid Id, string Email, string DisplayName, string[] Roles);
 }
