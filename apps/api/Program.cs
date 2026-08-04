@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Peletnapechkai.Api.Endpoints;
+using Peletnapechkai.Api.Infrastructure.Identity;
 using Peletnapechkai.Api.Localization;
 using Peletnapechkai.Api.Infrastructure.Persistence;
 
@@ -7,8 +9,14 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddPersistence(builder.Configuration);
+builder.Services.AddApplicationIdentity(builder.Environment);
 
 var app = builder.Build();
+
+if (await OwnerBootstrap.TryRunAsync(app, args))
+{
+    return;
+}
 
 app.UseExceptionHandler();
 
@@ -18,6 +26,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapHealthChecks("/health");
+
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseRateLimiter();
+app.UseAntiforgery();
+
+app.MapAuthEndpoints();
 
 app.MapGet("/api/v1/locales", async (PublishingDbContext database, CancellationToken cancellationToken) =>
     Results.Ok(new

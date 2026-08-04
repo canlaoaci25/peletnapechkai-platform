@@ -41,6 +41,8 @@ public sealed class PostgreSqlIntegrationTests
         Assert.Equal(0, await context.ArticleRevisions.CountAsync());
         Assert.Equal(0, await context.SeoMetadata.CountAsync());
         Assert.Equal(0, await context.AuditLogs.CountAsync());
+        Assert.Equal(6, await context.Roles.CountAsync());
+        Assert.Equal(0, await context.Users.CountAsync());
 
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync();

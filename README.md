@@ -43,3 +43,7 @@ Never commit credentials or production connection strings.
 Database credentials are stored with .NET User Secrets during local development. Run
 `dotnet tool restore` before using the migration commands documented in
 [`docs/database.md`](docs/database.md).
+
+Authentication uses server-side ASP.NET Core Identity cookies. See
+[`docs/identity.md`](docs/identity.md) before creating the first Owner account or calling
+authentication endpoints.

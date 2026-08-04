@@ -45,3 +45,16 @@ EF Core migrations use a dedicated database owner account. The running API uses 
 separate account limited to connecting, reading, and changing application data. The
 database listens only on localhost during development, and credentials stay outside the
 repository in .NET User Secrets.
+
+## ADR-007: Server-side cookie identity for administration
+
+Status: Accepted — 2026-08-04
+
+The administration application uses ASP.NET Core Identity with an HTTP-only, SameSite
+cookie rather than storing bearer tokens in browser storage. State-changing endpoints
+require an antiforgery token. Login is protected by both IP-partitioned rate limiting and
+account lockout. API authentication failures return `401` or `403` and never redirect to
+an HTML login page.
+
+No user or password is seeded by a migration. The first Owner is created once through an
+explicit bootstrap command whose values come from secret configuration.

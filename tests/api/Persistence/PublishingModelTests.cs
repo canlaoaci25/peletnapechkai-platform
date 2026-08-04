@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Peletnapechkai.Api.Domain.Auditing;
 using Peletnapechkai.Api.Domain.Content;
+using Peletnapechkai.Api.Domain.Identity;
 using Peletnapechkai.Api.Domain.Localization;
 using Peletnapechkai.Api.Infrastructure.Persistence;
 
@@ -34,6 +35,27 @@ public sealed class PublishingModelTests
         Assert.NotNull(context.Model.FindEntityType(typeof(ArticleRevision)));
         Assert.NotNull(context.Model.FindEntityType(typeof(SeoMetadata)));
         Assert.NotNull(context.Model.FindEntityType(typeof(AuditLog)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(ApplicationUser)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(ApplicationRole)));
+    }
+
+    [Fact]
+    public void IdentitySeed_HasAllDistinctRoles_AndNoUsers()
+    {
+        Assert.Equal(RoleNames.All.Length, IdentitySeedData.Roles.Length);
+        Assert.Equal(RoleNames.All, IdentitySeedData.Roles.Select(role => role.Name));
+        Assert.Equal(IdentitySeedData.Roles.Length, IdentitySeedData.Roles.Select(role => role.Id).Distinct().Count());
+
+    }
+
+    [Fact]
+    public void Identity_HasDatabaseUniqueEmailAndUserNameIndexes()
+    {
+        using var context = CreateContext();
+
+        AssertUniqueIndex(context, typeof(ApplicationUser), "ux_users_normalized_email");
+        AssertUniqueIndex(context, typeof(ApplicationUser), "ux_users_normalized_user_name");
+        AssertUniqueIndex(context, typeof(ApplicationRole), "ux_roles_normalized_name");
     }
 
     [Fact]
