@@ -16,6 +16,10 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+The administration BFF connects to the ASP.NET API through `API_INTERNAL_URL`. It defaults to
+`http://localhost:5267` for local development. Set this environment variable on the Next.js
+service in staging/production; do not expose credentials through a `NEXT_PUBLIC_` variable.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

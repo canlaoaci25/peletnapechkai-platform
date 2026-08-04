@@ -1,0 +1,56 @@
+import "server-only";
+
+import { cookies } from "next/headers";
+
+export type AdminSession = {
+  id: string;
+  email: string;
+  displayName: string;
+  roles: string[];
+};
+
+export type ArticleSummary = {
+  id: string;
+  articleGroupId: string;
+  locale: string;
+  type: string;
+  slug: string;
+  title: string;
+  status: string;
+  updatedAt: string;
+  scheduledAt: string | null;
+  publishedAt: string | null;
+};
+
+export type ArticleDetail = ArticleSummary & {
+  summary: string;
+  body: string;
+  seoTitle: string | null;
+  seoDescription: string | null;
+};
+
+const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
+
+async function apiGet<T>(path: string): Promise<T | null> {
+  const cookieStore = await cookies();
+  const response = await fetch(new URL(path, apiBaseUrl), {
+    headers: { cookie: cookieStore.toString() },
+    cache: "no-store",
+  });
+
+  if (response.status === 401 || response.status === 403) return null;
+  if (!response.ok) throw new Error(`Admin API request failed (${response.status}).`);
+  return (await response.json()) as T;
+}
+
+export function getAdminSession() {
+  return apiGet<AdminSession>("/api/v1/auth/session");
+}
+
+export async function getArticles() {
+  return (await apiGet<ArticleSummary[]>("/api/v1/admin/articles/")) ?? [];
+}
+
+export function getArticle(id: string) {
+  return apiGet<ArticleDetail>(`/api/v1/admin/articles/${encodeURIComponent(id)}`);
+}
