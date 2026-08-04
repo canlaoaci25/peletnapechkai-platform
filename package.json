@@ -1,0 +1,16 @@
+{
+  "name": "peletnapechkai-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:web": "npm --prefix apps/web run dev",
+    "build:web": "npm --prefix apps/web run build",
+    "lint": "npm --prefix apps/web run lint",
+    "typecheck": "npm --prefix apps/web run typecheck",
+    "test:api": "dotnet test Peletnapechkai.slnx",
+    "build:api": "dotnet build Peletnapechkai.slnx --configuration Release"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

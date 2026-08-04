@@ -1,0 +1,65 @@
+# Delivery roadmap
+
+## Phase 0 — Decisions and scope
+
+Architecture, initial locales, MVP boundaries, editorial workflow, and success criteria.
+
+## Phase 1 — Repository and development foundation
+
+Next.js web application, ASP.NET Core API, tests, documentation, quality scripts, private
+GitHub repository, and CI foundation.
+
+## Phase 2 — Database and domain
+
+PostgreSQL, EF Core migrations, locale/region, article groups and localizations,
+categories, tags, authors, sources, media, revisions, SEO metadata, users, and audit logs.
+
+## Phase 3 — Identity and authorization
+
+Secure cookie authentication, owner/admin/editor/author/translator/SEO roles, session
+management, login protection, and audit trails.
+
+## Phase 4 — Administration and editorial workflow
+
+Article editor, localization management, review, SEO approval, scheduling, publishing,
+preview, media management, and revision comparison.
+
+## Phase 5 — Public publishing experience
+
+Locale homepages, categories, tags, articles, authors, search, archives, navigation,
+language switching, accessibility, and legal/editorial pages.
+
+## Phase 6 — Internationalization
+
+Localized routes and slugs, region-aware formatting, translation relationships, missing
+localization behavior, user preference, and future RTL readiness.
+
+## Phase 7 — Technical SEO
+
+Canonical and hreflang metadata, JSON-LD, sitemaps, news sitemaps, RSS, robots, preview
+indexing controls, redirects, structured data, and Core Web Vitals.
+
+## Phase 8 — Staging and production readiness
+
+Staging hostname, IIS and Windows service deployment, HTTPS, security headers, rate
+limiting, backup/restore, monitoring, end-to-end tests, rollback, and controlled migration.
+
+## Phase 9 — Measurement and launch
+
+Search Console, Analytics, Clarity, Bing Webmaster Tools, uptime monitoring, indexing,
+content quality, and a controlled three-region launch.
+
+## Phase 10 — Revenue
+
+Consent management, AdSense readiness, ads.txt, managed placements, affiliate links,
+sponsorship disclosure, performance measurement, and verified tax/payment structure.
+
+## Phase 11 — Scaling
+
+Only when measurements justify them: Redis, a dedicated search engine, Cloudflare CDN
+and R2, job queues, database separation, centralized logs, and additional regions.
+
+## Phase 12 — AI and knowledge network
+
+Human-reviewed AI assistance, content opportunity analysis, freshness and quality tools,
+knowledge graph, knowledge vault, topic hubs, comparisons, and editorial decision support.

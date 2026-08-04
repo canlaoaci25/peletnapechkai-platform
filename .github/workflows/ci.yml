@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install web dependencies
+        run: npm ci --prefix apps/web
+
+      - name: Audit production dependencies
+        run: npm audit --prefix apps/web --omit=dev --audit-level=high
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Production build
+        run: npm run build:web
+
+  api:
+    name: API quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Peletnapechkai.slnx
+
+      - name: Check vulnerable packages
+        run: dotnet list apps/api/Peletnapechkai.Api.csproj package --include-transitive --vulnerable
+
+      - name: Test
+        run: dotnet test Peletnapechkai.slnx --configuration Release --no-restore
+
+      - name: Build
+        run: dotnet build Peletnapechkai.slnx --configuration Release --no-restore

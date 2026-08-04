@@ -1,0 +1,32 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.pfx
+*.p12
+*.key
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# .NET
+bin/
+obj/
+TestResults/
+*.user
+*.suo
+
+# Editors and operating systems
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs and local artifacts
+*.log
+artifacts/

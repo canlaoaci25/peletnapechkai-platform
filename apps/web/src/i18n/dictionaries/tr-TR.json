@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "title": "Peletnapechkai — Bağımsız teknoloji ve bilim yayınları",
+    "description": "Teknoloji, yapay zekâ, bilim, yazılım ve mobil dünyasından kaynaklı içerikler."
+  },
+  "navigation": {
+    "home": "Ana sayfa",
+    "technology": "Teknoloji",
+    "ai": "Yapay zekâ",
+    "science": "Bilim",
+    "software": "Yazılım",
+    "mobile": "Mobil"
+  },
+  "home": {
+    "eyebrow": "Yeni nesil çok dilli yayın platformu",
+    "title": "Bilgiyi yalnızca çevirmiyor, doğru bağlama yerleştiriyoruz.",
+    "description": "Peletnapechkai; doğrulanmış kaynakları, yerel bakış açılarını ve güçlü editoryal standartları tek bir küresel yayın ağında buluşturmak için hazırlanıyor.",
+    "status": "İlk yayın sürümü hazırlanıyor",
+    "topicsTitle": "İlk yayın alanlarımız",
+    "principleTitle": "Yayın ilkemiz",
+    "principle": "Her içerik kaynak, bağlam ve insan editör kontrolüyle yayımlanacak."
+  }
+}

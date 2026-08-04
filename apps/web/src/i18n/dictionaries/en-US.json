@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "title": "Peletnapechkai — Independent technology and science publishing",
+    "description": "Source-led coverage of technology, artificial intelligence, science, software, and mobile."
+  },
+  "navigation": {
+    "home": "Home",
+    "technology": "Technology",
+    "ai": "Artificial intelligence",
+    "science": "Science",
+    "software": "Software",
+    "mobile": "Mobile"
+  },
+  "home": {
+    "eyebrow": "A new multilingual publishing platform",
+    "title": "We do more than translate information. We put it in the right context.",
+    "description": "Peletnapechkai is being built to unite verified sources, local perspectives, and strong editorial standards in one global publishing network.",
+    "status": "The first publishing release is in development",
+    "topicsTitle": "Our first coverage areas",
+    "principleTitle": "Our publishing principle",
+    "principle": "Every story will be published with sources, context, and human editorial review."
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "title": "Peletnapechkai — Unabhängiger Technologie- und Wissenschaftsjournalismus",
+    "description": "Quellenbasierte Inhalte zu Technologie, künstlicher Intelligenz, Wissenschaft, Software und Mobilgeräten."
+  },
+  "navigation": {
+    "home": "Startseite",
+    "technology": "Technologie",
+    "ai": "Künstliche Intelligenz",
+    "science": "Wissenschaft",
+    "software": "Software",
+    "mobile": "Mobil"
+  },
+  "home": {
+    "eyebrow": "Eine neue mehrsprachige Publikationsplattform",
+    "title": "Wir übersetzen Informationen nicht nur. Wir stellen sie in den richtigen Kontext.",
+    "description": "Peletnapechkai entsteht als globales Publikationsnetzwerk, das geprüfte Quellen, lokale Perspektiven und hohe redaktionelle Standards verbindet.",
+    "status": "Die erste Veröffentlichungsversion wird entwickelt",
+    "topicsTitle": "Unsere ersten Themenbereiche",
+    "principleTitle": "Unser Publikationsprinzip",
+    "principle": "Jeder Beitrag wird mit Quellen, Kontext und menschlicher redaktioneller Prüfung veröffentlicht."
+  }
+}
