@@ -36,3 +36,12 @@ Status: Accepted — 2026-08-04
 
 Development and acceptance happen in a separate staging environment. Existing IIS sites,
 bindings, files, and DNS are not changed until a tested migration and rollback plan exists.
+
+## ADR-006: Separate database ownership and runtime access
+
+Status: Accepted — 2026-08-04
+
+EF Core migrations use a dedicated database owner account. The running API uses a
+separate account limited to connecting, reading, and changing application data. The
+database listens only on localhost during development, and credentials stay outside the
+repository in .NET User Secrets.

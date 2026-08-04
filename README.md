@@ -15,7 +15,7 @@ supports Turkish/Türkiye, English/United States, and German/Germany.
 - Node.js 24 LTS
 - npm 11 or later
 - .NET SDK 10
-- PostgreSQL (introduced in Phase 2)
+- PostgreSQL 18
 
 ## Local development
 
@@ -39,3 +39,7 @@ dotnet build Peletnapechkai.slnx --configuration Release
 
 Copy `.env.example` to an untracked local environment file when configuration is needed.
 Never commit credentials or production connection strings.
+
+Database credentials are stored with .NET User Secrets during local development. Run
+`dotnet tool restore` before using the migration commands documented in
+[`docs/database.md`](docs/database.md).

@@ -58,6 +58,12 @@ jobs:
       - name: Restore
         run: dotnet restore Peletnapechkai.slnx
 
+      - name: Restore local tools
+        run: dotnet tool restore
+
+      - name: Check migration model consistency
+        run: dotnet tool run dotnet-ef migrations has-pending-model-changes --project apps/api/Peletnapechkai.Api.csproj --startup-project apps/api/Peletnapechkai.Api.csproj
+
       - name: Check vulnerable packages
         run: dotnet list apps/api/Peletnapechkai.Api.csproj package --include-transitive --vulnerable
 
