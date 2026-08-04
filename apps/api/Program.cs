@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddPersistence(builder.Configuration);
-builder.Services.AddApplicationIdentity(builder.Environment);
+builder.Services.AddApplicationIdentity(builder.Environment, builder.Configuration);
 
 var app = builder.Build();
 
@@ -19,6 +19,7 @@ if (await OwnerBootstrap.TryRunAsync(app, args))
 }
 
 app.UseExceptionHandler();
+app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
 {
@@ -33,6 +34,7 @@ app.UseRateLimiter();
 app.UseAntiforgery();
 
 app.MapAuthEndpoints();
+app.MapUserManagementEndpoints();
 
 app.MapGet("/api/v1/locales", async (PublishingDbContext database, CancellationToken cancellationToken) =>
     Results.Ok(new

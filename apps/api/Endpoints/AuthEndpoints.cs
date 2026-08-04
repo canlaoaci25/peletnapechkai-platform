@@ -24,13 +24,74 @@ public static class AuthEndpoints
             .RequireRateLimiting(IdentityServiceExtensions.LoginRateLimitPolicy)
             .ValidateAntiforgery();
 
+        group.MapPost("/login/2fa", TwoFactorLoginAsync)
+            .AllowAnonymous()
+            .RequireRateLimiting(IdentityServiceExtensions.LoginRateLimitPolicy)
+            .ValidateAntiforgery();
+
         group.MapPost("/logout", LogoutAsync)
             .RequireAuthorization()
             .ValidateAntiforgery();
 
         group.MapGet("/session", SessionAsync).RequireAuthorization();
 
+        group.MapPost("/2fa/setup", SetupTwoFactorAsync)
+            .RequireAuthorization()
+            .ValidateAntiforgery();
+        group.MapPost("/2fa/enable", EnableTwoFactorAsync)
+            .RequireAuthorization()
+            .ValidateAntiforgery();
+        group.MapPost("/2fa/disable", DisableTwoFactorAsync)
+            .RequireAuthorization()
+            .ValidateAntiforgery();
+        group.MapPost("/2fa/recovery-codes", RegenerateRecoveryCodesAsync)
+            .RequireAuthorization()
+            .ValidateAntiforgery();
+        group.MapPost("/session/revoke-all", RevokeAllSessionsAsync)
+            .RequireAuthorization()
+            .ValidateAntiforgery();
+
         return endpoints;
+    }
+
+    private static async Task<IResult> TwoFactorLoginAsync(
+        TwoFactorLoginRequest request,
+        SignInManager<ApplicationUser> signInManager,
+        PublishingDbContext database,
+        CancellationToken cancellationToken)
+    {
+        var pendingUser = await signInManager.GetTwoFactorAuthenticationUserAsync();
+        if (pendingUser is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        SignInResult result;
+        if (!string.IsNullOrWhiteSpace(request.AuthenticatorCode))
+        {
+            result = await signInManager.TwoFactorAuthenticatorSignInAsync(
+                NormalizeAuthenticatorCode(request.AuthenticatorCode), false, false);
+        }
+        else if (!string.IsNullOrWhiteSpace(request.RecoveryCode))
+        {
+            result = await signInManager.TwoFactorRecoveryCodeSignInAsync(request.RecoveryCode.Trim());
+        }
+        else
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["code"] = ["An authenticator code or recovery code is required."]
+            });
+        }
+
+        if (!result.Succeeded)
+        {
+            return Results.Unauthorized();
+        }
+
+        database.AuditLogs.Add(new AuditLog(pendingUser.Id, "identity.login_2fa", nameof(ApplicationUser), pendingUser.Id, null, DateTimeOffset.UtcNow));
+        await database.SaveChangesAsync(cancellationToken);
+        return Results.NoContent();
     }
 
     private static async Task<IResult> LoginAsync(
@@ -102,5 +163,156 @@ public static class AuthEndpoints
         return Results.Ok(new { user.Id, user.Email, user.DisplayName, roles });
     }
 
+    private static async Task<IResult> SetupTwoFactorAsync(
+        CurrentPasswordRequest request,
+        System.Security.Claims.ClaimsPrincipal principal,
+        UserManager<ApplicationUser> userManager,
+        HttpContext context)
+    {
+        var user = await GetUserWithValidPasswordAsync(principal, request.CurrentPassword, userManager);
+        if (user is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var key = await userManager.GetAuthenticatorKeyAsync(user);
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            EnsureSucceeded(await userManager.ResetAuthenticatorKeyAsync(user), "Authenticator key reset failed");
+            key = await userManager.GetAuthenticatorKeyAsync(user);
+        }
+
+        if (string.IsNullOrWhiteSpace(key) || string.IsNullOrWhiteSpace(user.Email))
+        {
+            throw new InvalidOperationException("Authenticator setup could not be initialized.");
+        }
+
+        context.Response.Headers.CacheControl = "no-store";
+        var uri = $"otpauth://totp/{Uri.EscapeDataString("Peletnapechkai")}:{Uri.EscapeDataString(user.Email)}?secret={key}&issuer={Uri.EscapeDataString("Peletnapechkai")}&digits=6";
+        return Results.Ok(new { sharedKey = key, authenticatorUri = uri });
+    }
+
+    private static async Task<IResult> EnableTwoFactorAsync(
+        TwoFactorCodeRequest request,
+        System.Security.Claims.ClaimsPrincipal principal,
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
+        PublishingDbContext database,
+        HttpContext context,
+        CancellationToken cancellationToken)
+    {
+        var user = await userManager.GetUserAsync(principal);
+        if (user is null || !user.IsActive || string.IsNullOrWhiteSpace(request.Code))
+        {
+            return Results.Unauthorized();
+        }
+
+        var valid = await userManager.VerifyTwoFactorTokenAsync(
+            user,
+            TokenOptions.DefaultAuthenticatorProvider,
+            NormalizeAuthenticatorCode(request.Code));
+        if (!valid)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["code"] = ["The authenticator code is invalid."] });
+        }
+
+        EnsureSucceeded(await userManager.SetTwoFactorEnabledAsync(user, true), "Two-factor enable failed");
+        var recoveryCodes = (await userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10))?.ToArray() ?? [];
+        await signInManager.RefreshSignInAsync(user);
+        database.AuditLogs.Add(new AuditLog(user.Id, "identity.2fa_enabled", nameof(ApplicationUser), user.Id, null, DateTimeOffset.UtcNow));
+        await database.SaveChangesAsync(cancellationToken);
+        context.Response.Headers.CacheControl = "no-store";
+        return Results.Ok(new { recoveryCodes });
+    }
+
+    private static async Task<IResult> DisableTwoFactorAsync(
+        CurrentPasswordRequest request,
+        System.Security.Claims.ClaimsPrincipal principal,
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
+        PublishingDbContext database,
+        CancellationToken cancellationToken)
+    {
+        var user = await GetUserWithValidPasswordAsync(principal, request.CurrentPassword, userManager);
+        if (user is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        EnsureSucceeded(await userManager.SetTwoFactorEnabledAsync(user, false), "Two-factor disable failed");
+        EnsureSucceeded(await userManager.ResetAuthenticatorKeyAsync(user), "Authenticator key reset failed");
+        EnsureSucceeded(await userManager.UpdateSecurityStampAsync(user), "Session revocation failed");
+        await signInManager.SignOutAsync();
+        database.AuditLogs.Add(new AuditLog(user.Id, "identity.2fa_disabled", nameof(ApplicationUser), user.Id, null, DateTimeOffset.UtcNow));
+        await database.SaveChangesAsync(cancellationToken);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> RegenerateRecoveryCodesAsync(
+        CurrentPasswordRequest request,
+        System.Security.Claims.ClaimsPrincipal principal,
+        UserManager<ApplicationUser> userManager,
+        PublishingDbContext database,
+        HttpContext context,
+        CancellationToken cancellationToken)
+    {
+        var user = await GetUserWithValidPasswordAsync(principal, request.CurrentPassword, userManager);
+        if (user is null || !await userManager.GetTwoFactorEnabledAsync(user))
+        {
+            return Results.Unauthorized();
+        }
+
+        var recoveryCodes = (await userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10))?.ToArray() ?? [];
+        database.AuditLogs.Add(new AuditLog(user.Id, "identity.2fa_recovery_codes_regenerated", nameof(ApplicationUser), user.Id, null, DateTimeOffset.UtcNow));
+        await database.SaveChangesAsync(cancellationToken);
+        context.Response.Headers.CacheControl = "no-store";
+        return Results.Ok(new { recoveryCodes });
+    }
+
+    private static async Task<IResult> RevokeAllSessionsAsync(
+        CurrentPasswordRequest request,
+        System.Security.Claims.ClaimsPrincipal principal,
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
+        PublishingDbContext database,
+        CancellationToken cancellationToken)
+    {
+        var user = await GetUserWithValidPasswordAsync(principal, request.CurrentPassword, userManager);
+        if (user is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        EnsureSucceeded(await userManager.UpdateSecurityStampAsync(user), "Session revocation failed");
+        await signInManager.SignOutAsync();
+        database.AuditLogs.Add(new AuditLog(user.Id, "identity.sessions_revoked", nameof(ApplicationUser), user.Id, null, DateTimeOffset.UtcNow));
+        await database.SaveChangesAsync(cancellationToken);
+        return Results.NoContent();
+    }
+
+    private static async Task<ApplicationUser?> GetUserWithValidPasswordAsync(
+        System.Security.Claims.ClaimsPrincipal principal,
+        string password,
+        UserManager<ApplicationUser> userManager)
+    {
+        var user = await userManager.GetUserAsync(principal);
+        return user is not null && user.IsActive && !string.IsNullOrWhiteSpace(password) && await userManager.CheckPasswordAsync(user, password)
+            ? user
+            : null;
+    }
+
+    private static string NormalizeAuthenticatorCode(string code) => code.Replace(" ", string.Empty, StringComparison.Ordinal).Replace("-", string.Empty, StringComparison.Ordinal);
+
+    private static void EnsureSucceeded(IdentityResult result, string message)
+    {
+        if (!result.Succeeded)
+        {
+            throw new InvalidOperationException($"{message}: {string.Join(", ", result.Errors.Select(error => error.Code))}");
+        }
+    }
+
     private sealed record LoginRequest(string Email, string Password);
+    private sealed record TwoFactorLoginRequest(string? AuthenticatorCode, string? RecoveryCode);
+    private sealed record TwoFactorCodeRequest(string Code);
+    private sealed record CurrentPasswordRequest(string CurrentPassword);
 }

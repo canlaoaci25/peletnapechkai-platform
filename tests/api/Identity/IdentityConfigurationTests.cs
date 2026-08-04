@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Peletnapechkai.Api.Domain.Identity;
@@ -53,12 +56,38 @@ public sealed class IdentityConfigurationTests
         Assert.NotNull(await policyProvider.GetPolicyAsync(policyName));
     }
 
+    [Fact]
+    public void Production_RequiresExplicitDataProtectionKeyPath()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddDbContext<PublishingDbContext>();
+        var environment = new StubEnvironment { EnvironmentName = "Production" };
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            services.AddApplicationIdentity(environment, new ConfigurationBuilder().Build()));
+
+        Assert.Contains("DataProtection:KeysPath", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ForwardedHeaders_TrustOnlyOneLoopbackProxyHop()
+    {
+        using var provider = CreateServices().BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<ForwardedHeadersOptions>>().Value;
+
+        Assert.Equal(1, options.ForwardLimit);
+        Assert.Contains(System.Net.IPAddress.Loopback, options.KnownProxies);
+        Assert.Contains(System.Net.IPAddress.IPv6Loopback, options.KnownProxies);
+        Assert.Equal(ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto, options.ForwardedHeaders);
+    }
+
     private static ServiceCollection CreateServices()
     {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddDbContext<PublishingDbContext>();
-        services.AddApplicationIdentity(new StubEnvironment());
+        services.AddApplicationIdentity(new StubEnvironment(), new ConfigurationBuilder().Build());
         return services;
     }
 

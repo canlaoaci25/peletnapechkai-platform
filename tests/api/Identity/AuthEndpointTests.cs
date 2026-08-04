@@ -52,6 +52,48 @@ public sealed class AuthEndpointTests : IClassFixture<AuthEndpointTests.ApiFacto
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [Fact]
+    public async Task TwoFactorSetup_WithoutAuthenticatedCookie_ReturnsUnauthorized()
+    {
+        var csrf = await GetCsrfTokenAsync();
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/2fa/setup")
+        {
+            Content = JsonContent.Create(new { currentPassword = "Not-A-Real-Password-1!" })
+        };
+        request.Headers.Add("X-CSRF-TOKEN", csrf);
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UserManagement_WithoutAuthenticatedCookie_ReturnsUnauthorized()
+    {
+        var response = await client.GetAsync("/api/v1/admin/users");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task CompleteInvitation_WithoutCsrfToken_IsRejected()
+    {
+        var response = await client.PostAsJsonAsync("/api/v1/auth/complete-invitation", new
+        {
+            userId = Guid.CreateVersion7(),
+            invitationToken = "invalid",
+            password = "Not-A-Real-Password-1!"
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    private async Task<string> GetCsrfTokenAsync()
+    {
+        var response = await client.GetFromJsonAsync<CsrfResponse>("/api/v1/auth/csrf");
+        return Assert.IsType<string>(response?.Token);
+    }
+
     public sealed class ApiFactory : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)

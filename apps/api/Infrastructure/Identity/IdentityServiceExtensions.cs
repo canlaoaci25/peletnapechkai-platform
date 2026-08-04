@@ -1,4 +1,7 @@
 using System.Threading.RateLimiting;
+using System.Net;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Peletnapechkai.Api.Domain.Identity;
 using Peletnapechkai.Api.Infrastructure.Persistence;
@@ -9,8 +12,13 @@ public static class IdentityServiceExtensions
 {
     public const string LoginRateLimitPolicy = "login";
 
-    public static IServiceCollection AddApplicationIdentity(this IServiceCollection services, IWebHostEnvironment environment)
+    public static IServiceCollection AddApplicationIdentity(
+        this IServiceCollection services,
+        IWebHostEnvironment environment,
+        IConfiguration configuration)
     {
+        ConfigureDataProtection(services, environment, configuration);
+
         services.AddIdentityCore<ApplicationUser>(options =>
             {
                 options.User.RequireUniqueEmail = true;
@@ -98,6 +106,40 @@ public static class IdentityServiceExtensions
                     }));
         });
 
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+            options.ForwardLimit = 1;
+            options.KnownProxies.Clear();
+            options.KnownIPNetworks.Clear();
+            options.KnownProxies.Add(IPAddress.Loopback);
+            options.KnownProxies.Add(IPAddress.IPv6Loopback);
+        });
+
         return services;
+    }
+
+    private static void ConfigureDataProtection(
+        IServiceCollection services,
+        IWebHostEnvironment environment,
+        IConfiguration configuration)
+    {
+        var builder = services.AddDataProtection().SetApplicationName("Peletnapechkai.Platform");
+        var keysPath = configuration["DataProtection:KeysPath"];
+        if (string.IsNullOrWhiteSpace(keysPath))
+        {
+            if (!environment.IsDevelopment())
+            {
+                throw new InvalidOperationException("DataProtection:KeysPath must be configured outside Development.");
+            }
+
+            return;
+        }
+
+        builder.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+        if (OperatingSystem.IsWindows())
+        {
+            builder.ProtectKeysWithDpapi(protectToLocalMachine: true);
+        }
     }
 }
