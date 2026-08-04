@@ -1,0 +1,123 @@
+using System.Text.Json;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Peletnapechkai.Api.Domain.Auditing;
+using Peletnapechkai.Api.Domain.Content;
+using Peletnapechkai.Api.Domain.Identity;
+using Peletnapechkai.Api.Infrastructure.Identity;
+using Peletnapechkai.Api.Infrastructure.Persistence;
+
+namespace Peletnapechkai.Api.Endpoints;
+
+public static class EditorialEndpoints
+{
+    public static IEndpointRouteBuilder MapEditorialEndpoints(this IEndpointRouteBuilder endpoints)
+    {
+        var group = endpoints.MapGroup("/api/v1/admin/articles").WithTags("Editorial").RequireAuthorization();
+        group.MapGet("/", ListAsync).RequireAuthorization(AuthorizationPolicies.WriteContent);
+        group.MapGet("/{articleId:guid}", GetAsync).RequireAuthorization(AuthorizationPolicies.WriteContent);
+        group.MapPost("/", CreateAsync).RequireAuthorization(AuthorizationPolicies.WriteContent).ValidateAntiforgery();
+        group.MapPut("/{articleId:guid}", UpdateAsync).RequireAuthorization(AuthorizationPolicies.WriteContent).ValidateAntiforgery();
+        group.MapPost("/{articleId:guid}/submit", SubmitAsync).RequireAuthorization(AuthorizationPolicies.WriteContent).ValidateAntiforgery();
+        group.MapPost("/{articleId:guid}/editorial-approve", EditorialApproveAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
+        group.MapPost("/{articleId:guid}/return-to-draft", ReturnToDraftAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
+        group.MapPost("/{articleId:guid}/schedule", ScheduleAsync).RequireAuthorization(AuthorizationPolicies.ManageSeo).ValidateAntiforgery();
+        group.MapPost("/{articleId:guid}/publish", PublishAsync).RequireAuthorization(AuthorizationPolicies.ManageSeo).ValidateAntiforgery();
+        group.MapPost("/{articleId:guid}/archive", ArchiveAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
+        return endpoints;
+    }
+
+    private static async Task<IResult> ListAsync(PublishingDbContext database, string? status, string? locale, CancellationToken token)
+    {
+        var query = database.ArticleLocalizations.AsNoTracking().Include(x => x.Locale).AsQueryable();
+        if (Enum.TryParse<PublicationStatus>(status, true, out var parsedStatus)) query = query.Where(x => x.Status == parsedStatus);
+        if (!string.IsNullOrWhiteSpace(locale)) query = query.Where(x => x.Locale.Code == locale);
+        var articles = await query.OrderByDescending(x => x.UpdatedAt).Take(100).Select(x => new
+        {
+            x.Id,
+            x.ArticleGroupId,
+            locale = x.Locale.Code,
+            type = x.ArticleGroup.Type.ToString(),
+            x.Slug,
+            x.Title,
+            status = x.Status.ToString(),
+            x.UpdatedAt,
+            x.ScheduledAt,
+            x.PublishedAt
+        }).ToListAsync(token);
+        return Results.Ok(articles);
+    }
+
+    private static async Task<IResult> GetAsync(Guid articleId, PublishingDbContext database, CancellationToken token)
+    {
+        var article = await database.ArticleLocalizations.AsNoTracking().Include(x => x.Locale).Where(x => x.Id == articleId)
+            .Select(x => new { x.Id, x.ArticleGroupId, locale = x.Locale.Code, type = x.ArticleGroup.Type.ToString(), x.Slug, x.Title, x.Summary, x.Body, x.SeoTitle, x.SeoDescription, status = x.Status.ToString(), x.UpdatedAt, x.ScheduledAt, x.PublishedAt }).SingleOrDefaultAsync(token);
+        return article is null ? Results.NotFound() : Results.Ok(article);
+    }
+
+    private static async Task<IResult> CreateAsync(CreateArticleRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
+    {
+        if (!Enum.TryParse<ArticleType>(request.Type, true, out var type)) return Validation("type", "A valid article type is required.");
+        var locale = await database.Locales.SingleOrDefaultAsync(x => x.Code == request.Locale && x.IsEnabled, token);
+        var actor = await users.GetUserAsync(principal);
+        if (locale is null || actor is null) return Results.BadRequest();
+        var now = DateTimeOffset.UtcNow;
+        var articleGroup = new ArticleGroup(type, now);
+        var article = new ArticleLocalization(articleGroup, locale, request.Slug, request.Title, request.Summary ?? string.Empty, request.Body ?? string.Empty, now);
+        article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, request.Body ?? string.Empty, request.SeoTitle, request.SeoDescription, now);
+        database.ArticleGroups.Add(articleGroup);
+        database.AuditLogs.Add(Audit(actor.Id, "editorial.article_created", article.Id, new { request.Locale, type }));
+        await database.SaveChangesAsync(token);
+        return Results.Created($"/api/v1/admin/articles/{article.Id}", new { article.Id, article.ArticleGroupId, article.UpdatedAt });
+    }
+
+    private static async Task<IResult> UpdateAsync(Guid articleId, UpdateArticleRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
+    {
+        var article = await database.ArticleLocalizations.Include(x => x.Revisions).SingleOrDefaultAsync(x => x.Id == articleId, token);
+        var actor = await users.GetUserAsync(principal);
+        if (article is null || actor is null) return Results.NotFound();
+        if (article.UpdatedAt != request.ExpectedUpdatedAt) return Results.Conflict(new { message = "Article changed since it was loaded." });
+        if (article.Status != PublicationStatus.Draft) return Results.Conflict(new { message = "Only draft articles can be edited." });
+        var now = DateTimeOffset.UtcNow;
+        var revision = new ArticleRevision(article, article.Revisions.Count == 0 ? 1 : article.Revisions.Max(x => x.Number) + 1, article.Title, article.Summary, article.Body, actor.Id, now);
+        database.ArticleRevisions.Add(revision);
+        article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, request.Body ?? string.Empty, request.SeoTitle, request.SeoDescription, now);
+        database.AuditLogs.Add(Audit(actor.Id, "editorial.article_updated", article.Id, null));
+        await database.SaveChangesAsync(token);
+        return Results.Ok(new { article.Id, article.UpdatedAt, revision = revision.Number });
+    }
+
+    private static Task<IResult> SubmitAsync(Guid articleId, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token) =>
+        TransitionAsync(articleId, "editorial.submitted", principal, users, database, x => x.SubmitForEditorialReview(DateTimeOffset.UtcNow), token);
+    private static Task<IResult> EditorialApproveAsync(Guid articleId, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token) =>
+        TransitionAsync(articleId, "editorial.approved", principal, users, database, x => x.ApproveEditorialReview(DateTimeOffset.UtcNow), token);
+    private static Task<IResult> ReturnToDraftAsync(Guid articleId, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token) =>
+        TransitionAsync(articleId, "editorial.returned_to_draft", principal, users, database, x => x.ReturnToDraft(DateTimeOffset.UtcNow), token);
+    private static Task<IResult> PublishAsync(Guid articleId, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token) =>
+        TransitionAsync(articleId, "editorial.published", principal, users, database, x => x.Publish(DateTimeOffset.UtcNow), token);
+    private static Task<IResult> ArchiveAsync(Guid articleId, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token) =>
+        TransitionAsync(articleId, "editorial.archived", principal, users, database, x => x.Archive(DateTimeOffset.UtcNow), token);
+
+    private static Task<IResult> ScheduleAsync(Guid articleId, ScheduleRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token) =>
+        TransitionAsync(articleId, "editorial.scheduled", principal, users, database, x => x.Schedule(request.ScheduledAt, DateTimeOffset.UtcNow), token);
+
+    private static async Task<IResult> TransitionAsync(Guid articleId, string action, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, Action<ArticleLocalization> transition, CancellationToken token)
+    {
+        var article = await database.ArticleLocalizations.SingleOrDefaultAsync(x => x.Id == articleId, token);
+        var actor = await users.GetUserAsync(principal);
+        if (article is null || actor is null) return Results.NotFound();
+        try { transition(article); }
+        catch (InvalidOperationException exception) { return Results.Conflict(new { message = exception.Message }); }
+        database.AuditLogs.Add(Audit(actor.Id, action, article.Id, new { status = article.Status.ToString() }));
+        await database.SaveChangesAsync(token);
+        return Results.Ok(new { article.Id, status = article.Status.ToString(), article.UpdatedAt, article.ScheduledAt, article.PublishedAt });
+    }
+
+    private static AuditLog Audit(Guid actorId, string action, Guid entityId, object? details) =>
+        new(actorId, action, nameof(ArticleLocalization), entityId, details is null ? null : JsonSerializer.Serialize(details), DateTimeOffset.UtcNow);
+    private static IResult Validation(string key, string message) => Results.ValidationProblem(new Dictionary<string, string[]> { [key] = [message] });
+
+    private sealed record CreateArticleRequest(string Type, string Locale, string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription);
+    private sealed record UpdateArticleRequest(string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, DateTimeOffset ExpectedUpdatedAt);
+    private sealed record ScheduleRequest(DateTimeOffset ScheduledAt);
+}

@@ -47,3 +47,6 @@ Database credentials are stored with .NET User Secrets during local development.
 Authentication uses server-side ASP.NET Core Identity cookies. See
 [`docs/identity.md`](docs/identity.md) before creating the first Owner account or calling
 authentication endpoints.
+
+The Phase 4 editorial state machine is documented in
+[`docs/editorial-workflow.md`](docs/editorial-workflow.md).

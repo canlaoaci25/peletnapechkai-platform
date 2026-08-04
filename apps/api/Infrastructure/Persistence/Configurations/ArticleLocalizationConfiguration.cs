@@ -31,7 +31,7 @@ public sealed class ArticleLocalizationConfiguration : IEntityTypeConfiguration<
         builder.Property(article => article.ScheduledAt).HasColumnName("scheduled_at");
         builder.Property(article => article.PublishedAt).HasColumnName("published_at");
         builder.Property(article => article.CreatedAt).HasColumnName("created_at");
-        builder.Property(article => article.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(article => article.UpdatedAt).HasColumnName("updated_at").IsConcurrencyToken();
 
         builder.HasIndex(article => new { article.LocaleId, article.Slug })
             .IsUnique()
