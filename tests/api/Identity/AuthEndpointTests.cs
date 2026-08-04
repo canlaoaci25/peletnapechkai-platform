@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 
 namespace Peletnapechkai.Api.Tests.Identity;
 
@@ -58,13 +57,9 @@ public sealed class AuthEndpointTests : IClassFixture<AuthEndpointTests.ApiFacto
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Development");
-            builder.ConfigureAppConfiguration((_, configuration) =>
-            {
-                configuration.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["ConnectionStrings:Database"] = "Host=127.0.0.1;Database=endpoint_tests;Username=none;Password=none"
-                });
-            });
+            builder.UseSetting(
+                "ConnectionStrings:Database",
+                "Host=127.0.0.1;Database=endpoint_tests;Username=none;Password=none");
         }
     }
 
