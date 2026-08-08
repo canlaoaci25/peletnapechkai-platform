@@ -115,30 +115,11 @@ export function LibraryManager({
           </label>
           <button>{copy.add}</button>
         </form>
-        <form
-          className="admin-form compact-form"
-          onSubmit={(event) => submit(event, "sources")}
-        >
-          <h2>{copy.source}</h2>
-          <label>
-            {copy.name}
-            <input name="name" required />
-          </label>
-          <label>
-            {copy.url}
-            <input name="url" type="url" required />
-          </label>
-          <button>{copy.add}</button>
-        </form>
       </div>
       <div className="library-grid">
         <section className="admin-panel">
           <h2>{copy.author}</h2>
           {list(library.authors)}
-        </section>
-        <section className="admin-panel">
-          <h2>{copy.source}</h2>
-          {list(library.sources)}
         </section>
       </div>
       <section className="admin-panel media-panel">
