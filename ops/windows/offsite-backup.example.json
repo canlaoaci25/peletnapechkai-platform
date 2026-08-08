@@ -1,0 +1,9 @@
+{
+  "Enabled": false,
+  "HostName": "backup.example.com",
+  "Port": 22,
+  "UserName": "backup-user",
+  "RemotePath": "/backups/peletnapechkai/postgresql",
+  "PrivateKeyPath": "C:\\ProgramData\\Peletnapechkai\\Secrets\\sftp-backup-key",
+  "KnownHostsPath": "C:\\ProgramData\\Peletnapechkai\\Secrets\\sftp-known-hosts"
+}
