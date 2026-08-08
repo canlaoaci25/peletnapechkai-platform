@@ -9,6 +9,7 @@ import { siteUrl } from "@/lib/site-url";
 
 import "../globals.css";
 import { ConsentBanner } from "@/components/consent-banner";
+import { ThirdPartyIntegrations } from "@/components/third-party-integrations";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +40,8 @@ export async function generateMetadata({
     metadataBase: siteUrl,
     title: dictionary.metadata.title,
     description: dictionary.metadata.description,
+    other: process.env.NEXT_PUBLIC_ADSENSE_CLIENT ? { "google-adsense-account": process.env.NEXT_PUBLIC_ADSENSE_CLIENT } : undefined,
+    verification: { google: process.env.GOOGLE_SITE_VERIFICATION, other: process.env.BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION } : undefined },
     alternates: {
       canonical: `/${locale}`,
       languages: Object.fromEntries(
@@ -71,7 +74,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body><a className="skip-link" href="#page-root">{dictionary.accessibility.skipToContent}</a><div id="page-root" tabIndex={-1}>{children}</div><ConsentBanner locale={locale}/></body>
+      <body><a className="skip-link" href="#page-root">{dictionary.accessibility.skipToContent}</a><div id="page-root" tabIndex={-1}>{children}</div><ConsentBanner locale={locale}/><ThirdPartyIntegrations/></body>
     </html>
   );
 }
