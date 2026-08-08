@@ -10,6 +10,7 @@ import { siteConfig } from "@/config/site";
 import { userCopy } from "@/i18n/user-copy";
 import { libraryCopy } from "@/i18n/library-copy";
 import { SystemStatus } from "@/components/admin/system-status";
+import { knowledgeCopy } from "@/i18n/knowledge-copy";
 
 export default async function AdminPage({ params }: PageProps<"/[locale]/admin">) {
   const { locale } = await params;
@@ -22,7 +23,7 @@ export default async function AdminPage({ params }: PageProps<"/[locale]/admin">
     <main className="admin-shell">
       <header className="admin-header">
         <div><p className="section-kicker">{siteConfig.name}</p><h1>{copy.dashboard}</h1></div>
-        <div className="admin-session"><span>{copy.signedInAs}: {session.displayName}</span>{session.roles.some((role) => ["Owner", "Admin", "Editor"].includes(role)) && <Link href={`/${locale}/admin/library`}>{libraryCopy[locale].link}</Link>}{session.roles.some((role) => ["Owner", "Admin"].includes(role)) && <Link href={`/${locale}/admin/users`}>{userCopy[locale].usersLink}</Link>}<LogoutButton locale={locale} label={copy.logout} /></div>
+        <div className="admin-session"><span>{copy.signedInAs}: {session.displayName}</span>{session.roles.some((role) => ["Owner", "Admin", "Editor"].includes(role)) && <Link href={`/${locale}/admin/library`}>{libraryCopy[locale].link}</Link>}{session.roles.some((role) => ["Owner", "Admin", "Editor"].includes(role)) && <Link href={`/${locale}/admin/knowledge`}>{knowledgeCopy[locale].link}</Link>}{session.roles.some((role) => ["Owner", "Admin"].includes(role)) && <Link href={`/${locale}/admin/users`}>{userCopy[locale].usersLink}</Link>}<LogoutButton locale={locale} label={copy.logout} /></div>
       </header>
       <div className="admin-columns">
         <section className="admin-panel"><h2>{copy.newDraft}</h2><ArticleEditor copy={copy} /></section>

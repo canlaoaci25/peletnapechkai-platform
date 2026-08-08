@@ -43,6 +43,7 @@ export type SupportingLibrary = {
 };
 export type MediaItem = { id:string; fileName:string; contentType:string; byteLength:number; createdAt:string };
 export type SystemStatus={checkedAt:string;database:string;articles:number;published:number;users:number;mediaFiles:number;mediaBytes:number;diskFreeBytes:number};
+export type KnowledgeCandidate={id:string;locale:string;title:string;claim:string;sourceUrl:string;aiAssisted:boolean;status:string;createdAt:string;updatedAt:string};
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 
@@ -82,3 +83,4 @@ export async function getMedia() {
   return (await apiGet<MediaItem[]>("/api/v1/admin/media/")) ?? [];
 }
 export function getSystemStatus(){return apiGet<SystemStatus>("/api/v1/admin/status")}
+export async function getKnowledgeCandidates(){return(await apiGet<KnowledgeCandidate[]>("/api/v1/admin/knowledge/"))??[]}
