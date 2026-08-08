@@ -30,6 +30,23 @@ public sealed class ArticleWorkflowTests
     }
 
     [Fact]
+    public void ScheduledArticle_PreservesItsIntendedPublicationTime()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var scheduledAt = now.AddHours(1);
+        var article = CreateArticle(now);
+        article.SubmitForEditorialReview(now.AddMinutes(1));
+        article.ApproveEditorialReview(now.AddMinutes(2));
+        article.Schedule(scheduledAt, now.AddMinutes(3));
+
+        article.Publish(scheduledAt);
+
+        Assert.Equal(PublicationStatus.Published, article.Status);
+        Assert.Equal(scheduledAt, article.PublishedAt);
+        Assert.Null(article.ScheduledAt);
+    }
+
+    [Fact]
     public void NonDraftArticle_CannotBeEdited()
     {
         var now = DateTimeOffset.UtcNow;

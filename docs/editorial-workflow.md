@@ -8,6 +8,10 @@ The workflow is:
 
 `Draft` → `InEditorialReview` → `InSeoReview` → `Scheduled` or `Published` → `Archived`
 
+The API checks due scheduled content every 30 seconds. A due item is published with its
+intended schedule timestamp and receives a system audit entry. Failures are logged and
+retried on the next cycle, so a temporary database interruption does not discard the job.
+
 Reviewers can return content to Draft. Only Draft content can be edited. Scheduling
 requires a future UTC timestamp, and only SEO-reviewed or scheduled content can publish.
 Every mutation requires CSRF protection, an appropriate role policy, and creates an

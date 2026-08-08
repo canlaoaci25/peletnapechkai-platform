@@ -3,6 +3,7 @@ using Peletnapechkai.Api.Endpoints;
 using Peletnapechkai.Api.Infrastructure.Identity;
 using Peletnapechkai.Api.Localization;
 using Peletnapechkai.Api.Infrastructure.Persistence;
+using Peletnapechkai.Api.Infrastructure.Publishing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddApplicationIdentity(builder.Environment, builder.Configuration);
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddHostedService<ScheduledPublishingWorker>();
 
 var app = builder.Build();
 
