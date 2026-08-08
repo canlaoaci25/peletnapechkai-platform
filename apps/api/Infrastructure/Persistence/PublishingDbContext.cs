@@ -5,6 +5,7 @@ using Peletnapechkai.Api.Domain.Auditing;
 using Peletnapechkai.Api.Domain.Content;
 using Peletnapechkai.Api.Domain.Identity;
 using Peletnapechkai.Api.Domain.Localization;
+using Peletnapechkai.Api.Domain.Knowledge;
 
 namespace Peletnapechkai.Api.Infrastructure.Persistence;
 
@@ -27,6 +28,7 @@ public sealed class PublishingDbContext(DbContextOptions<PublishingDbContext> op
     public DbSet<ArticleRevision> ArticleRevisions => Set<ArticleRevision>();
     public DbSet<SeoMetadata> SeoMetadata => Set<SeoMetadata>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<KnowledgeCandidate> KnowledgeCandidates => Set<KnowledgeCandidate>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
