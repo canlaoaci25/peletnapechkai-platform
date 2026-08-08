@@ -4,6 +4,8 @@ export type PublicArticleSummary = {
   articleGroupId: string; slug: string; title: string; summary: string; type: string; publishedAt: string; updatedAt: string;
 };
 export type PublicArticle = Omit<PublicArticleSummary, "articleGroupId"> & { body: string; seoTitle: string | null; seoDescription: string | null; isSponsored:boolean; sponsorName:string|null; hasAffiliateLinks:boolean; categories:{slug:string;name:string}[]; tags:{slug:string;name:string}[]; authors:{slug:string;displayName:string}[]; sources:{name:string;url:string}[]; translations: { locale: string; slug: string }[] };
+export type PublicArchive = { kind:string; slug:string; title:string; description:string|null; articles:PublicArticleSummary[] };
+export type PublicArchiveIndex = { categories:{slug:string;title:string}[]; tags:{slug:string;title:string}[]; authors:{slug:string;title:string}[] };
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 
@@ -28,3 +30,6 @@ export async function searchPublishedArticles(locale: string, query: string) {
   if (query.trim().length < 2) return [];
   return await publicGet<PublicArticleSummary[]>(`/api/v1/public/${encodeURIComponent(locale)}/articles/search?q=${encodeURIComponent(query.trim())}`) ?? [];
 }
+
+export function getPublicArchive(locale:string,kind:string,slug:string){return publicGet<PublicArchive>(`/api/v1/public/${encodeURIComponent(locale)}/archives/${encodeURIComponent(kind)}/${encodeURIComponent(slug)}`)}
+export async function getPublicArchiveIndex(locale:string){return await publicGet<PublicArchiveIndex>(`/api/v1/public/${encodeURIComponent(locale)}/archives`)??{categories:[],tags:[],authors:[]}}
