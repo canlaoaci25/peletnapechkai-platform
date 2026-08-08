@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import type { AdminCopy } from "@/i18n/admin-copy";
 import type { ArticleDetail } from "@/lib/admin-api";
 import {commercialCopy}from"@/i18n/commercial-copy";
+import {RichTextEditor}from"@/components/admin/rich-text-editor";
 
-export function ArticleEditor({ copy, article }: { copy: AdminCopy; article?: ArticleDetail }) {
+export function ArticleEditor({ copy, article, categories=[] }: { copy: AdminCopy; article?: ArticleDetail; categories?:{id:string;locale:string;name:string}[] }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
@@ -22,6 +23,7 @@ export function ArticleEditor({ copy, article }: { copy: AdminCopy; article?: Ar
       const csrf = await fetch("/api/admin/auth/csrf", { cache: "no-store" });
       const { token } = (await csrf.json()) as { token: string };
       const payload:Record<string,unknown> = Object.fromEntries(data.entries());
+      payload.categoryIds=data.getAll("categoryIds");
       payload.isSponsored=data.get("isSponsored")==="on";payload.hasAffiliateLinks=data.get("hasAffiliateLinks")==="on";
       if (article) payload.expectedUpdatedAt = article.updatedAt;
       const response = await fetch(article ? `/api/admin/articles/${article.id}` : "/api/admin/articles/", {
@@ -54,7 +56,8 @@ export function ArticleEditor({ copy, article }: { copy: AdminCopy; article?: Ar
       <label>{copy.title}<input name="title" defaultValue={article?.title} required maxLength={220} /></label>
       <label>{copy.slug}<input name="slug" defaultValue={article?.slug} required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="example-article" /></label>
       <label>{copy.summary}<textarea name="summary" defaultValue={article?.summary} rows={3} /></label>
-      <label>{copy.body}<textarea name="body" defaultValue={article?.body} rows={12} /></label>
+      {!article&&<label>Kategori<select name="categoryIds" required defaultValue=""><option value="" disabled>Kategori seçin</option>{categories.filter(x=>x.locale==="tr-TR").map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}
+      <RichTextEditor name="body" label={copy.body} initialValue={article?.body}/>
       <div className="form-grid">
         <label>{copy.seoTitle}<input name="seoTitle" defaultValue={article?.seoTitle ?? ""} maxLength={70} /></label>
         <label>{copy.seoDescription}<textarea name="seoDescription" defaultValue={article?.seoDescription ?? ""} rows={2} maxLength={170} /></label>

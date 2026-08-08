@@ -6,6 +6,7 @@ using Peletnapechkai.Api.Domain.Content;
 using Peletnapechkai.Api.Domain.Identity;
 using Peletnapechkai.Api.Infrastructure.Identity;
 using Peletnapechkai.Api.Infrastructure.Persistence;
+using Ganss.Xss;
 
 namespace Peletnapechkai.Api.Endpoints;
 
@@ -75,8 +76,9 @@ public static class EditorialEndpoints
         if (locale is null || actor is null) return Results.BadRequest();
         var now = DateTimeOffset.UtcNow;
         var articleGroup = new ArticleGroup(type, now);
-        var article = new ArticleLocalization(articleGroup, locale, request.Slug, request.Title, request.Summary ?? string.Empty, request.Body ?? string.Empty, now);
-        article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, request.Body ?? string.Empty, request.SeoTitle, request.SeoDescription, now);
+        var body=SanitizeBody(request.Body);var article = new ArticleLocalization(articleGroup, locale, request.Slug, request.Title, request.Summary ?? string.Empty, body, now);
+        article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, body, request.SeoTitle, request.SeoDescription, now);
+        var categoryIds=request.CategoryIds??[];if(categoryIds.Length==0)return Validation("categoryIds","A category is required.");var categories=await database.Categories.Where(x=>categoryIds.Contains(x.Id)&&x.LocaleId==locale.Id).ToListAsync(token);if(categories.Count!=categoryIds.Distinct().Count())return Validation("categoryIds","A valid category is required.");foreach(var category in categories)article.Categories.Add(category);
         article.UpdateCommercialDisclosure(request.IsSponsored, request.SponsorName, request.HasAffiliateLinks, now);
         database.ArticleGroups.Add(articleGroup);
         database.AuditLogs.Add(Audit(actor.Id, "editorial.article_created", article.Id, new { request.Locale, type }));
@@ -94,7 +96,7 @@ public static class EditorialEndpoints
         var now = DateTimeOffset.UtcNow;
         var revision = new ArticleRevision(article, article.Revisions.Count == 0 ? 1 : article.Revisions.Max(x => x.Number) + 1, article.Title, article.Summary, article.Body, actor.Id, now);
         database.ArticleRevisions.Add(revision);
-        article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, request.Body ?? string.Empty, request.SeoTitle, request.SeoDescription, now);
+        article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, SanitizeBody(request.Body), request.SeoTitle, request.SeoDescription, now);
         article.UpdateCommercialDisclosure(request.IsSponsored, request.SponsorName, request.HasAffiliateLinks, now);
         database.AuditLogs.Add(Audit(actor.Id, "editorial.article_updated", article.Id, null));
         await database.SaveChangesAsync(token);
@@ -162,7 +164,8 @@ public static class EditorialEndpoints
         new(actorId, action, nameof(ArticleLocalization), entityId, details is null ? null : JsonSerializer.Serialize(details), DateTimeOffset.UtcNow);
     private static IResult Validation(string key, string message) => Results.ValidationProblem(new Dictionary<string, string[]> { [key] = [message] });
 
-    private sealed record CreateArticleRequest(string Type, string Locale, string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks);
+    private static string SanitizeBody(string? body){var sanitizer=new HtmlSanitizer();sanitizer.AllowedTags.Clear();foreach(var tag in new[]{"p","br","h2","h3","h4","strong","em","u","s","blockquote","ul","ol","li","pre","code","a","img","figure","figcaption","iframe","hr"})sanitizer.AllowedTags.Add(tag);sanitizer.AllowedAttributes.Clear();foreach(var attribute in new[]{"href","target","rel","src","alt","title","width","height","allowfullscreen","frameborder"})sanitizer.AllowedAttributes.Add(attribute);sanitizer.AllowedSchemes.Clear();foreach(var scheme in new[]{"http","https"})sanitizer.AllowedSchemes.Add(scheme);return sanitizer.Sanitize(body??string.Empty);}
+    private sealed record CreateArticleRequest(string Type, string Locale, string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks, Guid[]? CategoryIds);
     private sealed record UpdateArticleRequest(string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks, DateTimeOffset ExpectedUpdatedAt);
     private sealed record ScheduleRequest(DateTimeOffset ScheduledAt);
     private sealed record RelationshipsRequest(Guid[] CategoryIds, Guid[] TagIds, Guid[] AuthorIds, Guid[] SourceIds, Guid[] MediaAssetIds, Guid? CoverMediaAssetId, string? CoverAltText, string? CoverCaption, string? CoverCredit);
