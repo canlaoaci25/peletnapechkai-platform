@@ -76,15 +76,23 @@ export function AdminFrame({
     copy = text[locale];
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [collapsed, setCollapsed] = useState(false);
+  const contentRoute =
+    pathname.startsWith(`/${locale}/admin/articles`) ||
+    pathname.startsWith(`/${locale}/admin/library`);
+  const [contentOpen, setContentOpen] = useState(contentRoute);
   useEffect(() => {
     const saved = localStorage.getItem("boecl-admin-theme"),
       savedMenu = localStorage.getItem("boecl-admin-sidebar");
     const timer = setTimeout(() => {
       if (saved === "light" || saved === "dark") setTheme(saved);
       setCollapsed(savedMenu === "collapsed");
+      setContentOpen(
+        contentRoute ||
+          localStorage.getItem("boecl-content-module") !== "closed",
+      );
     }, 0);
     return () => clearTimeout(timer);
-  }, []);
+  }, [contentRoute]);
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
@@ -97,6 +105,13 @@ export function AdminFrame({
         "boecl-admin-sidebar",
         next ? "collapsed" : "expanded",
       );
+      return next;
+    });
+  }
+  function toggleContent() {
+    setContentOpen((value) => {
+      const next = !value;
+      localStorage.setItem("boecl-content-module", next ? "open" : "closed");
       return next;
     });
   }
@@ -147,11 +162,23 @@ export function AdminFrame({
             "⌂",
             copy.overview,
           )}
-          <section className="admin-nav-module" aria-label={copy.contents}>
-            <div className="admin-nav-module-title">
+          <section
+            className="admin-nav-module"
+            aria-label={copy.contents}
+            data-open={contentOpen}
+          >
+            <button
+              className="admin-nav-module-title"
+              type="button"
+              onClick={toggleContent}
+              aria-expanded={contentOpen}
+            >
               <span aria-hidden>▤</span>
               <span className="nav-label">{copy.contents}</span>
-            </div>
+              <span className="module-chevron" aria-hidden>
+                {contentOpen ? "−" : "+"}
+              </span>
+            </button>
             <div className="admin-nav-submenu">
               {item(
                 `/${locale}/admin/articles`,
