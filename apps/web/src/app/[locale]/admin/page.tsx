@@ -6,6 +6,7 @@ import { LogoutButton } from "@/components/admin/logout-button";
 import { adminCopy } from "@/i18n/admin-copy";
 import { hasLocale } from "@/i18n/config";
 import { getAdminSession, getArticles } from "@/lib/admin-api";
+import { siteConfig } from "@/config/site";
 
 export default async function AdminPage({ params }: PageProps<"/[locale]/admin">) {
   const { locale } = await params;
@@ -17,7 +18,7 @@ export default async function AdminPage({ params }: PageProps<"/[locale]/admin">
   return (
     <main className="admin-shell">
       <header className="admin-header">
-        <div><p className="section-kicker">Peletnapechkai</p><h1>{copy.dashboard}</h1></div>
+        <div><p className="section-kicker">{siteConfig.name}</p><h1>{copy.dashboard}</h1></div>
         <div className="admin-session"><span>{copy.signedInAs}: {session.displayName}</span><LogoutButton locale={locale} label={copy.logout} /></div>
       </header>
       <div className="admin-columns">

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { getDictionary } from "@/i18n/get-dictionary";
 import { hasLocale, locales, type Locale } from "@/i18n/config";
+import { siteConfig } from "@/config/site";
 
 import "../globals.css";
 
@@ -50,7 +51,7 @@ export async function generateMetadata({
       title: dictionary.metadata.title,
       description: dictionary.metadata.description,
       url: `/${locale}`,
-      siteName: "Peletnapechkai",
+      siteName: siteConfig.name,
     },
   };
 }

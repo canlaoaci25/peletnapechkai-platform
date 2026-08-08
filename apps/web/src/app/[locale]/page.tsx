@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { getDictionary } from "@/i18n/get-dictionary";
 import { hasLocale, localeLabels, locales } from "@/i18n/config";
+import { siteConfig } from "@/config/site";
 
 export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
   const { locale } = await params;
@@ -24,7 +25,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
     <div className="site-shell">
       <header className="site-header">
         <Link className="brand" href={`/${locale}`}>
-          Peletnapechkai
+          {siteConfig.name}
         </Link>
         <nav aria-label="Language and region" className="locale-nav">
           {locales.map((supportedLocale) => (
@@ -70,7 +71,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
       </main>
 
       <footer className="site-footer">
-        <span>© {new Date().getUTCFullYear()} Peletnapechkai</span>
+        <span>© {new Date().getUTCFullYear()} {siteConfig.legalName}</span>
         <span>{localeLabels[locale]}</span>
       </footer>
     </div>

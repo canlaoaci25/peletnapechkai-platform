@@ -1,6 +1,6 @@
-# Peletnapechkai Platform
+# BOECL Publishing Platform
 
-Peletnapechkai is a multilingual, multi-region publishing platform. The initial release
+BOECL is a multilingual, multi-region publishing platform. The initial release
 supports Turkish/Türkiye, English/United States, and German/Germany.
 
 ## Projects
@@ -9,6 +9,8 @@ supports Turkish/Türkiye, English/United States, and German/Germany.
 - `apps/api`: ASP.NET Core Web API.
 - `tests/api`: API unit tests.
 - `docs`: Architecture decisions and project documentation.
+
+Public naming rules are documented in [`docs/brand.md`](docs/brand.md).
 
 ## Requirements
 
