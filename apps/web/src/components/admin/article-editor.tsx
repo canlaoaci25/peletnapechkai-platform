@@ -3,7 +3,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
-import { commercialCopy } from "@/i18n/commercial-copy";
 import type { AdminCopy } from "@/i18n/admin-copy";
 import type { ArticleDetail } from "@/lib/admin-api";
 
@@ -37,21 +36,16 @@ export function ArticleEditor({
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [words, setWords] = useState(0);
   const [title, setTitle] = useState(article?.title ?? "");
   const [slug, setSlug] = useState(article?.slug ?? "");
   const [slugEdited, setSlugEdited] = useState(Boolean(article));
-  const commercial =
-    commercialCopy[(article?.locale ?? "tr-TR") as keyof typeof commercialCopy];
   const locale = article?.locale ?? "tr-TR";
 
   useEffect(() => {
     function close(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      setSettingsOpen(false);
-      setFocusMode(false);
+      if (event.key === "Escape") setFocusMode(false);
     }
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
@@ -69,8 +63,11 @@ export function ArticleEditor({
         data.entries(),
       );
       payload.categoryIds = data.getAll("categoryIds");
-      payload.isSponsored = data.get("isSponsored") === "on";
-      payload.hasAffiliateLinks = data.get("hasAffiliateLinks") === "on";
+      payload.seoTitle = article?.seoTitle ?? null;
+      payload.seoDescription = article?.seoDescription ?? null;
+      payload.isSponsored = article?.isSponsored ?? false;
+      payload.sponsorName = article?.sponsorName ?? null;
+      payload.hasAffiliateLinks = article?.hasAffiliateLinks ?? false;
       if (article) payload.expectedUpdatedAt = article.updatedAt;
       const response = await fetch(
         article ? `/api/admin/articles/${article.id}` : "/api/admin/articles/",
@@ -120,13 +117,6 @@ export function ArticleEditor({
             {focusMode ? "Tam ekrandan çık" : "Tam ekran"}
           </button>
           <button
-            type="button"
-            className="editor-tool-button"
-            onClick={() => setSettingsOpen(true)}
-          >
-            Ayarlar
-          </button>
-          <button
             type="submit"
             className="editor-save-button"
             disabled={pending}
@@ -136,17 +126,13 @@ export function ArticleEditor({
         </nav>
       </header>
       <div className="advanced-editor-main">
-        <div className="form-grid">
-          <label>
-            {copy.locale}
-            <select
-              name="locale"
-              defaultValue={locale}
-              disabled={Boolean(article)}
-            >
-              <option>tr-TR</option>
-            </select>
-          </label>
+        <div className="form-grid article-primary-settings">
+          {!article && <input type="hidden" name="locale" value="tr-TR" />}
+          <div className="editor-fixed-locale">
+            <span>Dil</span>
+            <strong>Türkçe</strong>
+            <small>Yeni yayınlar otomatik olarak tr-TR oluşturulur.</small>
+          </div>
           <label>
             {copy.type}
             <select
@@ -158,6 +144,25 @@ export function ArticleEditor({
               <option value="Guide">{copy.guide}</option>
               <option value="Review">{copy.review}</option>
               <option value="Analysis">{copy.analysis}</option>
+            </select>
+          </label>
+          <label>
+            Kategori
+            <select
+              name="categoryIds"
+              required
+              defaultValue={article?.categoryIds?.[0] ?? ""}
+            >
+              <option value="" disabled>
+                Kategori seçin
+              </option>
+              {categories
+                .filter((item) => item.locale === locale)
+                .map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
             </select>
           </label>
         </div>
@@ -205,96 +210,6 @@ export function ArticleEditor({
           </p>
         )}
       </div>
-      {settingsOpen && (
-        <button
-          className="editor-settings-backdrop"
-          type="button"
-          aria-label="Ayarları kapat"
-          onClick={() => setSettingsOpen(false)}
-        />
-      )}
-      <aside
-        className={`advanced-editor-settings${settingsOpen ? " is-open" : ""}`}
-        aria-label="İçerik ayarları"
-        aria-hidden={!settingsOpen}
-      >
-        <header>
-          <div>
-            <span>YAYIN AYARLARI</span>
-            <h2>İçerik ayarları</h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(false)}
-            aria-label="Ayarları kapat"
-          >
-            ×
-          </button>
-        </header>
-        <label>
-          Kategori
-          <select
-            name="categoryIds"
-            required
-            defaultValue={article?.categoryIds?.[0] ?? ""}
-          >
-            <option value="" disabled>
-              Kategori seçin
-            </option>
-            {categories
-              .filter((item) => item.locale === locale)
-              .map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-          </select>
-        </label>
-        <label>
-          {copy.seoTitle}
-          <input
-            name="seoTitle"
-            defaultValue={article?.seoTitle ?? ""}
-            maxLength={70}
-          />
-        </label>
-        <label>
-          {copy.seoDescription}
-          <textarea
-            name="seoDescription"
-            defaultValue={article?.seoDescription ?? ""}
-            rows={4}
-            maxLength={170}
-          />
-        </label>
-        <fieldset>
-          <legend>{commercial.disclosure}</legend>
-          <label className="check-label">
-            <input
-              name="isSponsored"
-              type="checkbox"
-              defaultChecked={article?.isSponsored}
-            />
-            {commercial.sponsored}
-          </label>
-          <label>
-            {commercial.sponsorName}
-            <input
-              name="sponsorName"
-              defaultValue={article?.sponsorName ?? ""}
-              maxLength={200}
-            />
-          </label>
-          <label className="check-label">
-            <input
-              name="hasAffiliateLinks"
-              type="checkbox"
-              defaultChecked={article?.hasAffiliateLinks}
-            />
-            {commercial.affiliate}
-          </label>
-        </fieldset>
-      </aside>
     </form>
   );
 }
