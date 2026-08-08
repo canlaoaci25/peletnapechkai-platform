@@ -47,6 +47,23 @@ public sealed class ArticleWorkflowTests
     }
 
     [Fact]
+    public void DraftCover_RequiresAlternativeTextAndStoresLocalizedPresentation()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var article = CreateArticle(now);
+        var media = new MediaAsset("2026/08/example.webp", "example.webp", "image/webp", 100, now);
+
+        Assert.Throws<ArgumentException>(() => article.UpdateCover(media, " ", null, null, now));
+
+        article.UpdateCover(media, "Açıklayıcı metin", "Başlık", "Fotoğrafçı", now.AddMinutes(1));
+
+        Assert.Equal(media.Id, article.CoverMediaAssetId);
+        Assert.Equal("Açıklayıcı metin", article.CoverAltText);
+        Assert.Equal("Başlık", article.CoverCaption);
+        Assert.Equal("Fotoğrafçı", article.CoverCredit);
+    }
+
+    [Fact]
     public void NonDraftArticle_CannotBeEdited()
     {
         var now = DateTimeOffset.UtcNow;

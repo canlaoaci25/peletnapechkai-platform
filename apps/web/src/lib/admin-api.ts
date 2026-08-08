@@ -28,6 +28,7 @@ export type ArticleDetail = ArticleSummary & {
   seoTitle: string | null;
   seoDescription: string | null;
   categoryIds:string[]; tagIds:string[]; authorIds:string[]; sourceIds:string[]; mediaAssetIds:string[];
+  coverMediaAssetId:string|null; coverAltText:string|null; coverCaption:string|null; coverCredit:string|null;
   isSponsored:boolean; sponsorName:string|null; hasAffiliateLinks:boolean;
 };
 

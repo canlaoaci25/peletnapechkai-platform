@@ -58,6 +58,11 @@ public sealed class ArticleLocalization
     public string? SeoTitle { get; private set; }
 
     public string? SeoDescription { get; private set; }
+    public Guid? CoverMediaAssetId { get; private set; }
+    public MediaAsset? CoverMediaAsset { get; private set; }
+    public string? CoverAltText { get; private set; }
+    public string? CoverCaption { get; private set; }
+    public string? CoverCredit { get; private set; }
     public bool IsSponsored { get; private set; }
     public string? SponsorName { get; private set; }
     public bool HasAffiliateLinks { get; private set; }
@@ -106,6 +111,18 @@ public sealed class ArticleLocalization
         if (Status != PublicationStatus.Draft) throw new InvalidOperationException("Only draft disclosures can be edited.");
         if (isSponsored && string.IsNullOrWhiteSpace(sponsorName)) throw new ArgumentException("Sponsored content requires a sponsor name.", nameof(sponsorName));
         IsSponsored=isSponsored; SponsorName=isSponsored?sponsorName!.Trim():null; HasAffiliateLinks=hasAffiliateLinks; UpdatedAt=updatedAt;
+    }
+
+    public void UpdateCover(MediaAsset? asset, string? altText, string? caption, string? credit, DateTimeOffset updatedAt)
+    {
+        if (Status != PublicationStatus.Draft) throw new InvalidOperationException("Only draft covers can be edited.");
+        if (asset is not null && string.IsNullOrWhiteSpace(altText)) throw new ArgumentException("Cover images require alternative text.", nameof(altText));
+        CoverMediaAsset = asset;
+        CoverMediaAssetId = asset?.Id;
+        CoverAltText = asset is null ? null : altText!.Trim();
+        CoverCaption = asset is null || string.IsNullOrWhiteSpace(caption) ? null : caption.Trim();
+        CoverCredit = asset is null || string.IsNullOrWhiteSpace(credit) ? null : credit.Trim();
+        UpdatedAt = updatedAt;
     }
 
     public void ApproveEditorialReview(DateTimeOffset updatedAt) =>

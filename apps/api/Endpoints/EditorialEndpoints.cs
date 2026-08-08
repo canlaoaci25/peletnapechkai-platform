@@ -52,7 +52,7 @@ public static class EditorialEndpoints
     private static async Task<IResult> GetAsync(Guid articleId, PublishingDbContext database, CancellationToken token)
     {
         var article = await database.ArticleLocalizations.AsNoTracking().Include(x => x.Locale).Where(x => x.Id == articleId)
-            .Select(x => new { x.Id, x.ArticleGroupId, locale = x.Locale.Code, type = x.ArticleGroup.Type.ToString(), x.Slug, x.Title, x.Summary, x.Body, x.SeoTitle, x.SeoDescription, x.IsSponsored, x.SponsorName, x.HasAffiliateLinks, status = x.Status.ToString(), x.UpdatedAt, x.ScheduledAt, x.PublishedAt, categoryIds=x.Categories.Select(item=>item.Id), tagIds=x.Tags.Select(item=>item.Id), authorIds=x.ArticleGroup.Authors.Select(item=>item.Id), sourceIds=x.ArticleGroup.Sources.Select(item=>item.Id), mediaAssetIds=x.ArticleGroup.MediaAssets.Select(item=>item.Id) }).SingleOrDefaultAsync(token);
+            .Select(x => new { x.Id, x.ArticleGroupId, locale = x.Locale.Code, type = x.ArticleGroup.Type.ToString(), x.Slug, x.Title, x.Summary, x.Body, x.SeoTitle, x.SeoDescription, x.IsSponsored, x.SponsorName, x.HasAffiliateLinks, x.CoverMediaAssetId, x.CoverAltText, x.CoverCaption, x.CoverCredit, status = x.Status.ToString(), x.UpdatedAt, x.ScheduledAt, x.PublishedAt, categoryIds=x.Categories.Select(item=>item.Id), tagIds=x.Tags.Select(item=>item.Id), authorIds=x.ArticleGroup.Authors.Select(item=>item.Id), sourceIds=x.ArticleGroup.Sources.Select(item=>item.Id), mediaAssetIds=x.ArticleGroup.MediaAssets.Select(item=>item.Id) }).SingleOrDefaultAsync(token);
         return article is null ? Results.NotFound() : Results.Ok(article);
     }
 
@@ -116,11 +116,15 @@ public static class EditorialEndpoints
         var sources=await database.Sources.Where(x=>request.SourceIds.Contains(x.Id)).ToListAsync(token);
         var media=await database.MediaAssets.Where(x=>request.MediaAssetIds.Contains(x.Id)).ToListAsync(token);
         if(categories.Count!=request.CategoryIds.Distinct().Count() || tags.Count!=request.TagIds.Distinct().Count() || authors.Count!=request.AuthorIds.Distinct().Count() || sources.Count!=request.SourceIds.Distinct().Count() || media.Count!=request.MediaAssetIds.Distinct().Count()) return Validation("relationships","One or more relationships are invalid for this locale.");
+        var cover=request.CoverMediaAssetId is null?null:media.SingleOrDefault(x=>x.Id==request.CoverMediaAssetId);
+        if(request.CoverMediaAssetId is not null && cover is null)return Validation("coverMediaAssetId","The cover must be one of the selected media assets.");
+        if(cover is not null && string.IsNullOrWhiteSpace(request.CoverAltText))return Validation("coverAltText","Cover alternative text is required.");
         article.Categories.Clear(); foreach(var item in categories)article.Categories.Add(item);
         article.Tags.Clear(); foreach(var item in tags)article.Tags.Add(item);
         article.ArticleGroup.Authors.Clear(); foreach(var item in authors)article.ArticleGroup.Authors.Add(item);
         article.ArticleGroup.Sources.Clear(); foreach(var item in sources)article.ArticleGroup.Sources.Add(item);
         article.ArticleGroup.MediaAssets.Clear(); foreach(var item in media)article.ArticleGroup.MediaAssets.Add(item);
+        article.UpdateCover(cover,request.CoverAltText,request.CoverCaption,request.CoverCredit,DateTimeOffset.UtcNow);
         database.AuditLogs.Add(Audit(actor.Id,"editorial.relationships_updated",article.Id,new {categories=categories.Count,tags=tags.Count,authors=authors.Count,sources=sources.Count,media=media.Count}));
         await database.SaveChangesAsync(token);
         return Results.Ok(new {article.Id});
@@ -145,5 +149,5 @@ public static class EditorialEndpoints
     private sealed record CreateArticleRequest(string Type, string Locale, string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks);
     private sealed record UpdateArticleRequest(string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks, DateTimeOffset ExpectedUpdatedAt);
     private sealed record ScheduleRequest(DateTimeOffset ScheduledAt);
-    private sealed record RelationshipsRequest(Guid[] CategoryIds, Guid[] TagIds, Guid[] AuthorIds, Guid[] SourceIds, Guid[] MediaAssetIds);
+    private sealed record RelationshipsRequest(Guid[] CategoryIds, Guid[] TagIds, Guid[] AuthorIds, Guid[] SourceIds, Guid[] MediaAssetIds, Guid? CoverMediaAssetId, string? CoverAltText, string? CoverCaption, string? CoverCredit);
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { getDictionary } from "@/i18n/get-dictionary";
@@ -60,7 +61,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
         </section>
         <section className="latest-section" aria-labelledby="latest-title">
           <p className="section-kicker">03</p><h2 id="latest-title">{dictionary.home.latestTitle}</h2>
-          {articles.length === 0 ? <p className="muted">{dictionary.home.noArticles}</p> : <div className="article-cards">{articles.map(article => <article className="public-card" key={article.slug}><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p><div><time dateTime={article.publishedAt}>{new Intl.DateTimeFormat(locale,{dateStyle:"long"}).format(new Date(article.publishedAt))}</time><Link href={`/${locale}/articles/${article.slug}`}>{dictionary.home.readArticle} →</Link></div></article>)}</div>}
+          {articles.length === 0 ? <p className="muted">{dictionary.home.noArticles}</p> : <div className="article-cards">{articles.map(article => <article className="public-card" key={article.slug}>{article.cover&&<Link className="card-cover" href={`/${locale}/articles/${article.slug}`}><Image src={article.cover.url} alt={article.cover.altText} width={1200} height={675} sizes="(max-width: 860px) 100vw, 33vw" unoptimized/></Link>}<p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p><div><time dateTime={article.publishedAt}>{new Intl.DateTimeFormat(locale,{dateStyle:"long"}).format(new Date(article.publishedAt))}</time><Link href={`/${locale}/articles/${article.slug}`}>{dictionary.home.readArticle} →</Link></div></article>)}</div>}
         </section>
         <section className="search-callout"><h2>{dictionary.search.title}</h2><form action={`/${locale}/search`} role="search"><label htmlFor="home-search">{dictionary.search.label}</label><div><input id="home-search" name="q" minLength={2} required/><button>{dictionary.search.submit}</button></div></form></section>
         <AdSlot label="Advertisement" />

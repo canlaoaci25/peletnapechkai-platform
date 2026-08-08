@@ -24,6 +24,10 @@ public sealed class ArticleLocalizationConfiguration : IEntityTypeConfiguration<
         builder.Property(article => article.Body).HasColumnName("body").HasColumnType("text");
         builder.Property(article => article.SeoTitle).HasColumnName("seo_title").HasMaxLength(180);
         builder.Property(article => article.SeoDescription).HasColumnName("seo_description").HasMaxLength(320);
+        builder.Property(article => article.CoverMediaAssetId).HasColumnName("cover_media_asset_id");
+        builder.Property(article => article.CoverAltText).HasColumnName("cover_alt_text").HasMaxLength(500);
+        builder.Property(article => article.CoverCaption).HasColumnName("cover_caption").HasMaxLength(1000);
+        builder.Property(article => article.CoverCredit).HasColumnName("cover_credit").HasMaxLength(300);
         builder.Property(article => article.IsSponsored).HasColumnName("is_sponsored");
         builder.Property(article => article.SponsorName).HasColumnName("sponsor_name").HasMaxLength(200);
         builder.Property(article => article.HasAffiliateLinks).HasColumnName("has_affiliate_links");
@@ -53,5 +57,9 @@ public sealed class ArticleLocalizationConfiguration : IEntityTypeConfiguration<
             .WithMany(locale => locale.ArticleLocalizations)
             .HasForeignKey(article => article.LocaleId)
             .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(article => article.CoverMediaAsset)
+            .WithMany()
+            .HasForeignKey(article => article.CoverMediaAssetId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

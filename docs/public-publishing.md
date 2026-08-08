@@ -4,6 +4,11 @@ Public content is exposed through read-only locale-scoped API endpoints and rend
 the Next.js application at runtime. Only records in `Published` status are returned;
 Draft, review, Scheduled, and Archived content is never included.
 
+An article may select one localized cover presentation from its attached media library.
+Alternative text is mandatory; caption and credit are optional. The binary is exposed
+through the public media endpoint only while at least one Published article uses it as a
+cover. Draft-only uploads therefore remain inaccessible to anonymous readers.
+
 - Listing: `GET /api/v1/public/{locale}/articles`
 - Article: `GET /api/v1/public/{locale}/articles/{slug}`
 - Public route: `/{locale}/articles/{slug}`

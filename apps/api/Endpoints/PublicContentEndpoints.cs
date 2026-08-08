@@ -14,7 +14,20 @@ public static class PublicContentEndpoints
         group.MapGet("/{locale}/articles/{slug}", GetAsync);
         group.MapGet("/{locale}/archives", ListArchivesAsync);
         group.MapGet("/{locale}/archives/{kind}/{slug}", GetArchiveAsync);
+        group.MapGet("/media/{assetId:guid}", GetMediaAsync);
         return endpoints;
+    }
+
+    private static async Task<IResult> GetMediaAsync(Guid assetId, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
+    {
+        var asset = await database.MediaAssets.AsNoTracking()
+            .Where(item => item.Id == assetId && database.ArticleLocalizations.Any(article => article.CoverMediaAssetId == item.Id && article.Status == PublicationStatus.Published))
+            .Select(item => new { item.StorageKey, item.ContentType, item.CreatedAt }).SingleOrDefaultAsync(token);
+        if (asset is null) return Results.NotFound();
+        var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
+        var path = Path.GetFullPath(Path.Combine(root, asset.StorageKey.Replace('/', Path.DirectorySeparatorChar)));
+        if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || !File.Exists(path)) return Results.NotFound();
+        return Results.File(path, asset.ContentType, lastModified: asset.CreatedAt, enableRangeProcessing: true);
     }
 
     private static async Task<IResult> ListArchivesAsync(string locale, PublishingDbContext database, CancellationToken token)
@@ -53,7 +66,7 @@ public static class PublicContentEndpoints
             default:
                 return Results.NotFound();
         }
-        var articles = await query.OrderByDescending(article => article.PublishedAt).Take(take).Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt }).ToListAsync(token);
+        var articles = await query.OrderByDescending(article => article.PublishedAt).Take(take).Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = $"/api/media/{article.CoverMediaAssetId}", altText = article.CoverAltText } }).ToListAsync(token);
         return Results.Ok(new { kind, slug, title, description, articles });
     }
 
@@ -69,7 +82,7 @@ public static class PublicContentEndpoints
             .Where(article => EF.Functions.ILike(article.Title, pattern, "\\") || EF.Functions.ILike(article.Summary, pattern, "\\") || EF.Functions.ILike(article.Body, pattern, "\\"))
             .OrderByDescending(article => article.PublishedAt)
             .Take(take)
-            .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt })
+            .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = $"/api/media/{article.CoverMediaAssetId}", altText = article.CoverAltText } })
             .ToListAsync(token);
         return Results.Ok(articles);
     }
@@ -89,7 +102,8 @@ public static class PublicContentEndpoints
                 article.Summary,
                 type = article.ArticleGroup.Type.ToString(),
                 article.PublishedAt,
-                article.UpdatedAt
+                article.UpdatedAt,
+                cover = article.CoverMediaAssetId == null ? null : new { url = $"/api/media/{article.CoverMediaAssetId}", altText = article.CoverAltText }
             })
             .ToListAsync(token);
         return Results.Ok(articles);
@@ -110,6 +124,7 @@ public static class PublicContentEndpoints
                 item.IsSponsored,
                 item.SponsorName,
                 item.HasAffiliateLinks,
+                cover = item.CoverMediaAssetId == null ? null : new { url = $"/api/media/{item.CoverMediaAssetId}", altText = item.CoverAltText, caption = item.CoverCaption, credit = item.CoverCredit },
                 type = item.ArticleGroup.Type.ToString(),
                 item.PublishedAt,
                 item.UpdatedAt,
