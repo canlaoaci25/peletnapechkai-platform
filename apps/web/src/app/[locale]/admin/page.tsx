@@ -1,41 +1,19 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
-
+import { redirect } from "next/navigation";
+import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { ArticleEditor } from "@/components/admin/article-editor";
 import { LogoutButton } from "@/components/admin/logout-button";
+import { siteConfig } from "@/config/site";
 import { adminCopy } from "@/i18n/admin-copy";
 import { hasLocale } from "@/i18n/config";
-import { getAdminSession, getArticles, getSystemStatus } from "@/lib/admin-api";
-import { siteConfig } from "@/config/site";
-import { userCopy } from "@/i18n/user-copy";
-import { libraryCopy } from "@/i18n/library-copy";
-import { SystemStatus } from "@/components/admin/system-status";
 import { knowledgeCopy } from "@/i18n/knowledge-copy";
-
-export default async function AdminPage({ params }: PageProps<"/[locale]/admin">) {
-  const { locale } = await params;
-  if (!hasLocale(locale)) redirect("/tr-TR/admin/login");
-  const session = await getAdminSession();
-  if (!session) redirect(`/${locale}/admin/login`);
-  const [articles, status, copy] = await Promise.all([getArticles(), session.roles.some(role=>["Owner","Admin"].includes(role))?getSystemStatus():Promise.resolve(null), Promise.resolve(adminCopy[locale])]);
-
-  return (
-    <main className="admin-shell">
-      <header className="admin-header">
-        <div><p className="section-kicker">{siteConfig.name}</p><h1>{copy.dashboard}</h1></div>
-        <div className="admin-session"><span>{copy.signedInAs}: {session.displayName}</span>{session.roles.some((role) => ["Owner", "Admin", "Editor"].includes(role)) && <Link href={`/${locale}/admin/library`}>{libraryCopy[locale].link}</Link>}{session.roles.some((role) => ["Owner", "Admin", "Editor"].includes(role)) && <Link href={`/${locale}/admin/knowledge`}>{knowledgeCopy[locale].link}</Link>}{session.roles.some((role) => ["Owner", "Admin"].includes(role)) && <Link href={`/${locale}/admin/users`}>{userCopy[locale].usersLink}</Link>}<LogoutButton locale={locale} label={copy.logout} /></div>
-      </header>
-      <div className="admin-columns">
-        <section className="admin-panel"><h2>{copy.newDraft}</h2><ArticleEditor copy={copy} /></section>
-        <section className="admin-panel"><h2>{copy.recent}</h2>
-          {articles.length === 0 ? <p className="muted">{copy.empty}</p> : (
-            <div className="article-table" role="table">
-              <div className="article-row article-row-head" role="row"><span>{copy.title}</span><span>{copy.status}</span><span>{copy.updated}</span></div>
-              {articles.map((article) => <div className="article-row" role="row" key={article.id}><span><Link href={`/${locale}/admin/articles/${article.id}`}><strong>{article.title}</strong></Link><small>{article.locale} · {article.type}</small></span><span>{article.status}</span><time dateTime={article.updatedAt}>{new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(article.updatedAt))}</time></div>)}
-            </div>
-          )}
-        </section>
-      </div>{status&&<SystemStatus status={status}/>} 
-    </main>
-  );
+import { libraryCopy } from "@/i18n/library-copy";
+import { userCopy } from "@/i18n/user-copy";
+import { getAdminSession,getArticles,getSystemStatus } from "@/lib/admin-api";
+export default async function AdminPage({params}:PageProps<"/[locale]/admin">){
+ const{locale}=await params;if(!hasLocale(locale))redirect("/tr-TR/admin/login");const session=await getAdminSession();if(!session)redirect(`/${locale}/admin/login`);
+ const[articles,status]=await Promise.all([getArticles(),session.roles.some(x=>["Owner","Admin"].includes(x))?getSystemStatus():Promise.resolve(null)]);const copy=adminCopy[locale];const editor=session.roles.some(x=>["Owner","Admin","Editor"].includes(x));
+ return <main className="admin-shell admin-dashboard-shell"><header className="admin-command-header"><div><p className="section-kicker">{siteConfig.name} / YÖNETİM</p><h1>Kontrol merkezi</h1><p>İçerik, yayın akışı ve site araçları tek ekranda.</p></div><div className="admin-account"><span><strong>{session.displayName}</strong><small>{session.roles.join(" · ")}</small></span><LogoutButton locale={locale} label={copy.logout}/></div></header>
+ <nav className="admin-main-nav" aria-label="Yönetim bölümleri"><Link className="active" href={`/${locale}/admin`}>Genel bakış</Link><Link href="#contents">İçerikler <span>{articles.length}</span></Link>{editor&&<Link href={`/${locale}/admin/library`}>{libraryCopy[locale].link}</Link>}{editor&&<Link href={`/${locale}/admin/knowledge`}>{knowledgeCopy[locale].link}</Link>}{session.roles.some(x=>["Owner","Admin"].includes(x))&&<Link href={`/${locale}/admin/users`}>{userCopy[locale].usersLink}</Link>}<Link href={`/${locale}`} target="_blank">Siteyi görüntüle ↗</Link></nav>
+ <div id="contents"><AdminDashboard locale={locale} articles={articles} status={status}/></div><details id="new-article" className="admin-panel create-drawer"><summary><span><strong>Yeni Türkçe içerik oluştur</strong><small>Taslak editörünü aç</small></span><span>+</span></summary><div className="create-drawer-body"><ArticleEditor copy={copy}/></div></details></main>;
 }

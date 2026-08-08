@@ -21,6 +21,11 @@ if (await OwnerBootstrap.TryRunAsync(app, args))
     return;
 }
 
+if (await StarterContentBootstrap.TryRunAsync(app, args))
+{
+    return;
+}
+
 app.UseExceptionHandler();
 app.UseForwardedHeaders();
 
