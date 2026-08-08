@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { commercialCopy } from "@/i18n/commercial-copy";
@@ -8,6 +8,22 @@ import type { AdminCopy } from "@/i18n/admin-copy";
 import type { ArticleDetail } from "@/lib/admin-api";
 
 type Category = { id: string; locale: string; name: string };
+
+function slugify(value: string) {
+  return value
+    .toLocaleLowerCase("tr-TR")
+    .replaceAll("ı", "i")
+    .replaceAll("ğ", "g")
+    .replaceAll("ü", "u")
+    .replaceAll("ş", "s")
+    .replaceAll("ö", "o")
+    .replaceAll("ç", "c")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 160);
+}
 
 export function ArticleEditor({
   copy,
@@ -21,16 +37,31 @@ export function ArticleEditor({
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [words, setWords] = useState(0);
+  const [title, setTitle] = useState(article?.title ?? "");
+  const [slug, setSlug] = useState(article?.slug ?? "");
+  const [slugEdited, setSlugEdited] = useState(Boolean(article));
   const commercial =
     commercialCopy[(article?.locale ?? "tr-TR") as keyof typeof commercialCopy];
   const locale = article?.locale ?? "tr-TR";
+
+  useEffect(() => {
+    function close(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setSettingsOpen(false);
+      setFocusMode(false);
+    }
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
     setMessage("");
-    const form = event.currentTarget;
-    const data = new FormData(form);
+    const data = new FormData(event.currentTarget);
     try {
       const csrf = await fetch("/api/admin/auth/csrf", { cache: "no-store" });
       const { token } = (await csrf.json()) as { token: string };
@@ -69,9 +100,41 @@ export function ArticleEditor({
 
   return (
     <form
-      className="editor-form advanced-editor-layout"
+      className={`editor-form advanced-editor-layout${focusMode ? " editor-focus-mode" : ""}`}
       onSubmit={submit}
     >
+      <header className="editor-action-bar">
+        <div>
+          <strong>{article ? "İçeriği düzenle" : "Yeni Türkçe içerik"}</strong>
+          <span>
+            {words} kelime · yaklaşık {Math.max(1, Math.ceil(words / 200))}{" "}
+            dakika okuma
+          </span>
+        </div>
+        <nav aria-label="Editör işlemleri">
+          <button
+            type="button"
+            className="editor-tool-button"
+            onClick={() => setSettingsOpen(true)}
+          >
+            Ayarlar
+          </button>
+          <button
+            type="button"
+            className="editor-tool-button"
+            onClick={() => setFocusMode((value) => !value)}
+          >
+            {focusMode ? "Tam ekrandan çık" : "Tam ekran"}
+          </button>
+          <button
+            type="submit"
+            className="editor-save-button"
+            disabled={pending}
+          >
+            {pending ? copy.saving : article ? copy.update : copy.save}
+          </button>
+        </nav>
+      </header>
       <div className="advanced-editor-main">
         <div className="form-grid">
           <label>
@@ -82,8 +145,6 @@ export function ArticleEditor({
               disabled={Boolean(article)}
             >
               <option>tr-TR</option>
-              <option>en-US</option>
-              <option>de-DE</option>
             </select>
           </label>
           <label>
@@ -104,7 +165,12 @@ export function ArticleEditor({
           {copy.title}
           <input
             name="title"
-            defaultValue={article?.title}
+            value={title}
+            onChange={(event) => {
+              const next = event.target.value;
+              setTitle(next);
+              if (!slugEdited) setSlug(slugify(next));
+            }}
             required
             maxLength={220}
           />
@@ -113,7 +179,11 @@ export function ArticleEditor({
           {copy.slug}
           <input
             name="slug"
-            defaultValue={article?.slug}
+            value={slug}
+            onChange={(event) => {
+              setSlugEdited(true);
+              setSlug(event.target.value);
+            }}
             required
             pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
             placeholder="ornek-makale"
@@ -127,10 +197,40 @@ export function ArticleEditor({
           name="body"
           label={copy.body}
           initialValue={article?.body}
+          onMetrics={setWords}
         />
+        {message && (
+          <p className="form-message" role="status">
+            {message}
+          </p>
+        )}
       </div>
-      <aside className="advanced-editor-settings" aria-label="İçerik ayarları">
-        <h2>İçerik ayarları</h2>
+      {settingsOpen && (
+        <button
+          className="editor-settings-backdrop"
+          type="button"
+          aria-label="Ayarları kapat"
+          onClick={() => setSettingsOpen(false)}
+        />
+      )}
+      <aside
+        className={`advanced-editor-settings${settingsOpen ? " is-open" : ""}`}
+        aria-label="İçerik ayarları"
+        aria-hidden={!settingsOpen}
+      >
+        <header>
+          <div>
+            <span>YAYIN AYARLARI</span>
+            <h2>İçerik ayarları</h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(false)}
+            aria-label="Ayarları kapat"
+          >
+            ×
+          </button>
+        </header>
         <label>
           Kategori
           <select
@@ -194,14 +294,6 @@ export function ArticleEditor({
             {commercial.affiliate}
           </label>
         </fieldset>
-        {message && (
-          <p className="form-message" role="status">
-            {message}
-          </p>
-        )}
-        <button type="submit" disabled={pending}>
-          {pending ? copy.saving : article ? copy.update : copy.save}
-        </button>
       </aside>
     </form>
   );

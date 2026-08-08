@@ -7,7 +7,12 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
 import { useEffect, useRef, useState } from "react";
 
-type Props = { name: string; initialValue?: string; label: string };
+type Props = {
+  name: string;
+  initialValue?: string;
+  label: string;
+  onMetrics?: (words: number) => void;
+};
 
 async function csrfToken() {
   const response = await fetch("/api/admin/auth/csrf", { cache: "no-store" });
@@ -15,7 +20,12 @@ async function csrfToken() {
   return ((await response.json()) as { token: string }).token;
 }
 
-export default function BlockEditor({ name, initialValue = "", label }: Props) {
+export default function BlockEditor({
+  name,
+  initialValue = "",
+  label,
+  onMetrics,
+}: Props) {
   const [html, setHtml] = useState(initialValue);
   const sequence = useRef(0);
   const editor = useCreateBlockNote({
@@ -55,17 +65,18 @@ export default function BlockEditor({ name, initialValue = "", label }: Props) {
     const current = ++sequence.current;
     const next = editor.blocksToHTMLLossy(editor.document);
     if (current === sequence.current) setHtml(next);
+    const text = editor.document
+      .map((block) => editor.blocksToMarkdownLossy([block]))
+      .join(" ")
+      .replace(/[#*_`>\-[\]()]/g, " ");
+    onMetrics?.(text.trim() ? text.trim().split(/\s+/u).length : 0);
   }
 
   return (
     <div className="rich-editor-field">
       <span className="rich-editor-label">{label}</span>
       <div className="block-editor-shell">
-        <BlockNoteView
-          editor={editor}
-          theme="dark"
-          onChange={exportHtml}
-        />
+        <BlockNoteView editor={editor} theme="dark" onChange={exportHtml} />
       </div>
       <textarea hidden readOnly name={name} value={html} />
       <small>

@@ -13,6 +13,7 @@ export function RichTextEditor(props: {
   name: string;
   initialValue?: string;
   label: string;
+  onMetrics?: (words: number) => void;
 }) {
   return <BlockEditor {...props} />;
 }
