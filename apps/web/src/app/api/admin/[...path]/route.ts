@@ -19,10 +19,14 @@ function apiPath(path: string[]) {
     : `/api/v1/admin/${joined}`;
 }
 
-async function forward(request: NextRequest, context: RouteContext<"/api/admin/[...path]">) {
+async function forward(
+  request: NextRequest,
+  context: RouteContext<"/api/admin/[...path]">,
+) {
   const { path } = await context.params;
   const pathname = apiPath(path);
-  if (!pathname) return Response.json({ message: "Not found." }, { status: 404 });
+  if (!pathname)
+    return Response.json({ message: "Not found." }, { status: 404 });
 
   const target = new URL(pathname, apiBaseUrl);
   target.search = request.nextUrl.search;
@@ -31,12 +35,18 @@ async function forward(request: NextRequest, context: RouteContext<"/api/admin/[
     const value = request.headers.get(name);
     if (value) headers.set(name, value);
   }
+  if (process.env.NODE_ENV === "production") {
+    headers.set("x-forwarded-proto", "https");
+  }
 
   try {
     const upstream = await fetch(target, {
       method: request.method,
       headers,
-      body: request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer(),
+      body:
+        request.method === "GET" || request.method === "HEAD"
+          ? undefined
+          : await request.arrayBuffer(),
       cache: "no-store",
       redirect: "manual",
     });
@@ -45,11 +55,18 @@ async function forward(request: NextRequest, context: RouteContext<"/api/admin/[
       const value = upstream.headers.get(name);
       if (value) responseHeaders.set(name, value);
     }
-    for (const cookie of upstream.headers.getSetCookie()) responseHeaders.append("set-cookie", cookie);
+    for (const cookie of upstream.headers.getSetCookie())
+      responseHeaders.append("set-cookie", cookie);
     responseHeaders.set("cache-control", "no-store");
-    return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
+    return new Response(upstream.body, {
+      status: upstream.status,
+      headers: responseHeaders,
+    });
   } catch {
-    return Response.json({ message: "Administration service is unavailable." }, { status: 502 });
+    return Response.json(
+      { message: "Administration service is unavailable." },
+      { status: 502 },
+    );
   }
 }
 
