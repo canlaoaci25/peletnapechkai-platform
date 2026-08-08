@@ -8,7 +8,9 @@ localized technical SEO. The remaining delivery order is:
 
 1. Search, accessibility, performance, and automated browser checks.
 2. Media upload/management plus category, tag, author, and source experiences.
-3. Measurement, monitoring integrations, legal/editorial pages, consent, and launch gate.
+3. Measurement dashboard, legal/editorial pages, consent baseline, staging validation,
+   and production promotion are complete. External webmaster/analytics accounts and
+   jurisdiction-specific legal review remain launch-owner tasks.
 4. Revenue controls and disclosures.
 5. Evidence-driven scaling, followed by AI/Knowledge Vault capabilities.
 6. Final global/Turkish publication research and the original responsive BOECL theme
