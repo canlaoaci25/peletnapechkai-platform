@@ -18,6 +18,9 @@
     "status": "Die erste Veröffentlichungsversion wird entwickelt",
     "topicsTitle": "Unsere ersten Themenbereiche",
     "principleTitle": "Unser Publikationsprinzip",
-    "principle": "Jeder Beitrag wird mit Quellen, Kontext und menschlicher redaktioneller Prüfung veröffentlicht."
+    "principle": "Jeder Beitrag wird mit Quellen, Kontext und menschlicher redaktioneller Prüfung veröffentlicht.",
+    "latestTitle": "Neueste Veröffentlichungen",
+    "noArticles": "In dieser Sprache wurden noch keine Inhalte veröffentlicht.",
+    "readArticle": "Artikel lesen"
   }
 }

@@ -36,6 +36,7 @@ app.UseAntiforgery();
 app.MapAuthEndpoints();
 app.MapUserManagementEndpoints();
 app.MapEditorialEndpoints();
+app.MapPublicContentEndpoints();
 
 app.MapGet("/api/v1/locales", async (PublishingDbContext database, CancellationToken cancellationToken) =>
     Results.Ok(new

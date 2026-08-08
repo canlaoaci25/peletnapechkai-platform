@@ -258,3 +258,16 @@ h2 {
 .check-label { display: inline-flex; width: auto; flex-direction: row; align-items: center; margin-right: 14px; }
 .check-label input { width: auto; }
 .invitation-result code { display: block; overflow-wrap: anywhere; padding: 12px; background: var(--surface); }
+.latest-section { padding: 80px 0; border-top: 1px solid var(--line); }
+.article-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-top: 32px; }
+.public-card { display: flex; min-height: 280px; flex-direction: column; padding: 26px; border: 1px solid var(--line); }
+.public-card h3 { margin: 0 0 16px; font-size: 1.45rem; letter-spacing: -.035em; }
+.public-card h3 a { text-decoration: none; }
+.public-card > p:not(.section-kicker) { color: var(--muted); line-height: 1.6; }
+.public-card > div { display: flex; justify-content: space-between; gap: 16px; margin-top: auto; color: var(--muted); font-size: .78rem; }
+.article-page { width: min(780px, 100%); margin: 0 auto; padding: clamp(50px, 9vw, 110px) 0; }
+.article-page h1 { font-size: clamp(2.8rem, 7vw, 6.4rem); }
+.article-page time { color: var(--muted); font-size: .82rem; }
+.article-lead { color: var(--muted); font-size: clamp(1.15rem, 2.5vw, 1.5rem); line-height: 1.6; }
+.article-body { margin-top: 54px; font-size: 1.08rem; line-height: 1.85; }
+@media (max-width: 860px) { .article-cards { grid-template-columns: 1fr; } }

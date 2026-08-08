@@ -2,8 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getDictionary } from "@/i18n/get-dictionary";
-import { hasLocale, localeLabels, locales } from "@/i18n/config";
+import { hasLocale, localeLabels } from "@/i18n/config";
 import { siteConfig } from "@/config/site";
+import { SiteHeader } from "@/components/site-header";
+import { getPublishedArticles } from "@/lib/public-api";
+
+export const dynamic = "force-dynamic";
 
 export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
   const { locale } = await params;
@@ -13,6 +17,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
   }
 
   const dictionary = await getDictionary(locale);
+  const articles = await getPublishedArticles(locale);
   const topics = [
     dictionary.navigation.technology,
     dictionary.navigation.ai,
@@ -23,23 +28,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
 
   return (
     <div className="site-shell">
-      <header className="site-header">
-        <Link className="brand" href={`/${locale}`}>
-          {siteConfig.name}
-        </Link>
-        <nav aria-label="Language and region" className="locale-nav">
-          {locales.map((supportedLocale) => (
-            <Link
-              aria-current={supportedLocale === locale ? "page" : undefined}
-              className="locale-link"
-              href={`/${supportedLocale}`}
-              key={supportedLocale}
-            >
-              {localeLabels[supportedLocale]}
-            </Link>
-          ))}
-        </nav>
-      </header>
+      <SiteHeader locale={locale} />
 
       <main>
         <section className="hero">
@@ -67,6 +56,10 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
             <h2>{dictionary.home.principleTitle}</h2>
             <p>{dictionary.home.principle}</p>
           </aside>
+        </section>
+        <section className="latest-section" aria-labelledby="latest-title">
+          <p className="section-kicker">03</p><h2 id="latest-title">{dictionary.home.latestTitle}</h2>
+          {articles.length === 0 ? <p className="muted">{dictionary.home.noArticles}</p> : <div className="article-cards">{articles.map(article => <article className="public-card" key={article.slug}><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p><div><time dateTime={article.publishedAt}>{new Intl.DateTimeFormat(locale,{dateStyle:"long"}).format(new Date(article.publishedAt))}</time><Link href={`/${locale}/articles/${article.slug}`}>{dictionary.home.readArticle} →</Link></div></article>)}</div>}
         </section>
       </main>
 

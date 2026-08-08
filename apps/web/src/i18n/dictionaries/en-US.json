@@ -18,6 +18,9 @@
     "status": "The first publishing release is in development",
     "topicsTitle": "Our first coverage areas",
     "principleTitle": "Our publishing principle",
-    "principle": "Every story will be published with sources, context, and human editorial review."
+    "principle": "Every story will be published with sources, context, and human editorial review.",
+    "latestTitle": "Latest publications",
+    "noArticles": "No content has been published in this locale yet.",
+    "readArticle": "Read article"
   }
 }

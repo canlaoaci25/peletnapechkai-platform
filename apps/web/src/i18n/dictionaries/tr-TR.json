@@ -18,6 +18,9 @@
     "status": "İlk yayın sürümü hazırlanıyor",
     "topicsTitle": "İlk yayın alanlarımız",
     "principleTitle": "Yayın ilkemiz",
-    "principle": "Her içerik kaynak, bağlam ve insan editör kontrolüyle yayımlanacak."
+    "principle": "Her içerik kaynak, bağlam ve insan editör kontrolüyle yayımlanacak.",
+    "latestTitle": "Son yayınlar",
+    "noArticles": "Bu dilde henüz yayımlanmış içerik yok.",
+    "readArticle": "Makaleyi oku"
   }
 }
