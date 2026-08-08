@@ -6,6 +6,14 @@ namespace Peletnapechkai.Api.Tests.Content;
 public sealed class ArticleWorkflowTests
 {
     [Fact]
+    public void NewLocalization_IsAttachedToItsArticleGroup()
+    {
+        var article = CreateArticle(DateTimeOffset.UtcNow);
+
+        Assert.Contains(article, article.ArticleGroup.Localizations);
+    }
+
+    [Fact]
     public void ApprovedArticle_CanBeScheduledAndPublished()
     {
         var now = DateTimeOffset.UtcNow;

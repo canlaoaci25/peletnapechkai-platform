@@ -29,6 +29,11 @@ export type ArticleDetail = ArticleSummary & {
   seoDescription: string | null;
 };
 
+export type ManagedUser = {
+  id: string; email: string; displayName: string; isActive: boolean;
+  emailConfirmed: boolean; twoFactorEnabled: boolean; lockoutEnd: string | null; roles: string[];
+};
+
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 
 async function apiGet<T>(path: string): Promise<T | null> {
@@ -53,4 +58,8 @@ export async function getArticles() {
 
 export function getArticle(id: string) {
   return apiGet<ArticleDetail>(`/api/v1/admin/articles/${encodeURIComponent(id)}`);
+}
+
+export async function getUsers() {
+  return (await apiGet<ManagedUser[]>("/api/v1/admin/users/")) ?? [];
 }

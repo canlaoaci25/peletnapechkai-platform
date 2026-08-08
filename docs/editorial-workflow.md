@@ -16,3 +16,13 @@ return `409 Conflict` when another edit won the race.
 
 The first administration UI slice will consume these endpoints through a same-origin
 Next.js Backend-for-Frontend route so API cookies remain HTTP-only.
+
+The administration UI now exposes role-aware workflow controls. Draft authors can submit
+content, editorial managers can approve or return reviews, SEO roles can schedule or
+publish, and editorial managers can archive published content. Non-draft content is
+read-only until it is returned to Draft.
+
+Owner and Admin accounts also have a localized user-management screen for invitations,
+role assignment, activation, and session revocation. Invitation tokens are displayed only
+in the immediate no-store response and must be transferred through a separate secure
+channel.

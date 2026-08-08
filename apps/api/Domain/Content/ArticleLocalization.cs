@@ -25,6 +25,7 @@ public sealed class ArticleLocalization
         Id = Guid.CreateVersion7();
         ArticleGroup = articleGroup;
         ArticleGroupId = articleGroup.Id;
+        articleGroup.Localizations.Add(this);
         Locale = locale;
         LocaleId = locale.Id;
         Slug = slug.Trim();

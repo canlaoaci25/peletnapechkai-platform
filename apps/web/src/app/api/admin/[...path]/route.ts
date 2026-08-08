@@ -4,6 +4,7 @@ const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 const allowedRoutes = [
   /^auth\/(csrf|login|login\/2fa|logout|session)$/,
   /^articles(?:\/|$)/,
+  /^users(?:\/|$)/,
 ];
 
 function apiPath(path: string[]) {
