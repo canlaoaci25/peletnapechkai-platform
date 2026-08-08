@@ -58,6 +58,9 @@ public sealed class ArticleLocalization
     public string? SeoTitle { get; private set; }
 
     public string? SeoDescription { get; private set; }
+    public bool IsSponsored { get; private set; }
+    public string? SponsorName { get; private set; }
+    public bool HasAffiliateLinks { get; private set; }
 
     public PublicationStatus Status { get; private set; }
 
@@ -97,6 +100,13 @@ public sealed class ArticleLocalization
 
     public void SubmitForEditorialReview(DateTimeOffset updatedAt) =>
         Transition(PublicationStatus.Draft, PublicationStatus.InEditorialReview, updatedAt);
+
+    public void UpdateCommercialDisclosure(bool isSponsored, string? sponsorName, bool hasAffiliateLinks, DateTimeOffset updatedAt)
+    {
+        if (Status != PublicationStatus.Draft) throw new InvalidOperationException("Only draft disclosures can be edited.");
+        if (isSponsored && string.IsNullOrWhiteSpace(sponsorName)) throw new ArgumentException("Sponsored content requires a sponsor name.", nameof(sponsorName));
+        IsSponsored=isSponsored; SponsorName=isSponsored?sponsorName!.Trim():null; HasAffiliateLinks=hasAffiliateLinks; UpdatedAt=updatedAt;
+    }
 
     public void ApproveEditorialReview(DateTimeOffset updatedAt) =>
         Transition(PublicationStatus.InEditorialReview, PublicationStatus.InSeoReview, updatedAt);

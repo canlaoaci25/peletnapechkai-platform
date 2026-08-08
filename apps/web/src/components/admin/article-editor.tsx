@@ -4,11 +4,13 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AdminCopy } from "@/i18n/admin-copy";
 import type { ArticleDetail } from "@/lib/admin-api";
+import {commercialCopy}from"@/i18n/commercial-copy";
 
 export function ArticleEditor({ copy, article }: { copy: AdminCopy; article?: ArticleDetail }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
+  const commercial=commercialCopy[(article?.locale??"tr-TR") as keyof typeof commercialCopy];
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -19,7 +21,8 @@ export function ArticleEditor({ copy, article }: { copy: AdminCopy; article?: Ar
     try {
       const csrf = await fetch("/api/admin/auth/csrf", { cache: "no-store" });
       const { token } = (await csrf.json()) as { token: string };
-      const payload = Object.fromEntries(data.entries());
+      const payload:Record<string,unknown> = Object.fromEntries(data.entries());
+      payload.isSponsored=data.get("isSponsored")==="on";payload.hasAffiliateLinks=data.get("hasAffiliateLinks")==="on";
       if (article) payload.expectedUpdatedAt = article.updatedAt;
       const response = await fetch(article ? `/api/admin/articles/${article.id}` : "/api/admin/articles/", {
         method: article ? "PUT" : "POST",
@@ -51,6 +54,7 @@ export function ArticleEditor({ copy, article }: { copy: AdminCopy; article?: Ar
         <label>{copy.seoTitle}<input name="seoTitle" defaultValue={article?.seoTitle ?? ""} maxLength={70} /></label>
         <label>{copy.seoDescription}<textarea name="seoDescription" defaultValue={article?.seoDescription ?? ""} rows={2} maxLength={170} /></label>
       </div>
+      <fieldset><legend>{commercial.disclosure}</legend><label className="check-label"><input name="isSponsored" type="checkbox" defaultChecked={article?.isSponsored}/>{commercial.sponsored}</label><label>{commercial.sponsorName}<input name="sponsorName" defaultValue={article?.sponsorName??""} maxLength={200}/></label><label className="check-label"><input name="hasAffiliateLinks" type="checkbox" defaultChecked={article?.hasAffiliateLinks}/>{commercial.affiliate}</label></fieldset>
       {message && <p className="form-message" role="status">{message}</p>}
       <button type="submit" disabled={pending}>{pending ? copy.saving : article ? copy.update : copy.save}</button>
     </form>

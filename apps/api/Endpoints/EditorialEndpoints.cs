@@ -52,7 +52,7 @@ public static class EditorialEndpoints
     private static async Task<IResult> GetAsync(Guid articleId, PublishingDbContext database, CancellationToken token)
     {
         var article = await database.ArticleLocalizations.AsNoTracking().Include(x => x.Locale).Where(x => x.Id == articleId)
-            .Select(x => new { x.Id, x.ArticleGroupId, locale = x.Locale.Code, type = x.ArticleGroup.Type.ToString(), x.Slug, x.Title, x.Summary, x.Body, x.SeoTitle, x.SeoDescription, status = x.Status.ToString(), x.UpdatedAt, x.ScheduledAt, x.PublishedAt, categoryIds=x.Categories.Select(item=>item.Id), tagIds=x.Tags.Select(item=>item.Id), authorIds=x.ArticleGroup.Authors.Select(item=>item.Id), sourceIds=x.ArticleGroup.Sources.Select(item=>item.Id), mediaAssetIds=x.ArticleGroup.MediaAssets.Select(item=>item.Id) }).SingleOrDefaultAsync(token);
+            .Select(x => new { x.Id, x.ArticleGroupId, locale = x.Locale.Code, type = x.ArticleGroup.Type.ToString(), x.Slug, x.Title, x.Summary, x.Body, x.SeoTitle, x.SeoDescription, x.IsSponsored, x.SponsorName, x.HasAffiliateLinks, status = x.Status.ToString(), x.UpdatedAt, x.ScheduledAt, x.PublishedAt, categoryIds=x.Categories.Select(item=>item.Id), tagIds=x.Tags.Select(item=>item.Id), authorIds=x.ArticleGroup.Authors.Select(item=>item.Id), sourceIds=x.ArticleGroup.Sources.Select(item=>item.Id), mediaAssetIds=x.ArticleGroup.MediaAssets.Select(item=>item.Id) }).SingleOrDefaultAsync(token);
         return article is null ? Results.NotFound() : Results.Ok(article);
     }
 
@@ -66,6 +66,7 @@ public static class EditorialEndpoints
         var articleGroup = new ArticleGroup(type, now);
         var article = new ArticleLocalization(articleGroup, locale, request.Slug, request.Title, request.Summary ?? string.Empty, request.Body ?? string.Empty, now);
         article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, request.Body ?? string.Empty, request.SeoTitle, request.SeoDescription, now);
+        article.UpdateCommercialDisclosure(request.IsSponsored, request.SponsorName, request.HasAffiliateLinks, now);
         database.ArticleGroups.Add(articleGroup);
         database.AuditLogs.Add(Audit(actor.Id, "editorial.article_created", article.Id, new { request.Locale, type }));
         await database.SaveChangesAsync(token);
@@ -83,6 +84,7 @@ public static class EditorialEndpoints
         var revision = new ArticleRevision(article, article.Revisions.Count == 0 ? 1 : article.Revisions.Max(x => x.Number) + 1, article.Title, article.Summary, article.Body, actor.Id, now);
         database.ArticleRevisions.Add(revision);
         article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, request.Body ?? string.Empty, request.SeoTitle, request.SeoDescription, now);
+        article.UpdateCommercialDisclosure(request.IsSponsored, request.SponsorName, request.HasAffiliateLinks, now);
         database.AuditLogs.Add(Audit(actor.Id, "editorial.article_updated", article.Id, null));
         await database.SaveChangesAsync(token);
         return Results.Ok(new { article.Id, article.UpdatedAt, revision = revision.Number });
@@ -140,8 +142,8 @@ public static class EditorialEndpoints
         new(actorId, action, nameof(ArticleLocalization), entityId, details is null ? null : JsonSerializer.Serialize(details), DateTimeOffset.UtcNow);
     private static IResult Validation(string key, string message) => Results.ValidationProblem(new Dictionary<string, string[]> { [key] = [message] });
 
-    private sealed record CreateArticleRequest(string Type, string Locale, string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription);
-    private sealed record UpdateArticleRequest(string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, DateTimeOffset ExpectedUpdatedAt);
+    private sealed record CreateArticleRequest(string Type, string Locale, string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks);
+    private sealed record UpdateArticleRequest(string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks, DateTimeOffset ExpectedUpdatedAt);
     private sealed record ScheduleRequest(DateTimeOffset ScheduledAt);
     private sealed record RelationshipsRequest(Guid[] CategoryIds, Guid[] TagIds, Guid[] AuthorIds, Guid[] SourceIds, Guid[] MediaAssetIds);
 }

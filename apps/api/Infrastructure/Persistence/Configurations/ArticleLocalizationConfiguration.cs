@@ -24,6 +24,9 @@ public sealed class ArticleLocalizationConfiguration : IEntityTypeConfiguration<
         builder.Property(article => article.Body).HasColumnName("body").HasColumnType("text");
         builder.Property(article => article.SeoTitle).HasColumnName("seo_title").HasMaxLength(180);
         builder.Property(article => article.SeoDescription).HasColumnName("seo_description").HasMaxLength(320);
+        builder.Property(article => article.IsSponsored).HasColumnName("is_sponsored");
+        builder.Property(article => article.SponsorName).HasColumnName("sponsor_name").HasMaxLength(200);
+        builder.Property(article => article.HasAffiliateLinks).HasColumnName("has_affiliate_links");
         builder.Property(article => article.Status)
             .HasColumnName("status")
             .HasConversion<string>()
