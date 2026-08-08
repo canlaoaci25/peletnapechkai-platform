@@ -18,6 +18,7 @@ public static class EditorialEndpoints
         group.MapGet("/{articleId:guid}", GetAsync).RequireAuthorization(AuthorizationPolicies.WriteContent);
         group.MapPost("/", CreateAsync).RequireAuthorization(AuthorizationPolicies.WriteContent).ValidateAntiforgery();
         group.MapPut("/{articleId:guid}", UpdateAsync).RequireAuthorization(AuthorizationPolicies.WriteContent).ValidateAntiforgery();
+        group.MapPut("/{articleId:guid}/relationships", UpdateRelationshipsAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         group.MapPost("/{articleId:guid}/submit", SubmitAsync).RequireAuthorization(AuthorizationPolicies.WriteContent).ValidateAntiforgery();
         group.MapPost("/{articleId:guid}/editorial-approve", EditorialApproveAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         group.MapPost("/{articleId:guid}/return-to-draft", ReturnToDraftAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
@@ -51,7 +52,7 @@ public static class EditorialEndpoints
     private static async Task<IResult> GetAsync(Guid articleId, PublishingDbContext database, CancellationToken token)
     {
         var article = await database.ArticleLocalizations.AsNoTracking().Include(x => x.Locale).Where(x => x.Id == articleId)
-            .Select(x => new { x.Id, x.ArticleGroupId, locale = x.Locale.Code, type = x.ArticleGroup.Type.ToString(), x.Slug, x.Title, x.Summary, x.Body, x.SeoTitle, x.SeoDescription, status = x.Status.ToString(), x.UpdatedAt, x.ScheduledAt, x.PublishedAt }).SingleOrDefaultAsync(token);
+            .Select(x => new { x.Id, x.ArticleGroupId, locale = x.Locale.Code, type = x.ArticleGroup.Type.ToString(), x.Slug, x.Title, x.Summary, x.Body, x.SeoTitle, x.SeoDescription, status = x.Status.ToString(), x.UpdatedAt, x.ScheduledAt, x.PublishedAt, categoryIds=x.Categories.Select(item=>item.Id), tagIds=x.Tags.Select(item=>item.Id), authorIds=x.ArticleGroup.Authors.Select(item=>item.Id), sourceIds=x.ArticleGroup.Sources.Select(item=>item.Id), mediaAssetIds=x.ArticleGroup.MediaAssets.Select(item=>item.Id) }).SingleOrDefaultAsync(token);
         return article is null ? Results.NotFound() : Results.Ok(article);
     }
 
@@ -101,6 +102,28 @@ public static class EditorialEndpoints
     private static Task<IResult> ScheduleAsync(Guid articleId, ScheduleRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token) =>
         TransitionAsync(articleId, "editorial.scheduled", principal, users, database, x => x.Schedule(request.ScheduledAt, DateTimeOffset.UtcNow), token);
 
+    private static async Task<IResult> UpdateRelationshipsAsync(Guid articleId, RelationshipsRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
+    {
+        var article = await database.ArticleLocalizations.Include(x=>x.Categories).Include(x=>x.Tags).Include(x=>x.ArticleGroup).ThenInclude(x=>x.Authors).Include(x=>x.ArticleGroup).ThenInclude(x=>x.Sources).Include(x=>x.ArticleGroup).ThenInclude(x=>x.MediaAssets).SingleOrDefaultAsync(x=>x.Id==articleId,token);
+        var actor=await users.GetUserAsync(principal);
+        if(article is null || actor is null)return Results.NotFound();
+        if(article.Status!=PublicationStatus.Draft)return Results.Conflict(new {message="Only draft article relationships can be edited."});
+        var categories=await database.Categories.Where(x=>request.CategoryIds.Contains(x.Id) && x.LocaleId==article.LocaleId).ToListAsync(token);
+        var tags=await database.Tags.Where(x=>request.TagIds.Contains(x.Id) && x.LocaleId==article.LocaleId).ToListAsync(token);
+        var authors=await database.Authors.Where(x=>request.AuthorIds.Contains(x.Id)).ToListAsync(token);
+        var sources=await database.Sources.Where(x=>request.SourceIds.Contains(x.Id)).ToListAsync(token);
+        var media=await database.MediaAssets.Where(x=>request.MediaAssetIds.Contains(x.Id)).ToListAsync(token);
+        if(categories.Count!=request.CategoryIds.Distinct().Count() || tags.Count!=request.TagIds.Distinct().Count() || authors.Count!=request.AuthorIds.Distinct().Count() || sources.Count!=request.SourceIds.Distinct().Count() || media.Count!=request.MediaAssetIds.Distinct().Count()) return Validation("relationships","One or more relationships are invalid for this locale.");
+        article.Categories.Clear(); foreach(var item in categories)article.Categories.Add(item);
+        article.Tags.Clear(); foreach(var item in tags)article.Tags.Add(item);
+        article.ArticleGroup.Authors.Clear(); foreach(var item in authors)article.ArticleGroup.Authors.Add(item);
+        article.ArticleGroup.Sources.Clear(); foreach(var item in sources)article.ArticleGroup.Sources.Add(item);
+        article.ArticleGroup.MediaAssets.Clear(); foreach(var item in media)article.ArticleGroup.MediaAssets.Add(item);
+        database.AuditLogs.Add(Audit(actor.Id,"editorial.relationships_updated",article.Id,new {categories=categories.Count,tags=tags.Count,authors=authors.Count,sources=sources.Count,media=media.Count}));
+        await database.SaveChangesAsync(token);
+        return Results.Ok(new {article.Id});
+    }
+
     private static async Task<IResult> TransitionAsync(Guid articleId, string action, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, Action<ArticleLocalization> transition, CancellationToken token)
     {
         var article = await database.ArticleLocalizations.SingleOrDefaultAsync(x => x.Id == articleId, token);
@@ -120,4 +143,5 @@ public static class EditorialEndpoints
     private sealed record CreateArticleRequest(string Type, string Locale, string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription);
     private sealed record UpdateArticleRequest(string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, DateTimeOffset ExpectedUpdatedAt);
     private sealed record ScheduleRequest(DateTimeOffset ScheduledAt);
+    private sealed record RelationshipsRequest(Guid[] CategoryIds, Guid[] TagIds, Guid[] AuthorIds, Guid[] SourceIds, Guid[] MediaAssetIds);
 }

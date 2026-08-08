@@ -3,7 +3,7 @@ import "server-only";
 export type PublicArticleSummary = {
   articleGroupId: string; slug: string; title: string; summary: string; type: string; publishedAt: string; updatedAt: string;
 };
-export type PublicArticle = Omit<PublicArticleSummary, "articleGroupId"> & { body: string; seoTitle: string | null; seoDescription: string | null; translations: { locale: string; slug: string }[] };
+export type PublicArticle = Omit<PublicArticleSummary, "articleGroupId"> & { body: string; seoTitle: string | null; seoDescription: string | null; categories:{slug:string;name:string}[]; tags:{slug:string;name:string}[]; authors:{slug:string;displayName:string}[]; sources:{name:string;url:string}[]; translations: { locale: string; slug: string }[] };
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 

@@ -68,6 +68,10 @@ public static class PublicContentEndpoints
                 type = item.ArticleGroup.Type.ToString(),
                 item.PublishedAt,
                 item.UpdatedAt,
+                categories=item.Categories.Select(x=>new {x.Slug,x.Name}).OrderBy(x=>x.Name),
+                tags=item.Tags.Select(x=>new {x.Slug,x.Name}).OrderBy(x=>x.Name),
+                authors=item.ArticleGroup.Authors.Select(x=>new {x.Slug,x.DisplayName}).OrderBy(x=>x.DisplayName),
+                sources=item.ArticleGroup.Sources.Select(x=>new {x.Name,x.Url}).OrderBy(x=>x.Name),
                 translations = item.ArticleGroup.Localizations
                     .Where(translation => translation.Status == PublicationStatus.Published && translation.Locale.IsEnabled)
                     .Select(translation => new { locale = translation.Locale.Code, translation.Slug })

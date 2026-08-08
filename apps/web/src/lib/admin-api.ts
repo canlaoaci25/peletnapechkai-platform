@@ -27,6 +27,7 @@ export type ArticleDetail = ArticleSummary & {
   body: string;
   seoTitle: string | null;
   seoDescription: string | null;
+  categoryIds:string[]; tagIds:string[]; authorIds:string[]; sourceIds:string[]; mediaAssetIds:string[];
 };
 
 export type ManagedUser = {
