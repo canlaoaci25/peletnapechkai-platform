@@ -59,3 +59,4 @@ $result = [pscustomobject]@{
 
 $result | ConvertTo-Json -Depth 5
 if ($failures.Count -gt 0) { exit 1 }
+exit 0
