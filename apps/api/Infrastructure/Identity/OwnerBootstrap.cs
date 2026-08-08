@@ -9,9 +9,16 @@ namespace Peletnapechkai.Api.Infrastructure.Identity;
 public static class OwnerBootstrap
 {
     private const string Command = "--bootstrap-owner";
+    private const string ResetPasswordCommand = "--reset-user-password";
 
     public static async Task<bool> TryRunAsync(WebApplication app, string[] args)
     {
+        if (args.Contains(ResetPasswordCommand, StringComparer.Ordinal))
+        {
+            await ResetPasswordAsync(app);
+            return true;
+        }
+
         if (!args.Contains(Command, StringComparer.Ordinal))
         {
             return false;
@@ -53,6 +60,22 @@ public static class OwnerBootstrap
         await database.SaveChangesAsync();
         await transaction.CommitAsync();
         return true;
+    }
+
+    private static async Task ResetPasswordAsync(WebApplication app)
+    {
+        var email=app.Configuration["PasswordReset:Email"];
+        var password=app.Configuration["PasswordReset:Password"];
+        if(string.IsNullOrWhiteSpace(email)||string.IsNullOrWhiteSpace(password))throw new InvalidOperationException("Password reset values are not configured.");
+        await using var scope=app.Services.CreateAsyncScope();
+        var userManager=scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var database=scope.ServiceProvider.GetRequiredService<PublishingDbContext>();
+        var user=await userManager.FindByEmailAsync(email.Trim())??throw new InvalidOperationException("Target user was not found.");
+        var token=await userManager.GeneratePasswordResetTokenAsync(user);
+        EnsureSucceeded(await userManager.ResetPasswordAsync(user,token,password),"Password reset failed");
+        EnsureSucceeded(await userManager.UpdateSecurityStampAsync(user),"Security stamp rotation failed");
+        database.AuditLogs.Add(new AuditLog(user.Id,"identity.password_reset_by_operator",nameof(ApplicationUser),user.Id,null,DateTimeOffset.UtcNow));
+        await database.SaveChangesAsync();
     }
 
     private static void EnsureSucceeded(IdentityResult result, string message)
