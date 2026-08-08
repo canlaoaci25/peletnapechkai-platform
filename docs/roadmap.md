@@ -11,10 +11,12 @@ localized technical SEO. The remaining delivery order is:
 3. Measurement dashboard, legal/editorial pages, consent baseline, staging validation,
    and production promotion are complete. External webmaster/analytics accounts and
    jurisdiction-specific legal review remain launch-owner tasks.
-4. Revenue controls and disclosures.
-5. Evidence-driven scaling, followed by AI/Knowledge Vault capabilities.
-6. Final global/Turkish publication research and the original responsive BOECL theme
-   system with light, dark, and system modes.
+4. Revenue controls, AdSense connection, ads.txt, and commercial disclosures are complete;
+   Google site review remains external.
+5. Evidence-driven scaling thresholds and the human-reviewed Knowledge Vault foundation
+   plus administration workspace are complete.
+6. Global/Turkish publication research and the responsive BOECL light, dark, and system
+   theme baseline are complete; future iterations should follow measured reader behavior.
 
 Each item remains open until it passes staging, automated checks, GitHub push, and the
 relevant production verification. Secrets and unreviewed content are excluded from every
