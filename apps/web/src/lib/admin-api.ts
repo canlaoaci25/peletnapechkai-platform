@@ -43,7 +43,7 @@ export type SupportingLibrary = {
   authors: { id:string; slug:string; displayName:string }[];
   sources: { id:string; name:string; url:string }[];
 };
-export type MediaItem = { id:string; fileName:string; contentType:string; byteLength:number; createdAt:string };
+export type MediaItem = { id:string; fileName:string; contentType:string; byteLength:number; width:number|null; height:number|null; optimizedByteLength:number|null; usageCount:number; canDelete:boolean; createdAt:string };
 export type SystemStatus={checkedAt:string;database:string;articles:number;published:number;users:number;mediaFiles:number;mediaBytes:number;diskFreeBytes:number};
 export type KnowledgeLink={id:string;articleLocalizationId:string;articleTitle:string;articleSlug:string;purpose:string;note:string|null;reviewDueAt:string;lastVerifiedAt:string};
 export type KnowledgeCandidate={id:string;locale:string;title:string;claim:string;sourceUrl:string;aiAssisted:boolean;status:string;createdAt:string;updatedAt:string;links:KnowledgeLink[]};

@@ -25,5 +25,14 @@ public sealed class MediaAsset
     public long ByteLength { get; private set; }
     public int? Width { get; private set; }
     public int? Height { get; private set; }
+    public string? OptimizedStorageKey { get; private set; }
+    public long? OptimizedByteLength { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+
+    public void SetImageMetadata(int width, int height, string optimizedStorageKey, long optimizedByteLength)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width); ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        ArgumentException.ThrowIfNullOrWhiteSpace(optimizedStorageKey); ArgumentOutOfRangeException.ThrowIfNegativeOrZero(optimizedByteLength);
+        Width=width; Height=height; OptimizedStorageKey=optimizedStorageKey.Trim(); OptimizedByteLength=optimizedByteLength;
+    }
 }

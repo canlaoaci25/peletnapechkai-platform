@@ -1,4 +1,5 @@
 using Peletnapechkai.Api.Endpoints;
+using Peletnapechkai.Api.Domain.Content;
 
 namespace Peletnapechkai.Api.Tests.Content;
 
@@ -12,6 +13,14 @@ public sealed class MediaUploadValidatorTests
     {
         Assert.True(MediaUploadValidator.TryValidate(contentType, bytes, out var extension));
         Assert.Equal(expectedExtension, extension);
+    }
+
+    [Fact]
+    public void Media_asset_records_safe_optimized_variant_metadata()
+    {
+        var asset=new MediaAsset("2026/08/original.png","original.png","image/png",200,DateTimeOffset.UtcNow);
+        asset.SetImageMetadata(2400,1350,"2026/08/cover.webp",80);
+        Assert.Equal(2400,asset.Width);Assert.Equal(1350,asset.Height);Assert.Equal("2026/08/cover.webp",asset.OptimizedStorageKey);Assert.Equal(80,asset.OptimizedByteLength);
     }
 
     [Fact]

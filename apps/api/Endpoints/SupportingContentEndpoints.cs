@@ -7,6 +7,7 @@ using Peletnapechkai.Api.Domain.Content;
 using Peletnapechkai.Api.Domain.Identity;
 using Peletnapechkai.Api.Infrastructure.Identity;
 using Peletnapechkai.Api.Infrastructure.Persistence;
+using SkiaSharp;
 
 namespace Peletnapechkai.Api.Endpoints;
 
@@ -29,6 +30,7 @@ public static partial class SupportingContentEndpoints
         media.MapGet("/", ListMediaAsync);
         media.MapGet("/{assetId:guid}", GetAdminMediaAsync);
         media.MapPost("/", UploadMediaAsync).ValidateAntiforgery();
+        media.MapPost("/{assetId:guid}/delete-unused", DeleteUnusedMediaAsync).ValidateAntiforgery();
         return endpoints;
     }
 
@@ -77,7 +79,7 @@ public static partial class SupportingContentEndpoints
         return Results.Created($"/api/v1/admin/supporting/{id}", new { id });
     }
 
-    private static async Task<IResult> ListMediaAsync(PublishingDbContext db, CancellationToken token) => Results.Ok(await db.MediaAssets.AsNoTracking().OrderByDescending(x => x.CreatedAt).Take(200).Select(x => new { x.Id, x.FileName, x.ContentType, x.ByteLength, x.CreatedAt }).ToListAsync(token));
+    private static async Task<IResult> ListMediaAsync(PublishingDbContext db, CancellationToken token) => Results.Ok(await db.MediaAssets.AsNoTracking().OrderByDescending(x => x.CreatedAt).Take(200).Select(x => new { x.Id, x.FileName, x.ContentType, x.ByteLength, x.Width, x.Height, x.OptimizedByteLength, x.CreatedAt, usageCount=db.ArticleGroups.Count(group=>group.MediaAssets.Any(media=>media.Id==x.Id))+db.ArticleLocalizations.Count(article=>article.CoverMediaAssetId==x.Id), canDelete=x.CreatedAt<DateTimeOffset.UtcNow.AddHours(-24)&&!db.ArticleGroups.Any(group=>group.MediaAssets.Any(media=>media.Id==x.Id))&&!db.ArticleLocalizations.Any(article=>article.CoverMediaAssetId==x.Id) }).ToListAsync(token));
 
     private static async Task<IResult> GetAdminMediaAsync(Guid assetId, PublishingDbContext db, IConfiguration config, CancellationToken token)
     {
@@ -108,15 +110,45 @@ public static partial class SupportingContentEndpoints
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         await using (var output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true)) await input.CopyToAsync(output, token);
 
+        var optimizedKey=Path.Combine(DateTime.UtcNow.ToString("yyyy"),DateTime.UtcNow.ToString("MM"),$"{Guid.CreateVersion7()}-cover.webp");
+        var optimizedPath=Path.GetFullPath(Path.Combine(root,optimizedKey));
+        int width;int height;long optimizedLength;
+        try
+        {
+            using var codec=SKCodec.Create(destination);var info=codec?.Info??throw new InvalidDataException("Image cannot be decoded.");
+            if(info.Width<=0||info.Height<=0||info.Width>20000||info.Height>20000||(long)info.Width*info.Height>40_000_000)throw new InvalidDataException("Image dimensions are not allowed.");
+            using var original=SKBitmap.Decode(destination)??throw new InvalidDataException("Image cannot be decoded.");width=original.Width;height=original.Height;
+            var targetWidth=Math.Min(1200,original.Width);var targetHeight=Math.Max(1,(int)Math.Round(original.Height*(targetWidth/(double)original.Width)));
+            using var optimized=targetWidth==original.Width?original.Copy():original.Resize(new SKImageInfo(targetWidth,targetHeight),new SKSamplingOptions(SKFilterMode.Linear,SKMipmapMode.Linear));
+            if(optimized is null)throw new InvalidDataException("Image cannot be resized.");using var optimizedImage=SKImage.FromBitmap(optimized);using var encoded=optimizedImage.Encode(SKEncodedImageFormat.Webp,82);await using var optimizedOutput=new FileStream(optimizedPath,FileMode.CreateNew,FileAccess.Write,FileShare.None,81920,true);encoded.SaveTo(optimizedOutput);await optimizedOutput.FlushAsync(token);optimizedLength=optimizedOutput.Length;
+        }
+        catch
+        {
+            File.Delete(destination);File.Delete(optimizedPath);return Results.BadRequest(new{message="Görsel güvenli biçimde işlenemedi veya boyut sınırını aşıyor."});
+        }
+
         var actor = await users.GetUserAsync(principal);
         if (actor is null) { File.Delete(destination); return Results.Unauthorized(); }
         var safeName = Path.GetFileName(file.FileName);
         var asset = new MediaAsset(storageKey.Replace('\\', '/'), safeName, file.ContentType.ToLowerInvariant(), file.Length, DateTimeOffset.UtcNow);
+        asset.SetImageMetadata(width,height,optimizedKey.Replace('\\','/'),optimizedLength);
         db.MediaAssets.Add(asset);
         db.AuditLogs.Add(new AuditLog(actor.Id, "media.uploaded", nameof(MediaAsset), asset.Id, JsonSerializer.Serialize(new { asset.FileName, asset.ByteLength }), DateTimeOffset.UtcNow));
         try { await db.SaveChangesAsync(token); }
-        catch { File.Delete(destination); throw; }
-        return Results.Created($"/api/v1/admin/media/{asset.Id}", new { asset.Id, asset.FileName, asset.ContentType, asset.ByteLength, asset.CreatedAt });
+        catch { File.Delete(destination);File.Delete(optimizedPath);throw; }
+        return Results.Created($"/api/v1/admin/media/{asset.Id}", new { asset.Id, asset.FileName, asset.ContentType, asset.ByteLength, asset.Width, asset.Height, asset.OptimizedByteLength, asset.CreatedAt });
+    }
+
+    private static async Task<IResult> DeleteUnusedMediaAsync(Guid assetId,IConfiguration config,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var actor=await users.GetUserAsync(principal);if(actor is null)return Results.Unauthorized();
+        var asset=await db.MediaAssets.SingleOrDefaultAsync(x=>x.Id==assetId,token);if(asset is null)return Results.NotFound();
+        var used=await db.ArticleGroups.AnyAsync(group=>group.MediaAssets.Any(media=>media.Id==assetId),token)||await db.ArticleLocalizations.AnyAsync(article=>article.CoverMediaAssetId==assetId,token);
+        if(used||asset.CreatedAt>=DateTimeOffset.UtcNow.AddHours(-24))return Results.Conflict(new{message="Only media unused for at least 24 hours can be deleted."});
+        var root=Path.GetFullPath(config["Media:StoragePath"]??Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),"BOECL","Media"));
+        var paths=new[]{asset.StorageKey,asset.OptimizedStorageKey}.Where(key=>!string.IsNullOrWhiteSpace(key)).Select(key=>Path.GetFullPath(Path.Combine(root,key!.Replace('/',Path.DirectorySeparatorChar)))).Where(path=>path.StartsWith(root+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)).ToArray();
+        db.AuditLogs.Add(new AuditLog(actor.Id,"media.deleted_unused",nameof(MediaAsset),asset.Id,JsonSerializer.Serialize(new{asset.FileName,asset.ByteLength,asset.OptimizedByteLength}),DateTimeOffset.UtcNow));db.MediaAssets.Remove(asset);await db.SaveChangesAsync(token);
+        foreach(var path in paths)File.Delete(path);return Results.NoContent();
     }
 
     private static bool ValidSlug(string? value) => value is { Length: <= 160 } && SlugPattern().IsMatch(value);

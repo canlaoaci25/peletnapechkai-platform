@@ -88,6 +88,8 @@ internal sealed class MediaAssetConfiguration : IEntityTypeConfiguration<MediaAs
         builder.Property(x => x.ByteLength).HasColumnName("byte_length");
         builder.Property(x => x.Width).HasColumnName("width");
         builder.Property(x => x.Height).HasColumnName("height");
+        builder.Property(x => x.OptimizedStorageKey).HasColumnName("optimized_storage_key").HasMaxLength(500);
+        builder.Property(x => x.OptimizedByteLength).HasColumnName("optimized_byte_length");
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.HasIndex(x => x.StorageKey).IsUnique().HasDatabaseName("ux_media_assets_storage_key");
     }

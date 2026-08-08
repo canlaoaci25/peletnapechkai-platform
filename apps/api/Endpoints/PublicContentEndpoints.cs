@@ -24,7 +24,7 @@ public static class PublicContentEndpoints
             .AnyAsync(article => article.CoverMediaAssetId == assetId && article.Status == PublicationStatus.Published, token);
         if (!isPublishedCover) return Results.NotFound();
         var asset = await database.MediaAssets.AsNoTracking().Where(item => item.Id == assetId)
-            .Select(item => new { item.StorageKey, item.ContentType, item.CreatedAt }).SingleOrDefaultAsync(token);
+            .Select(item => new { StorageKey=item.OptimizedStorageKey??item.StorageKey, ContentType=item.OptimizedStorageKey==null?item.ContentType:"image/webp", item.CreatedAt }).SingleOrDefaultAsync(token);
         if (asset is null) return Results.NotFound();
         var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
         var path = Path.GetFullPath(Path.Combine(root, asset.StorageKey.Replace('/', Path.DirectorySeparatorChar)));

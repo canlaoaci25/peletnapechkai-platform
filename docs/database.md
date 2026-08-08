@@ -41,6 +41,10 @@ schema restriction. They also verify read access to the Phase 2 publishing table
 ## Phase 2 publishing schema
 
 Categories and tags are locale-specific. Authors, sources, and media assets are shared by
+the article group. New image uploads are fully decoded, constrained to 40 megapixels,
+and receive a maximum-1200-pixel WebP cover variant. The original remains
+outside the web root. Media unused for at least 24 hours can be explicitly removed by an
+authorized editor; referenced files are never cleanup candidates.
 an article group. Revisions and SEO metadata belong to a localized article. Audit logs are
 append-only at the application layer. JSON details and structured data use PostgreSQL
 `jsonb`; callers must still treat stored content and metadata as untrusted input.
