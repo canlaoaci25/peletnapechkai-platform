@@ -2,18 +2,15 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArticleEditor } from "@/components/admin/article-editor";
 import { EditorialCollaboration } from "@/components/admin/editorial-collaboration";
-import { RelationshipEditor } from "@/components/admin/relationship-editor";
 import { RevisionHistory } from "@/components/admin/revision-history";
 import { WorkflowActions } from "@/components/admin/workflow-actions";
 import { adminCopy } from "@/i18n/admin-copy";
 import { hasLocale } from "@/i18n/config";
-import { libraryCopy } from "@/i18n/library-copy";
 import {
   getAdminSession,
   getArticle,
   getArticleCollaboration,
   getArticleRevisions,
-  getMedia,
   getSupportingLibrary,
 } from "@/lib/admin-api";
 export default async function EditArticlePage({
@@ -23,52 +20,14 @@ export default async function EditArticlePage({
   if (!hasLocale(locale)) redirect("/tr-TR/admin/login");
   const session = await getAdminSession();
   if (!session) redirect(`/${locale}/admin/login`);
-  const [article, library, media, revisions, collaboration] = await Promise.all(
-    [
-      getArticle(articleId),
-      getSupportingLibrary(),
-      getMedia(),
-      getArticleRevisions(articleId),
-      getArticleCollaboration(articleId),
-    ],
-  );
+  const [article, library, revisions, collaboration] = await Promise.all([
+    getArticle(articleId),
+    getSupportingLibrary(),
+    getArticleRevisions(articleId),
+    getArticleCollaboration(articleId),
+  ]);
   if (!article || !collaboration) notFound();
   const copy = adminCopy[locale],
-    mediaLabels = {
-      "tr-TR": {
-        cover: "Kapak görseli",
-        noCover: "Kapak yok",
-        altText: "Alternatif metin",
-        caption: "Açıklama",
-        credit: "Görsel kredisi",
-      },
-      "en-US": {
-        cover: "Cover image",
-        noCover: "No cover",
-        altText: "Alternative text",
-        caption: "Caption",
-        credit: "Image credit",
-      },
-      "de-DE": {
-        cover: "Titelbild",
-        noCover: "Kein Titelbild",
-        altText: "Alternativtext",
-        caption: "Bildunterschrift",
-        credit: "Bildnachweis",
-      },
-    }[locale],
-    rel = {
-      title: libraryCopy[locale].link,
-      categories: libraryCopy[locale].category,
-      tags: libraryCopy[locale].tag,
-      authors: libraryCopy[locale].author,
-      sources: libraryCopy[locale].source,
-      media: libraryCopy[locale].media,
-      ...mediaLabels,
-      save: copy.update,
-      saved: copy.saved,
-      error: copy.saveError,
-    },
     previewLabel = {
       "tr-TR": "Önizle",
       "en-US": "Preview",
@@ -88,7 +47,7 @@ export default async function EditArticlePage({
       <WorkflowActions article={article} roles={session.roles} copy={copy} />
       <section className="admin-panel">
         <h1 className="editor-title">{copy.editDraft}</h1>
-        {article.status === "Draft" ? (
+        {["Draft", "Published"].includes(article.status) ? (
           <ArticleEditor
             copy={copy}
             article={article}
@@ -98,19 +57,6 @@ export default async function EditArticlePage({
           <p className="muted">{copy.lockedForReview}</p>
         )}
       </section>
-      {article.status === "Draft" &&
-        session.roles.some((role) =>
-          ["Owner", "Admin", "Editor"].includes(role),
-        ) && (
-          <section className="admin-panel">
-            <RelationshipEditor
-              article={article}
-              library={library}
-              media={media}
-              labels={rel}
-            />
-          </section>
-        )}
       <EditorialCollaboration
         articleId={articleId}
         locale={locale}

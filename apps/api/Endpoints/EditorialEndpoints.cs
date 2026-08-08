@@ -94,7 +94,7 @@ public static partial class EditorialEndpoints
         var actor = await users.GetUserAsync(principal);
         if (article is null || actor is null) return Results.NotFound();
         if (article.UpdatedAt != request.ExpectedUpdatedAt) return Results.Conflict(new { message = "Article changed since it was loaded." });
-        if (article.Status != PublicationStatus.Draft) return Results.Conflict(new { message = "Only draft articles can be edited." });
+        if (article.Status is not (PublicationStatus.Draft or PublicationStatus.Published)) return Results.Conflict(new { message = "Only draft or published articles can be edited." });
         var now = DateTimeOffset.UtcNow;
         var revision = new ArticleRevision(article, article.Revisions.Count == 0 ? 1 : article.Revisions.Max(x => x.Number) + 1, article.Title, article.Summary, article.Body, actor.Id, now);
         database.ArticleRevisions.Add(revision);
@@ -106,7 +106,8 @@ public static partial class EditorialEndpoints
         article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, body, request.SeoTitle, request.SeoDescription, now);
         article.Categories.Clear();foreach(var category in categories)article.Categories.Add(category);
         await AttachInlineMediaAsync(article.ArticleGroup, body, database, token);
-        article.UpdateCommercialDisclosure(request.IsSponsored, request.SponsorName, request.HasAffiliateLinks, now);
+        if (article.Status == PublicationStatus.Draft)
+            article.UpdateCommercialDisclosure(request.IsSponsored, request.SponsorName, request.HasAffiliateLinks, now);
         database.AuditLogs.Add(Audit(actor.Id, "editorial.article_updated", article.Id, null));
         await database.SaveChangesAsync(token);
         return Results.Ok(new { article.Id, article.UpdatedAt, revision = revision.Number });
