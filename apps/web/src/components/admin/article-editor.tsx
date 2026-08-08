@@ -115,16 +115,16 @@ export function ArticleEditor({
           <button
             type="button"
             className="editor-tool-button"
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => setFocusMode((value) => !value)}
           >
-            Ayarlar
+            {focusMode ? "Tam ekrandan çık" : "Tam ekran"}
           </button>
           <button
             type="button"
             className="editor-tool-button"
-            onClick={() => setFocusMode((value) => !value)}
+            onClick={() => setSettingsOpen(true)}
           >
-            {focusMode ? "Tam ekrandan çık" : "Tam ekran"}
+            Ayarlar
           </button>
           <button
             type="submit"
