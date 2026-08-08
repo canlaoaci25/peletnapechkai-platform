@@ -20,8 +20,10 @@ public static class PublicContentEndpoints
 
     private static async Task<IResult> GetMediaAsync(Guid assetId, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
     {
-        var asset = await database.MediaAssets.AsNoTracking()
-            .Where(item => item.Id == assetId && database.ArticleLocalizations.Any(article => article.CoverMediaAssetId == item.Id && article.Status == PublicationStatus.Published))
+        var isPublishedCover = await database.ArticleLocalizations.AsNoTracking()
+            .AnyAsync(article => article.CoverMediaAssetId == assetId && article.Status == PublicationStatus.Published, token);
+        if (!isPublishedCover) return Results.NotFound();
+        var asset = await database.MediaAssets.AsNoTracking().Where(item => item.Id == assetId)
             .Select(item => new { item.StorageKey, item.ContentType, item.CreatedAt }).SingleOrDefaultAsync(token);
         if (asset is null) return Results.NotFound();
         var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
