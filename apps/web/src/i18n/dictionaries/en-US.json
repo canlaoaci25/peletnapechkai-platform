@@ -11,6 +11,8 @@
     "software": "Software",
     "mobile": "Mobile"
   },
+  "accessibility": { "skipToContent": "Skip to main content" },
+  "search": { "title": "Search BOECL", "label": "Search terms", "submit": "Search", "results": "{count} results", "empty": "No published content matched your search." },
   "home": {
     "eyebrow": "A new multilingual publishing platform",
     "title": "We do more than translate information. We put it in the right context.",

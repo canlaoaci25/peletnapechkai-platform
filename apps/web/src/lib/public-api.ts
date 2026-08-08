@@ -23,3 +23,8 @@ export async function getPublishedArticles(locale: string) {
 export function getPublishedArticle(locale: string, slug: string) {
   return publicGet<PublicArticle>(`/api/v1/public/${encodeURIComponent(locale)}/articles/${encodeURIComponent(slug)}`);
 }
+
+export async function searchPublishedArticles(locale: string, query: string) {
+  if (query.trim().length < 2) return [];
+  return await publicGet<PublicArticleSummary[]>(`/api/v1/public/${encodeURIComponent(locale)}/articles/search?q=${encodeURIComponent(query.trim())}`) ?? [];
+}

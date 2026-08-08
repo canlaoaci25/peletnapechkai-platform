@@ -1,5 +1,23 @@
 # Delivery roadmap
 
+## Execution status
+
+Completed foundations include server/runtime setup, production safeguards, BOECL naming,
+isolated staging, identity and editorial administration, public article publishing, and
+localized technical SEO. The remaining delivery order is:
+
+1. Search, accessibility, performance, and automated browser checks.
+2. Media upload/management plus category, tag, author, and source experiences.
+3. Measurement, monitoring integrations, legal/editorial pages, consent, and launch gate.
+4. Revenue controls and disclosures.
+5. Evidence-driven scaling, followed by AI/Knowledge Vault capabilities.
+6. Final global/Turkish publication research and the original responsive BOECL theme
+   system with light, dark, and system modes.
+
+Each item remains open until it passes staging, automated checks, GitHub push, and the
+relevant production verification. Secrets and unreviewed content are excluded from every
+delivery.
+
 ## Phase 0 — Decisions and scope
 
 Architecture, initial locales, MVP boundaries, editorial workflow, and success criteria.

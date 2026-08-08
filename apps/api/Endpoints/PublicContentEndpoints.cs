@@ -10,8 +10,26 @@ public static class PublicContentEndpoints
     {
         var group = endpoints.MapGroup("/api/v1/public").WithTags("Public content");
         group.MapGet("/{locale}/articles", ListAsync);
+        group.MapGet("/{locale}/articles/search", SearchAsync);
         group.MapGet("/{locale}/articles/{slug}", GetAsync);
         return endpoints;
+    }
+
+    private static async Task<IResult> SearchAsync(string locale, string? q, PublishingDbContext database, int? limit, CancellationToken token)
+    {
+        var term = q?.Trim();
+        if (string.IsNullOrWhiteSpace(term) || term.Length < 2) return Results.Ok(Array.Empty<object>());
+        var escaped = term.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+        var pattern = $"%{escaped}%";
+        var take = Math.Clamp(limit ?? 20, 1, 50);
+        var articles = await database.ArticleLocalizations.AsNoTracking()
+            .Where(article => article.Locale.Code == locale && article.Locale.IsEnabled && article.Status == PublicationStatus.Published)
+            .Where(article => EF.Functions.ILike(article.Title, pattern, "\\") || EF.Functions.ILike(article.Summary, pattern, "\\") || EF.Functions.ILike(article.Body, pattern, "\\"))
+            .OrderByDescending(article => article.PublishedAt)
+            .Take(take)
+            .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt })
+            .ToListAsync(token);
+        return Results.Ok(articles);
     }
 
     private static async Task<IResult> ListAsync(string locale, PublishingDbContext database, int? limit, CancellationToken token)

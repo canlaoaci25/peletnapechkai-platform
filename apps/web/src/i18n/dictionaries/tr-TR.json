@@ -11,6 +11,8 @@
     "software": "Yazılım",
     "mobile": "Mobil"
   },
+  "accessibility": { "skipToContent": "Ana içeriğe geç" },
+  "search": { "title": "BOECL'de ara", "label": "Arama terimi", "submit": "Ara", "results": "{count} sonuç", "empty": "Aramanızla eşleşen yayımlanmış içerik bulunamadı." },
   "home": {
     "eyebrow": "Yeni nesil çok dilli yayın platformu",
     "title": "Bilgiyi yalnızca çevirmiyor, doğru bağlama yerleştiriyoruz.",
