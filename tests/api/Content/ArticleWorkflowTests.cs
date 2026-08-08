@@ -64,6 +64,25 @@ public sealed class ArticleWorkflowTests
     }
 
     [Fact]
+    public void Quality_checklist_requires_every_publication_control()
+    {
+        var article=CreateArticle(DateTimeOffset.UtcNow);var checklist=new ArticleQualityChecklist(article);
+        checklist.Update(true,true,true,true,true,true,true,false,Guid.NewGuid(),DateTimeOffset.UtcNow);
+        Assert.False(checklist.IsComplete);
+        checklist.Update(true,true,true,true,true,true,true,true,Guid.NewGuid(),DateTimeOffset.UtcNow);
+        Assert.True(checklist.IsComplete);
+    }
+
+    [Fact]
+    public void Editorial_task_tracks_assignment_due_date_and_status()
+    {
+        var now=DateTimeOffset.UtcNow;var article=CreateArticle(now);var assignee=Guid.NewGuid();
+        var task=new EditorialTask(article,assignee,"Kaynakları doğrula",EditorialTaskPriority.High,now.AddDays(1),Guid.NewGuid(),now);
+        task.ChangeStatus(EditorialTaskStatus.Completed,now.AddHours(1));
+        Assert.Equal(assignee,task.AssigneeUserId);Assert.Equal(EditorialTaskStatus.Completed,task.Status);
+    }
+
+    [Fact]
     public void NonDraftArticle_CannotBeEdited()
     {
         var now = DateTimeOffset.UtcNow;

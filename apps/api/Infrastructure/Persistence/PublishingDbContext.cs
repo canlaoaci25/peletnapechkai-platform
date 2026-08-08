@@ -30,6 +30,9 @@ public sealed class PublishingDbContext(DbContextOptions<PublishingDbContext> op
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<KnowledgeCandidate> KnowledgeCandidates => Set<KnowledgeCandidate>();
     public DbSet<KnowledgeArticleLink> KnowledgeArticleLinks => Set<KnowledgeArticleLink>();
+    public DbSet<EditorialTask> EditorialTasks => Set<EditorialTask>();
+    public DbSet<EditorialComment> EditorialComments => Set<EditorialComment>();
+    public DbSet<ArticleQualityChecklist> ArticleQualityChecklists => Set<ArticleQualityChecklist>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

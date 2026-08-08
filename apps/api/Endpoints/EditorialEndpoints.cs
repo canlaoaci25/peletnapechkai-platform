@@ -146,6 +146,11 @@ public static class EditorialEndpoints
         var article = await database.ArticleLocalizations.SingleOrDefaultAsync(x => x.Id == articleId, token);
         var actor = await users.GetUserAsync(principal);
         if (article is null || actor is null) return Results.NotFound();
+        if (action is "editorial.scheduled" or "editorial.published")
+        {
+            var quality = await database.ArticleQualityChecklists.AsNoTracking().SingleOrDefaultAsync(x => x.ArticleLocalizationId == articleId, token);
+            if (quality is null || !quality.IsComplete) return Results.Conflict(new { message = "The publication quality checklist must be complete." });
+        }
         try { transition(article); }
         catch (InvalidOperationException exception) { return Results.Conflict(new { message = exception.Message }); }
         database.AuditLogs.Add(Audit(actor.Id, action, article.Id, new { status = article.Status.ToString() }));

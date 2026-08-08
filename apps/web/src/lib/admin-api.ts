@@ -48,6 +48,7 @@ export type SystemStatus={checkedAt:string;database:string;articles:number;publi
 export type KnowledgeLink={id:string;articleLocalizationId:string;articleTitle:string;articleSlug:string;purpose:string;note:string|null;reviewDueAt:string;lastVerifiedAt:string};
 export type KnowledgeCandidate={id:string;locale:string;title:string;claim:string;sourceUrl:string;aiAssisted:boolean;status:string;createdAt:string;updatedAt:string;links:KnowledgeLink[]};
 export type ArticleRevision={id:string;number:number;title:string;summary:string;body:string;createdByUserId:string|null;createdAt:string};
+export type ArticleCollaboration={tasks:{id:string;assigneeUserId:string;assignee:string|null;title:string;priority:string;status:string;dueAt:string}[];comments:{id:string;author:string|null;body:string;parentCommentId:string|null;articleRevisionId:string|null;isResolved:boolean;deletedAt:string|null;createdAt:string}[];checklist:null|{titleAndSummary:boolean;sourcesVerified:boolean;authorAndTaxonomy:boolean;seoMetadata:boolean;coverAccessibility:boolean;commercialDisclosure:boolean;translationReviewed:boolean;legalEditorialReview:boolean;isComplete:boolean};users:{id:string;displayName:string}[]};
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 
@@ -75,6 +76,7 @@ export function getArticle(id: string) {
   return apiGet<ArticleDetail>(`/api/v1/admin/articles/${encodeURIComponent(id)}`);
 }
 export async function getArticleRevisions(id:string){return(await apiGet<ArticleRevision[]>(`/api/v1/admin/articles/${encodeURIComponent(id)}/revisions`))??[]}
+export function getArticleCollaboration(id:string){return apiGet<ArticleCollaboration>(`/api/v1/admin/articles/${encodeURIComponent(id)}/collaboration/`)}
 
 export async function getUsers() {
   return (await apiGet<ManagedUser[]>("/api/v1/admin/users/")) ?? [];
