@@ -20,9 +20,10 @@ public static class PublicContentEndpoints
 
     private static async Task<IResult> GetMediaAsync(Guid assetId, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
     {
-        var isPublishedCover = await database.ArticleLocalizations.AsNoTracking()
-            .AnyAsync(article => article.CoverMediaAssetId == assetId && article.Status == PublicationStatus.Published, token);
-        if (!isPublishedCover) return Results.NotFound();
+        var isPublishedMedia = await database.ArticleLocalizations.AsNoTracking()
+            .AnyAsync(article => article.Status == PublicationStatus.Published &&
+                (article.CoverMediaAssetId == assetId || article.Body.Contains(assetId.ToString())), token);
+        if (!isPublishedMedia) return Results.NotFound();
         var asset = await database.MediaAssets.AsNoTracking().Where(item => item.Id == assetId)
             .Select(item => new { StorageKey=item.OptimizedStorageKey??item.StorageKey, ContentType=item.OptimizedStorageKey==null?item.ContentType:"image/webp", item.CreatedAt }).SingleOrDefaultAsync(token);
         if (asset is null) return Results.NotFound();

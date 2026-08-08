@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Peletnapechkai.Api.Domain.Auditing;
@@ -10,7 +11,7 @@ using Ganss.Xss;
 
 namespace Peletnapechkai.Api.Endpoints;
 
-public static class EditorialEndpoints
+public static partial class EditorialEndpoints
 {
     public static IEndpointRouteBuilder MapEditorialEndpoints(this IEndpointRouteBuilder endpoints)
     {
@@ -80,6 +81,7 @@ public static class EditorialEndpoints
         article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, body, request.SeoTitle, request.SeoDescription, now);
         var categoryIds=request.CategoryIds??[];if(categoryIds.Length==0)return Validation("categoryIds","A category is required.");var categories=await database.Categories.Where(x=>categoryIds.Contains(x.Id)&&x.LocaleId==locale.Id).ToListAsync(token);if(categories.Count!=categoryIds.Distinct().Count())return Validation("categoryIds","A valid category is required.");foreach(var category in categories)article.Categories.Add(category);
         article.UpdateCommercialDisclosure(request.IsSponsored, request.SponsorName, request.HasAffiliateLinks, now);
+        await AttachInlineMediaAsync(articleGroup, body, database, token);
         database.ArticleGroups.Add(articleGroup);
         database.AuditLogs.Add(Audit(actor.Id, "editorial.article_created", article.Id, new { request.Locale, type }));
         await database.SaveChangesAsync(token);
@@ -88,7 +90,7 @@ public static class EditorialEndpoints
 
     private static async Task<IResult> UpdateAsync(Guid articleId, UpdateArticleRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
     {
-        var article = await database.ArticleLocalizations.Include(x => x.Revisions).SingleOrDefaultAsync(x => x.Id == articleId, token);
+        var article = await database.ArticleLocalizations.Include(x => x.Revisions).Include(x => x.Categories).Include(x => x.ArticleGroup).ThenInclude(x => x.MediaAssets).SingleOrDefaultAsync(x => x.Id == articleId, token);
         var actor = await users.GetUserAsync(principal);
         if (article is null || actor is null) return Results.NotFound();
         if (article.UpdatedAt != request.ExpectedUpdatedAt) return Results.Conflict(new { message = "Article changed since it was loaded." });
@@ -96,7 +98,14 @@ public static class EditorialEndpoints
         var now = DateTimeOffset.UtcNow;
         var revision = new ArticleRevision(article, article.Revisions.Count == 0 ? 1 : article.Revisions.Max(x => x.Number) + 1, article.Title, article.Summary, article.Body, actor.Id, now);
         database.ArticleRevisions.Add(revision);
-        article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, SanitizeBody(request.Body), request.SeoTitle, request.SeoDescription, now);
+        var categoryIds=request.CategoryIds??[];
+        if(categoryIds.Length==0)return Validation("categoryIds","A category is required.");
+        var categories=await database.Categories.Where(x=>categoryIds.Contains(x.Id)&&x.LocaleId==article.LocaleId).ToListAsync(token);
+        if(categories.Count!=categoryIds.Distinct().Count())return Validation("categoryIds","A valid category is required.");
+        var body=SanitizeBody(request.Body);
+        article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, body, request.SeoTitle, request.SeoDescription, now);
+        article.Categories.Clear();foreach(var category in categories)article.Categories.Add(category);
+        await AttachInlineMediaAsync(article.ArticleGroup, body, database, token);
         article.UpdateCommercialDisclosure(request.IsSponsored, request.SponsorName, request.HasAffiliateLinks, now);
         database.AuditLogs.Add(Audit(actor.Id, "editorial.article_updated", article.Id, null));
         await database.SaveChangesAsync(token);
@@ -164,9 +173,19 @@ public static class EditorialEndpoints
         new(actorId, action, nameof(ArticleLocalization), entityId, details is null ? null : JsonSerializer.Serialize(details), DateTimeOffset.UtcNow);
     private static IResult Validation(string key, string message) => Results.ValidationProblem(new Dictionary<string, string[]> { [key] = [message] });
 
-    private static string SanitizeBody(string? body){var sanitizer=new HtmlSanitizer();sanitizer.AllowedTags.Clear();foreach(var tag in new[]{"p","br","h2","h3","h4","strong","em","u","s","blockquote","ul","ol","li","pre","code","a","img","figure","figcaption","iframe","hr"})sanitizer.AllowedTags.Add(tag);sanitizer.AllowedAttributes.Clear();foreach(var attribute in new[]{"href","target","rel","src","alt","title","width","height","allowfullscreen","frameborder"})sanitizer.AllowedAttributes.Add(attribute);sanitizer.AllowedSchemes.Clear();foreach(var scheme in new[]{"http","https"})sanitizer.AllowedSchemes.Add(scheme);return sanitizer.Sanitize(body??string.Empty);}
+    private static async Task AttachInlineMediaAsync(ArticleGroup group,string body,PublishingDbContext database,CancellationToken token)
+    {
+        var ids=InlineMediaPattern().Matches(body).Select(match=>Guid.Parse(match.Groups[1].Value)).Distinct().ToArray();
+        if(ids.Length==0)return;
+        var assets=await database.MediaAssets.Where(asset=>ids.Contains(asset.Id)).ToListAsync(token);
+        if(assets.Count!=ids.Length)throw new InvalidOperationException("One or more inline media assets are invalid.");
+        foreach(var asset in assets.Where(asset=>group.MediaAssets.All(existing=>existing.Id!=asset.Id)))group.MediaAssets.Add(asset);
+    }
+    private static string SanitizeBody(string? body){var sanitizer=new HtmlSanitizer();sanitizer.AllowedTags.Clear();foreach(var tag in new[]{"p","br","h2","h3","h4","strong","em","u","s","blockquote","ul","ol","li","pre","code","a","img","figure","figcaption","hr","table","thead","tbody","tfoot","tr","th","td","video","audio","source"})sanitizer.AllowedTags.Add(tag);sanitizer.AllowedAttributes.Clear();foreach(var attribute in new[]{"href","target","rel","src","alt","title","width","height","colspan","rowspan","controls","poster","preload"})sanitizer.AllowedAttributes.Add(attribute);sanitizer.AllowedSchemes.Clear();foreach(var scheme in new[]{"http","https"})sanitizer.AllowedSchemes.Add(scheme);return sanitizer.Sanitize(body??string.Empty);}
     private sealed record CreateArticleRequest(string Type, string Locale, string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks, Guid[]? CategoryIds);
-    private sealed record UpdateArticleRequest(string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks, DateTimeOffset ExpectedUpdatedAt);
+    private sealed record UpdateArticleRequest(string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks, Guid[]? CategoryIds, DateTimeOffset ExpectedUpdatedAt);
     private sealed record ScheduleRequest(DateTimeOffset ScheduledAt);
     private sealed record RelationshipsRequest(Guid[] CategoryIds, Guid[] TagIds, Guid[] AuthorIds, Guid[] SourceIds, Guid[] MediaAssetIds, Guid? CoverMediaAssetId, string? CoverAltText, string? CoverCaption, string? CoverCredit);
+    [GeneratedRegex(@"/api/media/([0-9a-fA-F-]{36})")]
+    private static partial Regex InlineMediaPattern();
 }
