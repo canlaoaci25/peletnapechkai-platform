@@ -11,6 +11,11 @@ HTTP(S) source, provenance flag, creator, immutable audit trail, and pending/app
 review state. AI-assisted candidates have no public route and cannot become articles or
 published knowledge automatically. An Editor/Admin/Owner must explicitly approve them.
 
+Approved candidates can be linked to same-locale articles as evidence, background, or an
+update prompt. Each link carries an editorial note, last verification timestamp, and a
+mandatory future review date. Overdue links are highlighted in the admin workspace. These
+relationships remain private editorial data and never bypass the article workflow.
+
 Future model-provider integration must keep prompts and credentials outside the database,
 redact personal data, enforce cost/rate limits, record model/version provenance, and retain
 the same human review boundary.

@@ -29,6 +29,7 @@ public sealed class PublishingDbContext(DbContextOptions<PublishingDbContext> op
     public DbSet<SeoMetadata> SeoMetadata => Set<SeoMetadata>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<KnowledgeCandidate> KnowledgeCandidates => Set<KnowledgeCandidate>();
+    public DbSet<KnowledgeArticleLink> KnowledgeArticleLinks => Set<KnowledgeArticleLink>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

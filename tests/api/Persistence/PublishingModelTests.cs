@@ -27,6 +27,7 @@ public sealed class PublishingModelTests
         Assert.NotNull(context.Model.FindEntityType(typeof(Locale)));
         Assert.NotNull(context.Model.FindEntityType(typeof(ArticleGroup)));
         Assert.NotNull(context.Model.FindEntityType(typeof(ArticleLocalization)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(Peletnapechkai.Api.Domain.Knowledge.KnowledgeArticleLink)));
         Assert.NotNull(context.Model.FindEntityType(typeof(Category)));
         Assert.NotNull(context.Model.FindEntityType(typeof(Tag)));
         Assert.NotNull(context.Model.FindEntityType(typeof(Author)));
