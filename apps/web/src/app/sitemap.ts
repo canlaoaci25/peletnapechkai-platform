@@ -6,7 +6,7 @@ import { absoluteUrl } from "@/lib/site-url";
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const collections = await Promise.all(locales.map(async locale => ({ locale, articles: await getPublishedArticles(locale) })));
+  const collections = await Promise.all(locales.map(async locale => ({ locale, articles: await getPublishedArticles(locale, 50) })));
   const groups = new Map<string, Record<string, string>>();
   for (const { locale, articles } of collections) for (const article of articles) groups.set(article.articleGroupId, { ...(groups.get(article.articleGroupId) ?? {}), [locale]: absoluteUrl(`/${locale}/articles/${article.slug}`) });
   const homes: MetadataRoute.Sitemap = locales.map(locale => ({ url: absoluteUrl(`/${locale}`), changeFrequency: "daily", priority: .9, alternates: { languages: Object.fromEntries(locales.map(item => [item, absoluteUrl(`/${item}`)])) } }));

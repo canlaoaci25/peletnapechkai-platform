@@ -18,8 +18,8 @@ async function publicGet<T>(path: string): Promise<T | null> {
   } catch { return null; }
 }
 
-export async function getPublishedArticles(locale: string) {
-  return await publicGet<PublicArticleSummary[]>(`/api/v1/public/${encodeURIComponent(locale)}/articles`) ?? [];
+export async function getPublishedArticles(locale: string, limit = 12) {
+  return await publicGet<PublicArticleSummary[]>(`/api/v1/public/${encodeURIComponent(locale)}/articles?limit=${Math.min(Math.max(limit, 1), 50)}`) ?? [];
 }
 
 export function getPublishedArticle(locale: string, slug: string) {
