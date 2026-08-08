@@ -7,6 +7,7 @@ const allowedRoutes = [
   /^users(?:\/|$)/,
   /^supporting(?:\/|$)/,
   /^media(?:\/|$)/,
+  /^status$/,
 ];
 
 function apiPath(path: string[]) {

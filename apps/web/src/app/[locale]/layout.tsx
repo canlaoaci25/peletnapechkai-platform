@@ -8,6 +8,7 @@ import { siteConfig } from "@/config/site";
 import { siteUrl } from "@/lib/site-url";
 
 import "../globals.css";
+import { ConsentBanner } from "@/components/consent-banner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -70,7 +71,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body><a className="skip-link" href="#page-root">{dictionary.accessibility.skipToContent}</a><div id="page-root" tabIndex={-1}>{children}</div></body>
+      <body><a className="skip-link" href="#page-root">{dictionary.accessibility.skipToContent}</a><div id="page-root" tabIndex={-1}>{children}</div><ConsentBanner locale={locale}/></body>
     </html>
   );
 }

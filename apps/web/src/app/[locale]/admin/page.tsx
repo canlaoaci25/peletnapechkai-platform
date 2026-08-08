@@ -5,17 +5,18 @@ import { ArticleEditor } from "@/components/admin/article-editor";
 import { LogoutButton } from "@/components/admin/logout-button";
 import { adminCopy } from "@/i18n/admin-copy";
 import { hasLocale } from "@/i18n/config";
-import { getAdminSession, getArticles } from "@/lib/admin-api";
+import { getAdminSession, getArticles, getSystemStatus } from "@/lib/admin-api";
 import { siteConfig } from "@/config/site";
 import { userCopy } from "@/i18n/user-copy";
 import { libraryCopy } from "@/i18n/library-copy";
+import { SystemStatus } from "@/components/admin/system-status";
 
 export default async function AdminPage({ params }: PageProps<"/[locale]/admin">) {
   const { locale } = await params;
   if (!hasLocale(locale)) redirect("/tr-TR/admin/login");
   const session = await getAdminSession();
   if (!session) redirect(`/${locale}/admin/login`);
-  const [articles, copy] = await Promise.all([getArticles(), Promise.resolve(adminCopy[locale])]);
+  const [articles, status, copy] = await Promise.all([getArticles(), session.roles.some(role=>["Owner","Admin"].includes(role))?getSystemStatus():Promise.resolve(null), Promise.resolve(adminCopy[locale])]);
 
   return (
     <main className="admin-shell">
@@ -33,7 +34,7 @@ export default async function AdminPage({ params }: PageProps<"/[locale]/admin">
             </div>
           )}
         </section>
-      </div>
+      </div>{status&&<SystemStatus status={status}/>} 
     </main>
   );
 }
