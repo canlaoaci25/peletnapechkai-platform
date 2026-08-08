@@ -1,0 +1,2 @@
+export const dynamic="force-dynamic";
+export function GET(){const records=(process.env.ADS_TXT_RECORDS??"").split(/\r?\n/).map(x=>x.trim()).filter(x=>x&&!x.startsWith("#"));const valid=records.filter(x=>{const fields=x.split(",").map(v=>v.trim());return fields.length>=4&&fields[0].length>0&&fields[1].length>0&&["DIRECT","RESELLER"].includes(fields[2])&&/^[a-f0-9]{16}$/i.test(fields[3])});return new Response(valid.join("\n")+(valid.length?"\n":""),{headers:{"content-type":"text/plain; charset=utf-8","cache-control":"public, max-age=3600"}})}

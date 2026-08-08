@@ -5,6 +5,7 @@ import { getDictionary } from "@/i18n/get-dictionary";
 import { hasLocale, localeLabels } from "@/i18n/config";
 import { siteConfig } from "@/config/site";
 import { SiteHeader } from "@/components/site-header";
+import { AdSlot } from "@/components/ad-slot";
 import { getPublishedArticles } from "@/lib/public-api";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +63,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
           {articles.length === 0 ? <p className="muted">{dictionary.home.noArticles}</p> : <div className="article-cards">{articles.map(article => <article className="public-card" key={article.slug}><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p><div><time dateTime={article.publishedAt}>{new Intl.DateTimeFormat(locale,{dateStyle:"long"}).format(new Date(article.publishedAt))}</time><Link href={`/${locale}/articles/${article.slug}`}>{dictionary.home.readArticle} →</Link></div></article>)}</div>}
         </section>
         <section className="search-callout"><h2>{dictionary.search.title}</h2><form action={`/${locale}/search`} role="search"><label htmlFor="home-search">{dictionary.search.label}</label><div><input id="home-search" name="q" minLength={2} required/><button>{dictionary.search.submit}</button></div></form></section>
+        <AdSlot label="Advertisement" />
       </main>
 
       <footer className="site-footer">
