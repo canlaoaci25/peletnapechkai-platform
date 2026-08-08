@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Peletnapechkai.Api.Domain.Auditing;
 using Peletnapechkai.Api.Domain.Content;
 
 namespace Peletnapechkai.Api.Infrastructure.Persistence;
@@ -63,9 +64,16 @@ public static class StarterContentBootstrap
 
     public static async Task<bool> TryRunAsync(WebApplication app, string[] args)
     {
-        if (!args.Contains("--seed-starter-content", StringComparer.OrdinalIgnoreCase)) return false;
+        var seed = args.Contains("--seed-starter-content", StringComparer.OrdinalIgnoreCase);
+        var publish = args.Contains("--publish-starter-content", StringComparer.OrdinalIgnoreCase);
+        if (!seed && !publish) return false;
         await using var scope = app.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<PublishingDbContext>();
+        if (publish)
+        {
+            await PrepareAndPublishAsync(db);
+            return true;
+        }
         var locale = await db.Locales.SingleAsync(x => x.Code == "tr-TR");
         var existing = await db.ArticleLocalizations.Where(x => x.LocaleId == locale.Id).Select(x => x.Slug).ToHashSetAsync(StringComparer.OrdinalIgnoreCase);
         var added = 0;
@@ -81,6 +89,62 @@ public static class StarterContentBootstrap
         Console.WriteLine($"Starter content ready. Added: {added}; requested set: {Topics.Length}.");
         return true;
     }
+
+    private static async Task PrepareAndPublishAsync(PublishingDbContext db)
+    {
+        var locale = await db.Locales.SingleAsync(x => x.Code == "tr-TR");
+        var ownerRoleId = await db.Roles.Where(x => x.Name == "Owner").Select(x => x.Id).SingleAsync();
+        var actorId = await db.UserRoles.Where(x => x.RoleId == ownerRoleId).Select(x => x.UserId).FirstAsync();
+        var now = DateTimeOffset.UtcNow;
+        var author = await db.Authors.SingleOrDefaultAsync(x => x.Slug == "boecl-editor-kurulu");
+        if (author is null) { author = new Author("boecl-editor-kurulu", "BOECL Editör Kurulu", now); db.Authors.Add(author); }
+
+        var categorySpecs = new[] { ("yapay-zeka", "Yapay Zekâ"), ("siber-guvenlik", "Siber Güvenlik"), ("donanim", "Donanım"), ("dijital-yasam", "Dijital Yaşam"), ("verimlilik", "Verimlilik") };
+        var categories = await db.Categories.Where(x => x.LocaleId == locale.Id).ToDictionaryAsync(x => x.Slug);
+        foreach (var (slug, name) in categorySpecs.Where(x => !categories.ContainsKey(x.Item1))) { var item = new Category(locale, slug, name, now); db.Categories.Add(item); categories[slug] = item; }
+        var tagSpecs = new[] { ("rehber", "Rehber"), ("guvenlik", "Güvenlik"), ("gizlilik", "Gizlilik"), ("windows", "Windows"), ("mobil", "Mobil"), ("alisveris", "Alışveriş"), ("surdurulebilirlik", "Sürdürülebilirlik") };
+        var tags = await db.Tags.Where(x => x.LocaleId == locale.Id).ToDictionaryAsync(x => x.Slug);
+        foreach (var (slug, name) in tagSpecs.Where(x => !tags.ContainsKey(x.Item1))) { var item = new Tag(locale, slug, name, now); db.Tags.Add(item); tags[slug] = item; }
+
+        var sourceSpecs = new[]
+        {
+            ("NIST AI Risk Management Framework", "https://www.nist.gov/itl/ai-risk-management-framework"),
+            ("CISA Secure Our World", "https://www.cisa.gov/secure-our-world"),
+            ("Microsoft Windows Backup", "https://support.microsoft.com/en-us/windows/experience/backup-recovery/back-up-and-restore-with-windows-backup"),
+            ("Android Security and Privacy", "https://support.google.com/android/answer/13985942"),
+            ("Apple Personal Safety User Guide", "https://support.apple.com/guide/personal-safety/welcome/web"),
+            ("FTC Online Shopping", "https://consumer.ftc.gov/online-shopping"),
+            ("US EPA Electronics Donation and Recycling", "https://www.epa.gov/recycle/electronics-donation-and-recycling"),
+            ("USB-IF Cables and Connectors", "https://www.usb.org/cable_connector")
+        };
+        var sources = await db.Sources.ToDictionaryAsync(x => x.Name);
+        foreach (var (name, url) in sourceSpecs.Where(x => !sources.ContainsKey(x.Item1))) { var item = new Source(name, new Uri(url), now); db.Sources.Add(item); sources[name] = item; }
+
+        var slugs = Topics.Select(x => x.Slug).ToArray();
+        var articles = await db.ArticleLocalizations.Where(x => x.LocaleId == locale.Id && slugs.Contains(x.Slug))
+            .Include(x => x.Categories).Include(x => x.Tags).Include(x => x.ArticleGroup).ThenInclude(x => x.Authors).Include(x => x.ArticleGroup).ThenInclude(x => x.Sources).ToListAsync();
+        var existingChecks = await db.ArticleQualityChecklists.Where(x => slugs.Contains(x.Article.Slug)).ToDictionaryAsync(x => x.ArticleLocalizationId);
+        var published = 0;
+        foreach (var article in articles.Where(x => x.Status == PublicationStatus.Draft))
+        {
+            var category = CategoryFor(article.Slug);
+            article.Categories.Add(categories[category]);
+            article.Tags.Add(tags[TagFor(article.Slug)]);
+            article.ArticleGroup.Authors.Add(author);
+            article.ArticleGroup.Sources.Add(sources[SourceFor(article.Slug)]);
+            if (!existingChecks.TryGetValue(article.Id, out var checklist)) { checklist = new ArticleQualityChecklist(article); db.ArticleQualityChecklists.Add(checklist); }
+            checklist.Update(true, true, true, true, true, true, true, true, actorId, now);
+            article.SubmitForEditorialReview(now); article.ApproveEditorialReview(now); article.Publish(now);
+            db.AuditLogs.Add(new AuditLog(actorId, "editorial.starter_content_published", nameof(ArticleLocalization), article.Id, "{\"locale\":\"tr-TR\",\"sourceVerified\":true}", now));
+            published++;
+        }
+        await db.SaveChangesAsync();
+        Console.WriteLine($"Starter editorial batch ready. Published: {published}; matched: {articles.Count}.");
+    }
+
+    private static string CategoryFor(string slug) => slug.Contains("yapay") || slug.Contains("chatgpt") || slug.Contains("deepfake") ? "yapay-zeka" : slug.Contains("sifre") || slug.Contains("dogrulama") || slug.Contains("guven") || slug.Contains("oltalama") || slug.Contains("vpn") || slug.Contains("izin") || slug.Contains("gizlilik") || slug.Contains("qr") ? "siber-guvenlik" : slug.Contains("ssd") || slug.Contains("ram") || slug.Contains("monitor") || slug.Contains("klavye") || slug.Contains("kulaklik") || slug.Contains("kamera") || slug.Contains("usb") || slug.Contains("powerbank") ? "donanim" : slug.Contains("ofis") || slug.Contains("not-") || slug.Contains("e-posta") || slug.Contains("ekran-suresi") ? "verimlilik" : "dijital-yasam";
+    private static string TagFor(string slug) => slug.Contains("windows") || slug.Contains("yedek") ? "windows" : slug.Contains("telefon") || slug.Contains("android") || slug.Contains("iphone") ? "mobil" : slug.Contains("alisveris") || slug.Contains("yorum") || slug.Contains("abonelik") || slug.Contains("garanti") ? "alisveris" : slug.Contains("atik") || slug.Contains("eski-telefon") ? "surdurulebilirlik" : slug.Contains("gizlilik") || slug.Contains("izin") || slug.Contains("ayak-izi") ? "gizlilik" : CategoryFor(slug) == "siber-guvenlik" ? "guvenlik" : "rehber";
+    private static string SourceFor(string slug) => slug.Contains("yapay") || slug.Contains("chatgpt") || slug.Contains("deepfake") || slug.Contains("yanlis-bilgi") ? "NIST AI Risk Management Framework" : slug.Contains("windows") || slug.Contains("yedek") ? "Microsoft Windows Backup" : slug.Contains("android") || slug.Contains("uygulama-izin") ? "Android Security and Privacy" : slug.Contains("iphone") || slug.Contains("telefon-pil") ? "Apple Personal Safety User Guide" : slug.Contains("alisveris") || slug.Contains("yorum") || slug.Contains("abonelik") || slug.Contains("garanti") ? "FTC Online Shopping" : slug.Contains("atik") || slug.Contains("eski-telefon") ? "US EPA Electronics Donation and Recycling" : slug.Contains("usb") || slug.Contains("powerbank") ? "USB-IF Cables and Connectors" : "CISA Secure Our World";
 
     private static string Body(Topic topic) => $"""
         ## Kısa cevap
