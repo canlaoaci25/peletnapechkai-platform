@@ -76,23 +76,17 @@ export function AdminFrame({
     copy = text[locale];
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [collapsed, setCollapsed] = useState(false);
-  const contentRoute =
-    pathname.startsWith(`/${locale}/admin/articles`) ||
-    pathname.startsWith(`/${locale}/admin/library`);
-  const [contentOpen, setContentOpen] = useState(contentRoute);
+  const [contentOpen, setContentOpen] = useState(false);
   useEffect(() => {
     const saved = localStorage.getItem("boecl-admin-theme"),
       savedMenu = localStorage.getItem("boecl-admin-sidebar");
     const timer = setTimeout(() => {
       if (saved === "light" || saved === "dark") setTheme(saved);
       setCollapsed(savedMenu === "collapsed");
-      setContentOpen(
-        contentRoute ||
-          localStorage.getItem("boecl-content-module") !== "closed",
-      );
+      setContentOpen(localStorage.getItem("boecl-content-module") === "open");
     }, 0);
     return () => clearTimeout(timer);
-  }, [contentRoute]);
+  }, []);
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
