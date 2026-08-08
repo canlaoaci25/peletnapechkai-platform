@@ -16,6 +16,7 @@ public static class EditorialEndpoints
         var group = endpoints.MapGroup("/api/v1/admin/articles").WithTags("Editorial").RequireAuthorization();
         group.MapGet("/", ListAsync).RequireAuthorization(AuthorizationPolicies.WriteContent);
         group.MapGet("/{articleId:guid}", GetAsync).RequireAuthorization(AuthorizationPolicies.WriteContent);
+        group.MapGet("/{articleId:guid}/revisions", ListRevisionsAsync).RequireAuthorization(AuthorizationPolicies.WriteContent);
         group.MapPost("/", CreateAsync).RequireAuthorization(AuthorizationPolicies.WriteContent).ValidateAntiforgery();
         group.MapPut("/{articleId:guid}", UpdateAsync).RequireAuthorization(AuthorizationPolicies.WriteContent).ValidateAntiforgery();
         group.MapPut("/{articleId:guid}/relationships", UpdateRelationshipsAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
@@ -26,6 +27,16 @@ public static class EditorialEndpoints
         group.MapPost("/{articleId:guid}/publish", PublishAsync).RequireAuthorization(AuthorizationPolicies.ManageSeo).ValidateAntiforgery();
         group.MapPost("/{articleId:guid}/archive", ArchiveAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         return endpoints;
+    }
+
+    private static async Task<IResult> ListRevisionsAsync(Guid articleId, PublishingDbContext database, CancellationToken token)
+    {
+        var exists = await database.ArticleLocalizations.AsNoTracking().AnyAsync(item => item.Id == articleId, token);
+        if (!exists) return Results.NotFound();
+        var revisions = await database.ArticleRevisions.AsNoTracking().Where(item => item.ArticleLocalizationId == articleId)
+            .OrderByDescending(item => item.Number).Take(50)
+            .Select(item => new { item.Id, item.Number, item.Title, item.Summary, item.Body, item.CreatedByUserId, item.CreatedAt }).ToListAsync(token);
+        return Results.Ok(revisions);
     }
 
     private static async Task<IResult> ListAsync(PublishingDbContext database, string? status, string? locale, CancellationToken token)

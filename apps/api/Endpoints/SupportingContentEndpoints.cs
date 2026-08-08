@@ -27,6 +27,7 @@ public static partial class SupportingContentEndpoints
         var media = endpoints.MapGroup("/api/v1/admin/media").WithTags("Media")
             .RequireAuthorization(AuthorizationPolicies.ManageEditorial);
         media.MapGet("/", ListMediaAsync);
+        media.MapGet("/{assetId:guid}", GetAdminMediaAsync);
         media.MapPost("/", UploadMediaAsync).ValidateAntiforgery();
         return endpoints;
     }
@@ -77,6 +78,16 @@ public static partial class SupportingContentEndpoints
     }
 
     private static async Task<IResult> ListMediaAsync(PublishingDbContext db, CancellationToken token) => Results.Ok(await db.MediaAssets.AsNoTracking().OrderByDescending(x => x.CreatedAt).Take(200).Select(x => new { x.Id, x.FileName, x.ContentType, x.ByteLength, x.CreatedAt }).ToListAsync(token));
+
+    private static async Task<IResult> GetAdminMediaAsync(Guid assetId, PublishingDbContext db, IConfiguration config, CancellationToken token)
+    {
+        var asset = await db.MediaAssets.AsNoTracking().Where(item => item.Id == assetId).Select(item => new { item.StorageKey, item.ContentType, item.CreatedAt }).SingleOrDefaultAsync(token);
+        if (asset is null) return Results.NotFound();
+        var root = Path.GetFullPath(config["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
+        var path = Path.GetFullPath(Path.Combine(root, asset.StorageKey.Replace('/', Path.DirectorySeparatorChar)));
+        if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || !File.Exists(path)) return Results.NotFound();
+        return Results.File(path, asset.ContentType, lastModified: asset.CreatedAt, enableRangeProcessing: true);
+    }
 
     private static async Task<IResult> UploadMediaAsync(HttpRequest request, IConfiguration config, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext db, CancellationToken token)
     {

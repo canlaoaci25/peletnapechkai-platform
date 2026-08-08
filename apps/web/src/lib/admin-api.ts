@@ -46,6 +46,7 @@ export type SupportingLibrary = {
 export type MediaItem = { id:string; fileName:string; contentType:string; byteLength:number; createdAt:string };
 export type SystemStatus={checkedAt:string;database:string;articles:number;published:number;users:number;mediaFiles:number;mediaBytes:number;diskFreeBytes:number};
 export type KnowledgeCandidate={id:string;locale:string;title:string;claim:string;sourceUrl:string;aiAssisted:boolean;status:string;createdAt:string;updatedAt:string};
+export type ArticleRevision={id:string;number:number;title:string;summary:string;body:string;createdByUserId:string|null;createdAt:string};
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 
@@ -72,6 +73,7 @@ export async function getArticles() {
 export function getArticle(id: string) {
   return apiGet<ArticleDetail>(`/api/v1/admin/articles/${encodeURIComponent(id)}`);
 }
+export async function getArticleRevisions(id:string){return(await apiGet<ArticleRevision[]>(`/api/v1/admin/articles/${encodeURIComponent(id)}/revisions`))??[]}
 
 export async function getUsers() {
   return (await apiGet<ManagedUser[]>("/api/v1/admin/users/")) ?? [];
