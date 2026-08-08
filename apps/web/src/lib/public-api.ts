@@ -1,9 +1,9 @@
 import "server-only";
 
 export type PublicArticleSummary = {
-  slug: string; title: string; summary: string; type: string; publishedAt: string; updatedAt: string;
+  articleGroupId: string; slug: string; title: string; summary: string; type: string; publishedAt: string; updatedAt: string;
 };
-export type PublicArticle = PublicArticleSummary & { body: string; seoTitle: string | null; seoDescription: string | null };
+export type PublicArticle = Omit<PublicArticleSummary, "articleGroupId"> & { body: string; seoTitle: string | null; seoDescription: string | null; translations: { locale: string; slug: string }[] };
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 

@@ -23,6 +23,7 @@ public static class PublicContentEndpoints
             .Take(take)
             .Select(article => new
             {
+                article.ArticleGroupId,
                 article.Slug,
                 article.Title,
                 article.Summary,
@@ -48,7 +49,12 @@ public static class PublicContentEndpoints
                 item.SeoDescription,
                 type = item.ArticleGroup.Type.ToString(),
                 item.PublishedAt,
-                item.UpdatedAt
+                item.UpdatedAt,
+                translations = item.ArticleGroup.Localizations
+                    .Where(translation => translation.Status == PublicationStatus.Published && translation.Locale.IsEnabled)
+                    .Select(translation => new { locale = translation.Locale.Code, translation.Slug })
+                    .OrderBy(translation => translation.locale)
+                    .ToArray()
             })
             .SingleOrDefaultAsync(token);
         return article is null ? Results.NotFound() : Results.Ok(article);

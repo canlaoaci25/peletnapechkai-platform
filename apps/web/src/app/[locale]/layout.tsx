@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { hasLocale, locales, type Locale } from "@/i18n/config";
 import { siteConfig } from "@/config/site";
+import { siteUrl } from "@/lib/site-url";
 
 import "../globals.css";
 
@@ -17,8 +18,6 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
-
-const siteUrl = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -44,6 +43,7 @@ export async function generateMetadata({
       languages: Object.fromEntries(
         locales.map((supportedLocale) => [supportedLocale, `/${supportedLocale}`]),
       ),
+      types: { "application/rss+xml": `/${locale}/feed.xml` },
     },
     openGraph: {
       type: "website",
