@@ -21,7 +21,11 @@ public static partial class SupportingContentEndpoints
             .RequireAuthorization(AuthorizationPolicies.ManageEditorial);
         supporting.MapGet("/", ListAsync);
         supporting.MapPost("/categories", CreateCategoryAsync).ValidateAntiforgery();
+        supporting.MapPut("/categories/{categoryId:guid}", UpdateCategoryAsync).ValidateAntiforgery();
+        supporting.MapDelete("/categories/{categoryId:guid}", DeleteCategoryAsync).ValidateAntiforgery();
         supporting.MapPost("/tags", CreateTagAsync).ValidateAntiforgery();
+        supporting.MapPut("/tags/{tagId:guid}", UpdateTagAsync).ValidateAntiforgery();
+        supporting.MapDelete("/tags/{tagId:guid}", DeleteTagAsync).ValidateAntiforgery();
         supporting.MapPost("/authors", CreateAuthorAsync).ValidateAntiforgery();
         supporting.MapPost("/sources", CreateSourceAsync).ValidateAntiforgery();
 
@@ -44,18 +48,56 @@ public static partial class SupportingContentEndpoints
 
     private static async Task<IResult> CreateCategoryAsync(NamedLocaleRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext db, CancellationToken token)
     {
+        if(request.Locale!="tr-TR")return Invalid();
         var locale = await db.Locales.SingleOrDefaultAsync(x => x.Code == request.Locale && x.IsEnabled, token);
         if (locale is null || !ValidSlug(request.Slug) || string.IsNullOrWhiteSpace(request.Name)) return Invalid();
         var item = new Category(locale, request.Slug, request.Name, DateTimeOffset.UtcNow);
         return await AddAsync(item, "supporting.category_created", principal, users, db, token);
     }
 
+    private static async Task<IResult> UpdateCategoryAsync(Guid categoryId,NamedRequest request,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        if(!ValidSlug(request.Slug)||string.IsNullOrWhiteSpace(request.Name))return Invalid();
+        var actor=await users.GetUserAsync(principal);var item=await db.Categories.Include(x=>x.Locale).SingleOrDefaultAsync(x=>x.Id==categoryId,token);
+        if(actor is null)return Results.Unauthorized();if(item is null)return Results.NotFound();if(item.Locale.Code!="tr-TR")return Results.Conflict(new{message="Only Turkish categories are managed here."});
+        item.Update(request.Slug,request.Name);db.AuditLogs.Add(new AuditLog(actor.Id,"supporting.category_updated",nameof(Category),item.Id,null,DateTimeOffset.UtcNow));
+        try{await db.SaveChangesAsync(token);}catch(DbUpdateException){return Results.Conflict(new{message="A category with the same slug already exists."});}
+        return Results.Ok(new{item.Id,item.Slug,item.Name});
+    }
+
+    private static async Task<IResult> DeleteCategoryAsync(Guid categoryId,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var actor=await users.GetUserAsync(principal);var item=await db.Categories.Include(x=>x.Locale).Include(x=>x.Articles).SingleOrDefaultAsync(x=>x.Id==categoryId,token);
+        if(actor is null)return Results.Unauthorized();if(item is null)return Results.NotFound();if(item.Locale.Code!="tr-TR")return Results.Conflict(new{message="Only Turkish categories are managed here."});
+        if(item.Articles.Count>0)return Results.Conflict(new{message="A category used by content cannot be deleted."});
+        db.AuditLogs.Add(new AuditLog(actor.Id,"supporting.category_deleted",nameof(Category),item.Id,JsonSerializer.Serialize(new{item.Slug,item.Name}),DateTimeOffset.UtcNow));db.Categories.Remove(item);await db.SaveChangesAsync(token);return Results.NoContent();
+    }
+
     private static async Task<IResult> CreateTagAsync(NamedLocaleRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext db, CancellationToken token)
     {
+        if(request.Locale!="tr-TR")return Invalid();
         var locale = await db.Locales.SingleOrDefaultAsync(x => x.Code == request.Locale && x.IsEnabled, token);
         if (locale is null || !ValidSlug(request.Slug) || string.IsNullOrWhiteSpace(request.Name)) return Invalid();
         var item = new Tag(locale, request.Slug, request.Name, DateTimeOffset.UtcNow);
         return await AddAsync(item, "supporting.tag_created", principal, users, db, token);
+    }
+
+    private static async Task<IResult> UpdateTagAsync(Guid tagId,NamedRequest request,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        if(!ValidSlug(request.Slug)||string.IsNullOrWhiteSpace(request.Name))return Invalid();
+        var actor=await users.GetUserAsync(principal);var item=await db.Tags.Include(x=>x.Locale).SingleOrDefaultAsync(x=>x.Id==tagId,token);
+        if(actor is null)return Results.Unauthorized();if(item is null)return Results.NotFound();if(item.Locale.Code!="tr-TR")return Results.Conflict(new{message="Only Turkish tags are managed here."});
+        item.Update(request.Slug,request.Name);db.AuditLogs.Add(new AuditLog(actor.Id,"supporting.tag_updated",nameof(Tag),item.Id,null,DateTimeOffset.UtcNow));
+        try{await db.SaveChangesAsync(token);}catch(DbUpdateException){return Results.Conflict(new{message="A tag with the same slug already exists."});}
+        return Results.Ok(new{item.Id,item.Slug,item.Name});
+    }
+
+    private static async Task<IResult> DeleteTagAsync(Guid tagId,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var actor=await users.GetUserAsync(principal);var item=await db.Tags.Include(x=>x.Locale).Include(x=>x.Articles).SingleOrDefaultAsync(x=>x.Id==tagId,token);
+        if(actor is null)return Results.Unauthorized();if(item is null)return Results.NotFound();if(item.Locale.Code!="tr-TR")return Results.Conflict(new{message="Only Turkish tags are managed here."});
+        if(item.Articles.Count>0)return Results.Conflict(new{message="A tag used by content cannot be deleted."});
+        db.AuditLogs.Add(new AuditLog(actor.Id,"supporting.tag_deleted",nameof(Tag),item.Id,JsonSerializer.Serialize(new{item.Slug,item.Name}),DateTimeOffset.UtcNow));db.Tags.Remove(item);await db.SaveChangesAsync(token);return Results.NoContent();
     }
 
     private static Task<IResult> CreateAuthorAsync(NamedRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext db, CancellationToken token) =>

@@ -56,3 +56,4 @@ async function forward(request: NextRequest, context: RouteContext<"/api/admin/[
 export const GET = forward;
 export const POST = forward;
 export const PUT = forward;
+export const DELETE = forward;

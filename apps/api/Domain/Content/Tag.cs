@@ -19,6 +19,14 @@ public sealed class Tag
         CreatedAt = createdAt;
     }
 
+    public void Update(string slug, string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(slug);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        Slug = slug.Trim();
+        Name = name.Trim();
+    }
+
     public Guid Id { get; private set; }
     public Guid LocaleId { get; private set; }
     public Locale Locale { get; private set; } = null!;

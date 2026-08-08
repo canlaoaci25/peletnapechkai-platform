@@ -9,9 +9,12 @@ import type { AdminSession } from "@/lib/admin-api";
 const text = {
   "tr-TR": {
     overview: "Kontrol merkezi",
-    contents: "İçerikler",
+    contents: "İçerik modülü",
+    allContents: "Tüm içerikler",
     create: "Yeni içerik",
-    library: "Medya ve kütüphane",
+    categories: "Kategoriler",
+    tags: "Etiketler",
+    library: "Medya ve sözlük",
     knowledge: "Bilgi kasası",
     users: "Kullanıcılar",
     site: "Siteyi görüntüle",
@@ -24,9 +27,12 @@ const text = {
   },
   "en-US": {
     overview: "Control center",
-    contents: "Content",
+    contents: "Content module",
+    allContents: "All content",
     create: "New content",
-    library: "Media and library",
+    categories: "Categories",
+    tags: "Tags",
+    library: "Media and vocabulary",
     knowledge: "Knowledge vault",
     users: "Users",
     site: "View website",
@@ -39,9 +45,12 @@ const text = {
   },
   "de-DE": {
     overview: "Kontrollzentrum",
-    contents: "Inhalte",
+    contents: "Inhaltsmodul",
+    allContents: "Alle Inhalte",
     create: "Neuer Inhalt",
-    library: "Medien und Bibliothek",
+    categories: "Kategorien",
+    tags: "Schlagwörter",
+    library: "Medien und Vokabular",
     knowledge: "Wissensspeicher",
     users: "Benutzer",
     site: "Website ansehen",
@@ -138,26 +147,50 @@ export function AdminFrame({
             "⌂",
             copy.overview,
           )}
-          {item(
-            `/${locale}/admin/articles`,
-            exact(`/${locale}/admin/articles`) ||
-              Boolean(pathname.match(/\/admin\/articles\/(?!new)/)),
-            "▤",
-            copy.contents,
-          )}
-          {item(
-            `/${locale}/admin/articles/new`,
-            exact(`/${locale}/admin/articles/new`),
-            "＋",
-            copy.create,
-          )}
-          {editorial &&
-            item(
-              `/${locale}/admin/library`,
-              pathname.startsWith(`/${locale}/admin/library`),
-              "▧",
-              copy.library,
-            )}
+          <section className="admin-nav-module" aria-label={copy.contents}>
+            <div className="admin-nav-module-title">
+              <span aria-hidden>▤</span>
+              <span className="nav-label">{copy.contents}</span>
+            </div>
+            <div className="admin-nav-submenu">
+              {item(
+                `/${locale}/admin/articles`,
+                exact(`/${locale}/admin/articles`) ||
+                  Boolean(
+                    pathname.match(/\/admin\/articles\/[0-9a-f-]{36}(?:\/|$)/i),
+                  ),
+                "≡",
+                copy.allContents,
+              )}
+              {item(
+                `/${locale}/admin/articles/new`,
+                exact(`/${locale}/admin/articles/new`),
+                "+",
+                copy.create,
+              )}
+              {editorial &&
+                item(
+                  `/${locale}/admin/articles/categories`,
+                  exact(`/${locale}/admin/articles/categories`),
+                  "#",
+                  copy.categories,
+                )}
+              {editorial &&
+                item(
+                  `/${locale}/admin/articles/tags`,
+                  exact(`/${locale}/admin/articles/tags`),
+                  "⌗",
+                  copy.tags,
+                )}
+              {editorial &&
+                item(
+                  `/${locale}/admin/library`,
+                  pathname.startsWith(`/${locale}/admin/library`),
+                  "▧",
+                  copy.library,
+                )}
+            </div>
+          </section>
           {editorial &&
             item(
               `/${locale}/admin/knowledge`,
