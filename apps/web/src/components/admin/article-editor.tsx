@@ -30,6 +30,11 @@ export function ArticleEditor({ copy, article }: { copy: AdminCopy; article?: Ar
         body: JSON.stringify(payload),
       });
       if (!response.ok) throw new Error();
+      const result = (await response.json()) as { id?: string };
+      if (!article && result.id) {
+        router.push(`/${String(payload.locale)}/admin/articles/${result.id}`);
+        return;
+      }
       form.reset();
       setMessage(copy.saved);
       router.refresh();
