@@ -73,7 +73,7 @@ export default async function LocaleLayout({
   const dictionary = await getDictionary(locale);
 
   return (
-    <html lang={locale} className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang={locale} className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <body><a className="skip-link" href="#page-root">{dictionary.accessibility.skipToContent}</a><div id="page-root" tabIndex={-1}>{children}</div><ConsentBanner locale={locale}/><ThirdPartyIntegrations/></body>
     </html>
   );

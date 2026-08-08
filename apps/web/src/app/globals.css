@@ -7,7 +7,16 @@
   --line: #cbc6ba;
   --accent: #c94f2d;
   --panel: #e4dfd3;
+  --surface: #fff;
+  --surface-soft: #ebe7dd;
+  --ink: var(--foreground);
+  --line-strong: #8c877b;
+  color-scheme: light;
 }
+
+:root[data-theme="dark"]{--background:#111210;--foreground:#f2efe6;--muted:#aaa89f;--line:#393a35;--accent:#ff7651;--panel:#20211e;--surface:#181916;--surface-soft:#20211e;--line-strong:#777970;color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--background:#111210;--foreground:#f2efe6;--muted:#aaa89f;--line:#393a35;--accent:#ff7651;--panel:#20211e;--surface:#181916;--surface-soft:#20211e;--line-strong:#777970;color-scheme:dark}}
 
 @theme inline {
   --color-background: var(--background);
@@ -303,3 +312,7 @@ h2 {
 .search-results li { padding: 24px 0; border-bottom: 1px solid var(--line); }
 .search-results h3 { margin: 0 0 10px; font-size: 1.35rem; }
 .search-results p { margin: 0; color: var(--muted); line-height: 1.6; }
+.brand-group,.header-tools{display:flex;align-items:center;gap:18px}.header-tools{justify-content:flex-end;flex-wrap:wrap}.header-search{color:var(--muted);font-size:.8rem;text-underline-offset:4px}.theme-toggle{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px}.theme-toggle button{padding:5px 8px;border:0;border-radius:999px;background:transparent;color:var(--muted);font:inherit;font-size:.68rem;cursor:pointer}.theme-toggle button[aria-pressed="true"]{background:var(--foreground);color:var(--background)}
+.admin-login-card,.admin-panel,.compact-form,.admin-form input,.admin-form textarea,.admin-form select,.search-callout input,.search-page input{background:var(--surface)}
+@media(max-width:720px){.header-tools{width:100%;justify-content:space-between}.brand-group{width:100%;justify-content:space-between}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
