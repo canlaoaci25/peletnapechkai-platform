@@ -236,6 +236,15 @@ h2 {
 .admin-columns { display: grid; grid-template-columns: minmax(380px, .8fr) minmax(480px, 1.2fr); gap: 24px; align-items: start; }
 .admin-panel { padding: clamp(22px, 3vw, 38px); background: #fff; border: 1px solid var(--line); }
 .admin-panel h2 { font-size: 1.5rem; }
+.library-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px; margin-bottom:18px; }
+.compact-form { align-content:start; padding:22px; background:#fff; border:1px solid var(--line); }
+.compact-form h2 { margin:0; font-size:1.25rem; }
+.library-list { list-style:none; padding:0; margin:0; display:grid; gap:10px; }
+.library-list li { display:grid; gap:3px; padding-bottom:10px; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
+.library-list small { color:var(--muted); }
+.media-panel { display:grid; grid-template-columns:minmax(240px,1fr) minmax(280px,2fr); gap:24px; }
+.admin-message { position:sticky; bottom:16px; padding:14px; background:var(--foreground); color:var(--background); }
+@media (max-width:700px){.media-panel{grid-template-columns:1fr}}
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .muted, .article-row small { color: var(--muted); }
 .article-table { border-top: 1px solid var(--line); }

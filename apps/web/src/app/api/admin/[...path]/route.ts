@@ -5,6 +5,8 @@ const allowedRoutes = [
   /^auth\/(csrf|login|login\/2fa|logout|session)$/,
   /^articles(?:\/|$)/,
   /^users(?:\/|$)/,
+  /^supporting(?:\/|$)/,
+  /^media(?:\/|$)/,
 ];
 
 function apiPath(path: string[]) {

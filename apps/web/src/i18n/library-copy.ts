@@ -1,0 +1,7 @@
+import type { Locale } from "./config";
+
+export const libraryCopy = {
+  "tr-TR": { link:"Medya ve sözlük", title:"İçerik kütüphanesi", back:"Yayın masasına dön", category:"Kategori", tag:"Etiket", author:"Yazar", source:"Kaynak", media:"Medya", locale:"Dil", slug:"Kısa ad", name:"Ad", url:"Kaynak adresi", file:"Görsel dosyası", add:"Ekle", upload:"Yükle", empty:"Henüz kayıt yok.", success:"Kayıt oluşturuldu.", error:"İşlem tamamlanamadı. Alanları ve benzersiz kısa adı kontrol edin.", size:"Boyut" },
+  "en-US": { link:"Media and vocabulary", title:"Content library", back:"Back to editorial desk", category:"Category", tag:"Tag", author:"Author", source:"Source", media:"Media", locale:"Locale", slug:"Slug", name:"Name", url:"Source URL", file:"Image file", add:"Add", upload:"Upload", empty:"No entries yet.", success:"Entry created.", error:"The operation failed. Check the fields and unique slug.", size:"Size" },
+  "de-DE": { link:"Medien und Vokabular", title:"Inhaltsbibliothek", back:"Zurück zur Redaktion", category:"Kategorie", tag:"Tag", author:"Autor", source:"Quelle", media:"Medien", locale:"Sprache", slug:"Kurzname", name:"Name", url:"Quellen-URL", file:"Bilddatei", add:"Hinzufügen", upload:"Hochladen", empty:"Noch keine Einträge.", success:"Eintrag erstellt.", error:"Vorgang fehlgeschlagen. Felder und eindeutigen Kurznamen prüfen.", size:"Größe" },
+} satisfies Record<Locale, Record<string,string>>;

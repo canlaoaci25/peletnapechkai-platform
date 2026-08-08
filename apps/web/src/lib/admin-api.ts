@@ -34,6 +34,14 @@ export type ManagedUser = {
   emailConfirmed: boolean; twoFactorEnabled: boolean; lockoutEnd: string | null; roles: string[];
 };
 
+export type SupportingLibrary = {
+  categories: { id:string; locale:string; slug:string; name:string }[];
+  tags: { id:string; locale:string; slug:string; name:string }[];
+  authors: { id:string; slug:string; displayName:string }[];
+  sources: { id:string; name:string; url:string }[];
+};
+export type MediaItem = { id:string; fileName:string; contentType:string; byteLength:number; createdAt:string };
+
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 
 async function apiGet<T>(path: string): Promise<T | null> {
@@ -62,4 +70,12 @@ export function getArticle(id: string) {
 
 export async function getUsers() {
   return (await apiGet<ManagedUser[]>("/api/v1/admin/users/")) ?? [];
+}
+
+export async function getSupportingLibrary() {
+  return (await apiGet<SupportingLibrary>("/api/v1/admin/supporting/")) ?? { categories:[], tags:[], authors:[], sources:[] };
+}
+
+export async function getMedia() {
+  return (await apiGet<MediaItem[]>("/api/v1/admin/media/")) ?? [];
 }
