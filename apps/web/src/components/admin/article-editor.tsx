@@ -69,7 +69,7 @@ export function ArticleEditor({
 
   return (
     <form
-      className="admin-form editor-form advanced-editor-layout"
+      className="editor-form advanced-editor-layout"
       onSubmit={submit}
     >
       <div className="advanced-editor-main">
