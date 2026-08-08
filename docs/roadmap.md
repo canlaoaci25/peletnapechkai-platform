@@ -63,3 +63,17 @@ and R2, job queues, database separation, centralized logs, and additional region
 
 Human-reviewed AI assistance, content opportunity analysis, freshness and quality tools,
 knowledge graph, knowledge vault, topic hubs, comparisons, and editorial decision support.
+
+## Phase 13 — Global publishing design and theme system
+
+Research current international blogs, global digital publications, Onedio, and leading
+Turkish news sites. Compare information hierarchy, navigation, article readability,
+discovery surfaces, advertising pressure, mobile behavior, accessibility, and trust
+signals. Turn the findings into an original BOECL design system rather than copying any
+single publication.
+
+Deliver a responsive public theme with user-selectable light, dark, and system modes;
+accessible contrast and focus states; stable design tokens; locale-safe typography; and
+consistent homepage, listing, article, search, author, and legal-page patterns. Validate
+the result across all supported locales, common viewport sizes, keyboard use, reduced
+motion, and Core Web Vitals budgets.

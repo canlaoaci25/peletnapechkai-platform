@@ -62,3 +62,6 @@ After deployment or a service restart, verify:
 
 Never copy production credentials, owner bootstrap values, certificates, or private
 keys into this document or the Git repository.
+
+Changes must pass the isolated staging environment described in
+[`staging.md`](staging.md) before production promotion.
