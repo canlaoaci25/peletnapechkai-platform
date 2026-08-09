@@ -24,13 +24,17 @@ try {
 
     $jobId = [string]$job.id
     $jobLog = Join-Path $logRoot "$jobId.jsonl"
+    $stderrLog = Join-Path $logRoot "$jobId-stderr.log"
     $lastMessage = Join-Path $logRoot "$jobId-result.txt"
     $codexArguments = @(
         'exec', '--ephemeral', '--json', '--sandbox', 'danger-full-access',
         '--cd', [string]$config.repositoryPath, '--output-last-message', $lastMessage, '-'
     )
-    [string]$job.prompt | & ([string]$config.codexPath) @codexArguments 2>&1 | Set-Content -LiteralPath $jobLog -Encoding utf8
-    if ($LASTEXITCODE -ne 0) { throw "Codex exited with code $LASTEXITCODE." }
+    [string]$job.prompt | & ([string]$config.codexPath) @codexArguments 2> $stderrLog | Set-Content -LiteralPath $jobLog -Encoding utf8
+    if ($LASTEXITCODE -ne 0) {
+        $stderrTail = if (Test-Path -LiteralPath $stderrLog) { (Get-Content -LiteralPath $stderrLog -Tail 8) -join ' ' } else { '' }
+        throw "Codex exited with code $LASTEXITCODE. $stderrTail"
+    }
 
     $result = if (Test-Path -LiteralPath $lastMessage) { Get-Content -LiteralPath $lastMessage -Raw } else { 'Codex işi tamamladı.' }
     if ($result.Length -gt 1800) { $result = $result.Substring(0, 1800) }
