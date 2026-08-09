@@ -93,8 +93,14 @@ public static class AutomationEndpoints
         System.Security.Claims.ClaimsPrincipal principal,
         UserManager<ApplicationUser> users,
         PublishingDbContext database,
+        IConfiguration configuration,
         CancellationToken token)
     {
+        if (!configuration.GetValue<bool>("Automation:RunnerEnabled"))
+        {
+            return Results.Conflict(new { message = "Codex worker etkinleştirilmeden toplu iş başlatılamaz." });
+        }
+
         if (!Enum.TryParse<AutomationJobType>(request.Type, true, out var type))
         {
             return Results.ValidationProblem(new Dictionary<string, string[]>

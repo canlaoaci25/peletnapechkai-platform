@@ -175,7 +175,8 @@ export function AutomationCenter({
             <p>{card.description}</p>
             <strong>{card.count(scan)} iş</strong>
             <button
-              disabled={busy || card.count(scan) === 0}
+              disabled={busy || !scan.runnerEnabled || card.count(scan) === 0}
+              title={scan.runnerEnabled ? undefined : "Codex worker etkinleştirildikten sonra kullanılabilir."}
               onClick={() => void start(card.type, card.count(scan))}
             >
               TÜMÜNÜ FAZLARLA ÇALIŞTIR
