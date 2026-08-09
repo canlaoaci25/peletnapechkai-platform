@@ -18,6 +18,7 @@ const text = {
     library: "Medya ve sözlük",
     knowledge: "Bilgi kasası",
     users: "Kullanıcılar",
+    languages: "Dil işlemleri",
     site: "Siteyi görüntüle",
     workspace: "Yönetim alanı",
     light: "Açık tema",
@@ -39,6 +40,7 @@ const text = {
     library: "Media and vocabulary",
     knowledge: "Knowledge vault",
     users: "Users",
+    languages: "Language settings",
     site: "View website",
     workspace: "Administration",
     light: "Light theme",
@@ -60,6 +62,7 @@ const text = {
     library: "Medien und Vokabular",
     knowledge: "Wissensspeicher",
     users: "Benutzer",
+    languages: "Spracheinstellungen",
     site: "Website ansehen",
     workspace: "Verwaltung",
     light: "Helles Design",
@@ -279,6 +282,13 @@ export function AdminFrame({
               pathname.startsWith(`/${locale}/admin/knowledge`),
               "◇",
               copy.knowledge,
+            )}
+          {admin &&
+            item(
+              `/${locale}/admin/languages`,
+              pathname.startsWith(`/${locale}/admin/languages`),
+              "文",
+              copy.languages,
             )}
           {admin &&
             item(

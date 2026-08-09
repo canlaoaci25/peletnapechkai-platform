@@ -26,4 +26,5 @@ public sealed class Region
     public bool IsEnabled { get; private set; }
 
     public ICollection<Locale> Locales { get; } = [];
+    public ICollection<LocaleCountry> LocaleCountries { get; } = [];
 }

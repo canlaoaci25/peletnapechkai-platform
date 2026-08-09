@@ -44,6 +44,7 @@ app.UseAntiforgery();
 app.MapAuthEndpoints();
 app.MapUserManagementEndpoints();
 app.MapEditorialEndpoints();
+app.MapLocaleManagementEndpoints();
 app.MapSupportingContentEndpoints();
 app.MapSystemStatusEndpoints();
 app.MapKnowledgeEndpoints();

@@ -67,5 +67,16 @@ public sealed class Locale
 
     public bool IsEnabled { get; private set; }
 
+    public ICollection<LocaleCountry> Countries { get; } = [];
+
+    public void Update(string displayName, string nativeName, bool isEnabled)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(nativeName);
+        DisplayName = displayName.Trim();
+        NativeName = nativeName.Trim();
+        IsEnabled = isEnabled;
+    }
+
     public ICollection<ArticleLocalization> ArticleLocalizations { get; } = [];
 }

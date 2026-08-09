@@ -27,28 +27,141 @@ export type ArticleDetail = ArticleSummary & {
   body: string;
   seoTitle: string | null;
   seoDescription: string | null;
-  categoryIds:string[]; tagIds:string[]; authorIds:string[]; sourceIds:string[]; mediaAssetIds:string[];
-  coverMediaAssetId:string|null; coverAltText:string|null; coverCaption:string|null; coverCredit:string|null;
-  isSponsored:boolean; sponsorName:string|null; hasAffiliateLinks:boolean;
+  categoryIds: string[];
+  tagIds: string[];
+  authorIds: string[];
+  sourceIds: string[];
+  mediaAssetIds: string[];
+  coverMediaAssetId: string | null;
+  coverAltText: string | null;
+  coverCaption: string | null;
+  coverCredit: string | null;
+  isSponsored: boolean;
+  sponsorName: string | null;
+  hasAffiliateLinks: boolean;
 };
 
 export type ManagedUser = {
-  id: string; email: string; displayName: string; isActive: boolean;
-  emailConfirmed: boolean; twoFactorEnabled: boolean; lockoutEnd: string | null; roles: string[];
+  id: string;
+  email: string;
+  displayName: string;
+  isActive: boolean;
+  emailConfirmed: boolean;
+  twoFactorEnabled: boolean;
+  lockoutEnd: string | null;
+  roles: string[];
 };
 
 export type SupportingLibrary = {
-  categories: { id:string; locale:string; slug:string; name:string }[];
-  tags: { id:string; locale:string; slug:string; name:string }[];
-  authors: { id:string; slug:string; displayName:string }[];
-  sources: { id:string; name:string; url:string }[];
+  categories: { id: string; locale: string; slug: string; name: string }[];
+  tags: { id: string; locale: string; slug: string; name: string }[];
+  authors: { id: string; slug: string; displayName: string }[];
+  sources: { id: string; name: string; url: string }[];
 };
-export type MediaItem = { id:string; fileName:string; contentType:string; byteLength:number; width:number|null; height:number|null; optimizedByteLength:number|null; usageCount:number; canDelete:boolean; createdAt:string };
-export type SystemStatus={checkedAt:string;database:string;articles:number;published:number;users:number;mediaFiles:number;mediaBytes:number;diskFreeBytes:number};
-export type KnowledgeLink={id:string;articleLocalizationId:string;articleTitle:string;articleSlug:string;purpose:string;note:string|null;reviewDueAt:string;lastVerifiedAt:string};
-export type KnowledgeCandidate={id:string;locale:string;title:string;claim:string;sourceUrl:string;aiAssisted:boolean;status:string;createdAt:string;updatedAt:string;links:KnowledgeLink[]};
-export type ArticleRevision={id:string;number:number;title:string;summary:string;body:string;createdByUserId:string|null;createdAt:string};
-export type ArticleCollaboration={tasks:{id:string;assigneeUserId:string;assignee:string|null;title:string;priority:string;status:string;dueAt:string}[];comments:{id:string;author:string|null;body:string;parentCommentId:string|null;articleRevisionId:string|null;isResolved:boolean;deletedAt:string|null;createdAt:string}[];checklist:null|{titleAndSummary:boolean;sourcesVerified:boolean;authorAndTaxonomy:boolean;seoMetadata:boolean;coverAccessibility:boolean;commercialDisclosure:boolean;translationReviewed:boolean;legalEditorialReview:boolean;isComplete:boolean};users:{id:string;displayName:string}[]};
+export type MediaItem = {
+  id: string;
+  fileName: string;
+  contentType: string;
+  byteLength: number;
+  width: number | null;
+  height: number | null;
+  optimizedByteLength: number | null;
+  usageCount: number;
+  canDelete: boolean;
+  createdAt: string;
+};
+export type SystemStatus = {
+  checkedAt: string;
+  database: string;
+  articles: number;
+  published: number;
+  users: number;
+  mediaFiles: number;
+  mediaBytes: number;
+  diskFreeBytes: number;
+};
+export type KnowledgeLink = {
+  id: string;
+  articleLocalizationId: string;
+  articleTitle: string;
+  articleSlug: string;
+  purpose: string;
+  note: string | null;
+  reviewDueAt: string;
+  lastVerifiedAt: string;
+};
+export type KnowledgeCandidate = {
+  id: string;
+  locale: string;
+  title: string;
+  claim: string;
+  sourceUrl: string;
+  aiAssisted: boolean;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  links: KnowledgeLink[];
+};
+export type ArticleRevision = {
+  id: string;
+  number: number;
+  title: string;
+  summary: string;
+  body: string;
+  createdByUserId: string | null;
+  createdAt: string;
+};
+export type ArticleCollaboration = {
+  tasks: {
+    id: string;
+    assigneeUserId: string;
+    assignee: string | null;
+    title: string;
+    priority: string;
+    status: string;
+    dueAt: string;
+  }[];
+  comments: {
+    id: string;
+    author: string | null;
+    body: string;
+    parentCommentId: string | null;
+    articleRevisionId: string | null;
+    isResolved: boolean;
+    deletedAt: string | null;
+    createdAt: string;
+  }[];
+  checklist: null | {
+    titleAndSummary: boolean;
+    sourcesVerified: boolean;
+    authorAndTaxonomy: boolean;
+    seoMetadata: boolean;
+    coverAccessibility: boolean;
+    commercialDisclosure: boolean;
+    translationReviewed: boolean;
+    legalEditorialReview: boolean;
+    isComplete: boolean;
+  };
+  users: { id: string; displayName: string }[];
+};
+export type ManagedLocale = {
+  id: string;
+  code: string;
+  languageCode: string;
+  displayName: string;
+  nativeName: string;
+  isDefault: boolean;
+  isEnabled: boolean;
+  articleCount: number;
+  countries: {
+    code: string;
+    name: string;
+    currencyCode: string;
+    isRequired: boolean;
+    isEnabled: boolean;
+    isPrimary: boolean;
+  }[];
+};
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 
@@ -60,7 +173,8 @@ async function apiGet<T>(path: string): Promise<T | null> {
   });
 
   if (response.status === 401 || response.status === 403) return null;
-  if (!response.ok) throw new Error(`Admin API request failed (${response.status}).`);
+  if (!response.ok)
+    throw new Error(`Admin API request failed (${response.status}).`);
   return (await response.json()) as T;
 }
 
@@ -73,21 +187,47 @@ export async function getArticles() {
 }
 
 export function getArticle(id: string) {
-  return apiGet<ArticleDetail>(`/api/v1/admin/articles/${encodeURIComponent(id)}`);
+  return apiGet<ArticleDetail>(
+    `/api/v1/admin/articles/${encodeURIComponent(id)}`,
+  );
 }
-export async function getArticleRevisions(id:string){return(await apiGet<ArticleRevision[]>(`/api/v1/admin/articles/${encodeURIComponent(id)}/revisions`))??[]}
-export function getArticleCollaboration(id:string){return apiGet<ArticleCollaboration>(`/api/v1/admin/articles/${encodeURIComponent(id)}/collaboration/`)}
+export async function getArticleRevisions(id: string) {
+  return (
+    (await apiGet<ArticleRevision[]>(
+      `/api/v1/admin/articles/${encodeURIComponent(id)}/revisions`,
+    )) ?? []
+  );
+}
+export function getArticleCollaboration(id: string) {
+  return apiGet<ArticleCollaboration>(
+    `/api/v1/admin/articles/${encodeURIComponent(id)}/collaboration/`,
+  );
+}
 
 export async function getUsers() {
   return (await apiGet<ManagedUser[]>("/api/v1/admin/users/")) ?? [];
 }
 
 export async function getSupportingLibrary() {
-  return (await apiGet<SupportingLibrary>("/api/v1/admin/supporting/")) ?? { categories:[], tags:[], authors:[], sources:[] };
+  return (
+    (await apiGet<SupportingLibrary>("/api/v1/admin/supporting/")) ?? {
+      categories: [],
+      tags: [],
+      authors: [],
+      sources: [],
+    }
+  );
 }
 
 export async function getMedia() {
   return (await apiGet<MediaItem[]>("/api/v1/admin/media/")) ?? [];
 }
-export function getSystemStatus(){return apiGet<SystemStatus>("/api/v1/admin/status")}
-export async function getKnowledgeCandidates(){return(await apiGet<KnowledgeCandidate[]>("/api/v1/admin/knowledge/"))??[]}
+export function getSystemStatus() {
+  return apiGet<SystemStatus>("/api/v1/admin/status");
+}
+export async function getKnowledgeCandidates() {
+  return (await apiGet<KnowledgeCandidate[]>("/api/v1/admin/knowledge/")) ?? [];
+}
+export async function getManagedLocales() {
+  return (await apiGet<ManagedLocale[]>("/api/v1/admin/locales/")) ?? [];
+}
