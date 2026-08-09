@@ -2641,3 +2641,120 @@ button:focus-visible {
     grid-column: 1;
   }
 }
+
+/* Mobile sidebar drawer */
+.admin-mobile-menu-button,
+.admin-mobile-backdrop,
+.admin-mobile-close-button {
+  display: none;
+}
+@media (max-width: 900px) {
+  .admin-mobile-menu-button {
+    position: fixed;
+    z-index: 45;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    min-height: 46px;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    border: 1px solid #303746;
+    border-radius: 8px;
+    background: #10141c;
+    color: #f4f6fa;
+    box-shadow: 0 10px 30px rgb(0 0 0 / 24%);
+    font: inherit;
+    cursor: pointer;
+  }
+  .admin-mobile-menu-button span {
+    font-size: 1.25rem;
+  }
+  .admin-mobile-menu-button strong {
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+  }
+  .admin-mobile-backdrop {
+    position: fixed;
+    z-index: 48;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: rgb(0 0 0 / 62%);
+    backdrop-filter: blur(2px);
+  }
+  .admin-frame[data-mobile-menu="open"] .admin-mobile-backdrop {
+    display: block;
+  }
+  .admin-sidebar {
+    position: fixed;
+    z-index: 50;
+    inset: 0 auto 0 0;
+    width: min(86vw, 340px);
+    height: 100dvh;
+    padding: 20px 16px;
+    overflow-y: auto;
+    border-right: 1px solid #303746;
+    box-shadow: 24px 0 60px rgb(0 0 0 / 42%);
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+  }
+  .admin-frame[data-mobile-menu="open"] .admin-sidebar {
+    transform: translateX(0);
+  }
+  .admin-sidebar header {
+    padding-bottom: 18px;
+  }
+  .admin-mobile-close-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid #303746;
+    border-radius: 50%;
+    background: #171c25;
+    color: #fff;
+    font: inherit;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+  .admin-sidebar nav {
+    display: grid;
+    width: 100%;
+    overflow: visible;
+    padding: 18px 0;
+  }
+  .admin-sidebar nav > a,
+  .admin-sidebar nav .admin-nav-module {
+    width: 100%;
+    max-width: none;
+  }
+  .admin-nav-submenu {
+    display: grid;
+    overflow: visible;
+    padding-left: 8px;
+    border-left: 1px solid #303746;
+  }
+  .admin-sidebar-bottom {
+    display: grid;
+    grid-template-columns: 1fr;
+    margin-top: 10px;
+  }
+  .admin-profile {
+    grid-column: 1;
+    margin-top: 8px;
+    padding: 14px 10px;
+    border-top: 1px solid #252a35;
+  }
+  .admin-sidebar .secondary-button {
+    width: 100%;
+  }
+  .admin-frame .admin-shell {
+    padding-top: 76px;
+  }
+}

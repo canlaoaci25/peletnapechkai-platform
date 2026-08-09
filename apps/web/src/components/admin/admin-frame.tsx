@@ -24,6 +24,8 @@ const text = {
     logout: "Çıkış yap",
     collapse: "Menüyü daralt",
     expand: "Menüyü genişlet",
+    openMenu: "Yönetim menüsünü aç",
+    closeMenu: "Yönetim menüsünü kapat",
   },
   "en-US": {
     overview: "Control center",
@@ -42,6 +44,8 @@ const text = {
     logout: "Sign out",
     collapse: "Collapse menu",
     expand: "Expand menu",
+    openMenu: "Open administration menu",
+    closeMenu: "Close administration menu",
   },
   "de-DE": {
     overview: "Kontrollzentrum",
@@ -60,6 +64,8 @@ const text = {
     logout: "Abmelden",
     collapse: "Menü einklappen",
     expand: "Menü ausklappen",
+    openMenu: "Verwaltungsmenü öffnen",
+    closeMenu: "Verwaltungsmenü schließen",
   },
 } as const;
 
@@ -77,6 +83,7 @@ export function AdminFrame({
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [collapsed, setCollapsed] = useState(false);
   const [contentOpen, setContentOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   useEffect(() => {
     const saved = localStorage.getItem("boecl-admin-theme"),
       savedMenu = localStorage.getItem("boecl-admin-sidebar");
@@ -87,6 +94,19 @@ export function AdminFrame({
     }, 0);
     return () => clearTimeout(timer);
   }, []);
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function close(event: KeyboardEvent) {
+      if (event.key === "Escape") setMobileOpen(false);
+    }
+    window.addEventListener("keydown", close);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", close);
+    };
+  }, [mobileOpen]);
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
@@ -119,6 +139,7 @@ export function AdminFrame({
       className={active ? "active" : ""}
       href={href}
       title={collapsed ? label : undefined}
+      onClick={() => setMobileOpen(false)}
     >
       <span aria-hidden>{icon}</span>
       <span className="nav-label">{label}</span>
@@ -129,16 +150,46 @@ export function AdminFrame({
       className="admin-frame"
       data-admin-theme={theme}
       data-sidebar={collapsed ? "collapsed" : "expanded"}
+      data-mobile-menu={mobileOpen ? "open" : "closed"}
     >
-      <aside className="admin-sidebar">
+      <button
+        className="admin-mobile-menu-button"
+        type="button"
+        aria-label={copy.openMenu}
+        aria-controls="admin-sidebar"
+        aria-expanded={mobileOpen}
+        onClick={() => setMobileOpen(true)}
+      >
+        <span aria-hidden>☰</span>
+        <strong>BOECL</strong>
+      </button>
+      <button
+        className="admin-mobile-backdrop"
+        type="button"
+        aria-label={copy.closeMenu}
+        onClick={() => setMobileOpen(false)}
+      />
+      <aside className="admin-sidebar" id="admin-sidebar">
         <header>
-          <Link className="admin-sidebar-brand" href={`/${locale}/admin`}>
+          <Link
+            className="admin-sidebar-brand"
+            href={`/${locale}/admin`}
+            onClick={() => setMobileOpen(false)}
+          >
             <span className="brand-mark">B</span>
             <span className="brand-label">
               <strong>BOECL</strong>
               <small>{copy.workspace}</small>
             </span>
           </Link>
+          <button
+            className="admin-mobile-close-button"
+            type="button"
+            aria-label={copy.closeMenu}
+            onClick={() => setMobileOpen(false)}
+          >
+            ×
+          </button>
           <button
             className="sidebar-collapse-button"
             type="button"
