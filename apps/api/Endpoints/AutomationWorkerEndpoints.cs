@@ -124,9 +124,28 @@ public static class AutomationWorkerEndpoints
     private static string BuildPrompt(AutomationJob job)
     {
         var locales = job.TargetLocales.Length == 0 ? "sistem" : string.Join(", ", job.TargetLocales);
+        var assignment = job.Type switch
+        {
+            AutomationJobType.SystemReport => """
+                Yalnız rapor üret; kodu ve veritabanını değiştirme. `git status --short`, son 10 commit, proje test komutları ve mevcut dokümantasyondan sistem durumunu özetle. Uzun testleri yeniden çalıştırma; var olan kanıtları raporla.
+                """,
+            AutomationJobType.SiteLocalization => $"""
+                Yalnız `apps/web/src/i18n`, locale yapılandırması ve bunların doğrudan testlerini incele. Hedef diller ({locales}) için eksik arayüz anahtarlarını kaynak Türkçe sözlüğe göre tamamla. Kaynak Türkçe metni değiştirme. Public içerik veya veritabanına dokunma.
+                """,
+            AutomationJobType.ContentTranslation => $"""
+                Hedef diller ({locales}) için yayımlanmış Türkçe içeriklerin eksik çeviri taslaklarını hazırla. Doğrudan public yayın yapma. Mevcut uygulamada güvenli taslak içe/dışa aktarma komutu yoksa veriyi tahmin etme ve kodu değiştirme; bunu engel olarak açıkça raporla.
+                """,
+            AutomationJobType.SeoLocalization => $"""
+                Hedef diller ({locales}) için eksik SEO alanlarını insan onayı bekleyen taslak olarak hazırla. Public içeriği değiştirme. Güvenli SEO taslak komutu yoksa veriyi tahmin etme ve kodu değiştirme; bunu engel olarak açıkça raporla.
+                """,
+            _ => throw new InvalidOperationException("Unsupported automation job type.")
+        };
         return $"""
             BOECL otomasyon işi {job.Id} üzerinde çalış. İş türü: {job.Type}. Hedef diller: {locales}. Faz: {job.CurrentPhase}.
-            Repo AGENTS.md kurallarını eksiksiz uygula. Önce mevcut uygulamayı ve veriyi incele, sonra bu iş türünün eksiklerini kalıcı ve idempotent şekilde tamamla.
+            {assignment}
+            Repo AGENTS.md kurallarını eksiksiz uygula. İncelemeyi yalnız belirtilen dar dizinlerle sınırla.
+            `.artifacts`, `.git`, `node_modules`, `bin`, `obj`, IIS yayın klasörleri ve PDF dosyalarını hiçbir koşulda özyinelemeli tarama.
+            PowerShell `Get-ChildItem -Recurse` kullanma. Aramada `rg` ve açık glob dışlamaları kullan. Her komutu kısa ve sınırlı tut.
             Kullanıcıya görünen yeni içerikler Türkçe olmalıdır; yerelleştirme işinde kaynak Türkçe içeriği değiştirme.
             AI içeriğini veya çeviriyi doğrudan public yayımlama; taslak ya da insan onayı bekleyen durumda bırak.
             Gereken testleri çalıştır. Sır, token veya bağlantı dizesini dosyaya, loga ya da Git'e yazma.
