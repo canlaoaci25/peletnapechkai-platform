@@ -162,6 +162,13 @@ export type ManagedLocale = {
     isPrimary: boolean;
   }[];
 };
+export type LocaleCatalogItem = {
+  code: string;
+  displayName: string;
+  nativeName: string;
+  countryCode: string;
+  countryName: string;
+};
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 
@@ -230,4 +237,9 @@ export async function getKnowledgeCandidates() {
 }
 export async function getManagedLocales() {
   return (await apiGet<ManagedLocale[]>("/api/v1/admin/locales/")) ?? [];
+}
+export async function getLocaleCatalog() {
+  return (
+    (await apiGet<LocaleCatalogItem[]>("/api/v1/admin/locales/catalog")) ?? []
+  );
 }

@@ -16,10 +16,27 @@ public static class LocaleManagementEndpoints
     {
         var group = endpoints.MapGroup("/api/v1/admin/locales").WithTags("Locale management").RequireAuthorization(AuthorizationPolicies.ManageUsers);
         group.MapGet("/", ListAsync);
+        group.MapGet("/catalog", Catalog);
         group.MapPost("/", CreateAsync).ValidateAntiforgery();
         group.MapPut("/{localeId:guid}", UpdateAsync).ValidateAntiforgery();
         group.MapPut("/{localeId:guid}/countries/{countryCode}", UpdateCountryAsync).ValidateAntiforgery();
         return endpoints;
+    }
+
+    private static IResult Catalog()
+    {
+        var items = CultureInfo.GetCultures(CultureTypes.SpecificCultures)
+            .Where(culture => !string.IsNullOrWhiteSpace(culture.Name))
+            .GroupBy(culture => culture.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .Select(culture =>
+            {
+                var region = new RegionInfo(culture.Name);
+                return new { code = culture.Name, displayName = culture.EnglishName, nativeName = culture.NativeName, countryCode = region.TwoLetterISORegionName, countryName = region.NativeName };
+            })
+            .OrderBy(item => item.displayName)
+            .ToArray();
+        return Results.Ok(items);
     }
 
     private static async Task<IResult> ListAsync(PublishingDbContext database, CancellationToken token) =>

@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LanguageManager } from "@/components/admin/language-manager";
+import { LanguageList } from "@/components/admin/language-manager";
 import { hasLocale } from "@/i18n/config";
 import { getAdminSession, getManagedLocales } from "@/lib/admin-api";
 
@@ -18,14 +19,14 @@ export default async function LanguagesPage({
       <header className="admin-command-header">
         <div>
           <p className="section-kicker">YERELLEŞTİRME</p>
-          <h1>Dil işlemleri</h1>
-          <p>
-            Dilleri ve otomatik ülke eşleşmelerini yönetin. Yeni diller
-            çeviriler hazırlanana kadar pasif başlar.
-          </p>
+          <h1>Dil listesi</h1>
+          <p>Bir dili düzenlemek ve ülke eşleşmelerini görmek için seçin.</p>
         </div>
+        <Link className="primary-link" href={`/${locale}/admin/languages/new`}>
+          + Dil ekle
+        </Link>
       </header>
-      <LanguageManager locales={locales} />
+      <LanguageList locale={locale} locales={locales} />
     </main>
   );
 }

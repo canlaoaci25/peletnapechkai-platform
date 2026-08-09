@@ -19,6 +19,8 @@ const text = {
     knowledge: "Bilgi kasası",
     users: "Kullanıcılar",
     languages: "Dil işlemleri",
+    languageList: "Dil listesi",
+    languageCreate: "Dil ekle",
     site: "Siteyi görüntüle",
     workspace: "Yönetim alanı",
     light: "Açık tema",
@@ -41,6 +43,8 @@ const text = {
     knowledge: "Knowledge vault",
     users: "Users",
     languages: "Language settings",
+    languageList: "Language list",
+    languageCreate: "Add language",
     site: "View website",
     workspace: "Administration",
     light: "Light theme",
@@ -63,6 +67,8 @@ const text = {
     knowledge: "Wissensspeicher",
     users: "Benutzer",
     languages: "Spracheinstellungen",
+    languageList: "Sprachliste",
+    languageCreate: "Sprache hinzufügen",
     site: "Website ansehen",
     workspace: "Verwaltung",
     light: "Helles Design",
@@ -89,6 +95,7 @@ export function AdminFrame({
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [collapsed, setCollapsed] = useState(false);
   const [contentOpen, setContentOpen] = useState(false);
+  const [languageOpen, setLanguageOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   useEffect(() => {
     const saved = localStorage.getItem("boecl-admin-theme"),
@@ -97,6 +104,7 @@ export function AdminFrame({
       if (saved === "light" || saved === "dark") setTheme(saved);
       setCollapsed(savedMenu === "collapsed");
       setContentOpen(localStorage.getItem("boecl-content-module") === "open");
+      setLanguageOpen(localStorage.getItem("boecl-language-module") === "open");
     }, 0);
     return () => clearTimeout(timer);
   }, []);
@@ -132,6 +140,13 @@ export function AdminFrame({
     setContentOpen((value) => {
       const next = !value;
       localStorage.setItem("boecl-content-module", next ? "open" : "closed");
+      return next;
+    });
+  }
+  function toggleLanguage() {
+    setLanguageOpen((value) => {
+      const next = !value;
+      localStorage.setItem("boecl-language-module", next ? "open" : "closed");
       return next;
     });
   }
@@ -283,13 +298,43 @@ export function AdminFrame({
               "◇",
               copy.knowledge,
             )}
-          {admin &&
-            item(
-              `/${locale}/admin/languages`,
-              pathname.startsWith(`/${locale}/admin/languages`),
-              "文",
-              copy.languages,
-            )}
+          {admin && (
+            <section
+              className="admin-nav-module"
+              aria-label={copy.languages}
+              data-open={languageOpen}
+            >
+              <button
+                className="admin-nav-module-title"
+                type="button"
+                onClick={toggleLanguage}
+                aria-expanded={languageOpen}
+              >
+                <span aria-hidden>文</span>
+                <span className="nav-label">{copy.languages}</span>
+                <span className="module-chevron" aria-hidden>
+                  {languageOpen ? "−" : "+"}
+                </span>
+              </button>
+              <div className="admin-nav-submenu">
+                {item(
+                  `/${locale}/admin/languages`,
+                  exact(`/${locale}/admin/languages`) ||
+                    Boolean(
+                      pathname.match(/\/admin\/languages\/[0-9a-f-]{36}$/i),
+                    ),
+                  "≡",
+                  copy.languageList,
+                )}
+                {item(
+                  `/${locale}/admin/languages/new`,
+                  exact(`/${locale}/admin/languages/new`),
+                  "+",
+                  copy.languageCreate,
+                )}
+              </div>
+            </section>
+          )}
           {admin &&
             item(
               `/${locale}/admin/users`,
