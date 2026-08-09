@@ -19,6 +19,7 @@ public sealed class AutomationJobConfiguration : IEntityTypeConfiguration<Automa
         builder.Property(job => job.FailedItems).HasColumnName("failed_items");
         builder.Property(job => job.CurrentPhase).HasColumnName("current_phase");
         builder.Property(job => job.LastMessage).HasColumnName("last_message").HasMaxLength(2000);
+        builder.Property(job => job.ReportText).HasColumnName("report_text");
         builder.Property(job => job.CreatedByUserId).HasColumnName("created_by_user_id");
         builder.Property(job => job.CreatedAt).HasColumnName("created_at");
         builder.Property(job => job.UpdatedAt).HasColumnName("updated_at");

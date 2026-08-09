@@ -72,9 +72,10 @@ public sealed class AutomationJobTests
             Guid.CreateVersion7(),
             now);
         job.Start(1, now);
-        job.Complete(null, now);
+        job.Complete(null, "Ayrıntılı sistem raporu", now);
 
         Assert.Equal(AutomationJobStatus.Completed, job.Status);
+        Assert.Equal("Ayrıntılı sistem raporu", job.ReportText);
         Assert.Throws<InvalidOperationException>(() => job.Cancel(now));
         Assert.Throws<InvalidOperationException>(() => job.Pause(now));
     }

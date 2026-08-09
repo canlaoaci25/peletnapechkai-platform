@@ -20,27 +20,15 @@ public enum AutomationJobStatus
 
 public sealed class AutomationJob
 {
-    private AutomationJob()
-    {
-    }
+    private AutomationJob() { }
 
-    public AutomationJob(
-        AutomationJobType type,
-        IEnumerable<string> targetLocales,
-        int totalItems,
-        Guid actorId,
-        DateTimeOffset now)
+    public AutomationJob(AutomationJobType type, IEnumerable<string> targetLocales, int totalItems, Guid actorId, DateTimeOffset now)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(totalItems);
-
         Id = Guid.CreateVersion7();
         Type = type;
-        TargetLocales = targetLocales
-            .Where(locale => !string.IsNullOrWhiteSpace(locale))
-            .Select(locale => locale.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Order(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        TargetLocales = targetLocales.Where(locale => !string.IsNullOrWhiteSpace(locale)).Select(locale => locale.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase).ToArray();
         TotalItems = totalItems;
         CreatedByUserId = actorId;
         Status = AutomationJobStatus.Queued;
@@ -58,6 +46,7 @@ public sealed class AutomationJob
     public int FailedItems { get; private set; }
     public int CurrentPhase { get; private set; }
     public string? LastMessage { get; private set; }
+    public string? ReportText { get; private set; }
     public Guid CreatedByUserId { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -65,11 +54,7 @@ public sealed class AutomationJob
 
     public void Pause(DateTimeOffset now)
     {
-        if (Status is not (AutomationJobStatus.Queued or AutomationJobStatus.Running))
-        {
-            throw new InvalidOperationException("Only queued or running jobs can be paused.");
-        }
-
+        if (Status is not (AutomationJobStatus.Queued or AutomationJobStatus.Running)) throw new InvalidOperationException("Only queued or running jobs can be paused.");
         Status = AutomationJobStatus.Paused;
         LastMessage = "İş kullanıcı tarafından durduruldu.";
         UpdatedAt = now;
@@ -77,11 +62,7 @@ public sealed class AutomationJob
 
     public void Resume(DateTimeOffset now)
     {
-        if (Status != AutomationJobStatus.Paused)
-        {
-            throw new InvalidOperationException("Only paused jobs can be resumed.");
-        }
-
+        if (Status != AutomationJobStatus.Paused) throw new InvalidOperationException("Only paused jobs can be resumed.");
         Status = AutomationJobStatus.Queued;
         LastMessage = "İş kaldığı fazdan devam etmek üzere kuyruğa alındı.";
         UpdatedAt = now;
@@ -89,11 +70,7 @@ public sealed class AutomationJob
 
     public void Retry(DateTimeOffset now)
     {
-        if (Status != AutomationJobStatus.Failed)
-        {
-            throw new InvalidOperationException("Only failed jobs can be retried.");
-        }
-
+        if (Status != AutomationJobStatus.Failed) throw new InvalidOperationException("Only failed jobs can be retried.");
         Status = AutomationJobStatus.Queued;
         CompletedAt = null;
         LastMessage = "Hatalı iş yeniden denenmek üzere kuyruğa alındı.";
@@ -102,11 +79,7 @@ public sealed class AutomationJob
 
     public void Cancel(DateTimeOffset now)
     {
-        if (Status is AutomationJobStatus.Completed or AutomationJobStatus.Cancelled)
-        {
-            throw new InvalidOperationException("Completed or cancelled jobs cannot be cancelled again.");
-        }
-
+        if (Status is AutomationJobStatus.Completed or AutomationJobStatus.Cancelled) throw new InvalidOperationException("Completed or cancelled jobs cannot be cancelled again.");
         Status = AutomationJobStatus.Cancelled;
         LastMessage = "İş kullanıcı tarafından iptal edildi.";
         UpdatedAt = now;
@@ -115,11 +88,7 @@ public sealed class AutomationJob
 
     public void Start(int phase, DateTimeOffset now)
     {
-        if (Status != AutomationJobStatus.Queued)
-        {
-            throw new InvalidOperationException("Only queued jobs can start.");
-        }
-
+        if (Status != AutomationJobStatus.Queued) throw new InvalidOperationException("Only queued jobs can start.");
         Status = AutomationJobStatus.Running;
         CurrentPhase = Math.Max(1, phase);
         LastMessage = "Faz çalışıyor.";
@@ -128,16 +97,8 @@ public sealed class AutomationJob
 
     public void ReportProgress(int completed, int failed, int phase, string? message, DateTimeOffset now)
     {
-        if (Status != AutomationJobStatus.Running)
-        {
-            throw new InvalidOperationException("Only running jobs can report progress.");
-        }
-
-        if (completed < 0 || failed < 0 || completed + failed > TotalItems)
-        {
-            throw new ArgumentOutOfRangeException(nameof(completed));
-        }
-
+        if (Status != AutomationJobStatus.Running) throw new InvalidOperationException("Only running jobs can report progress.");
+        if (completed < 0 || failed < 0 || completed + failed > TotalItems) throw new ArgumentOutOfRangeException(nameof(completed));
         CompletedItems = completed;
         FailedItems = failed;
         CurrentPhase = Math.Max(phase, CurrentPhase);
@@ -145,27 +106,27 @@ public sealed class AutomationJob
         UpdatedAt = now;
     }
 
-    public void Complete(string? message, DateTimeOffset now)
+    public void Complete(string? message, string? reportText, DateTimeOffset now)
     {
-        if (Status != AutomationJobStatus.Running)
-        {
-            throw new InvalidOperationException("Only running jobs can complete.");
-        }
-
+        if (Status != AutomationJobStatus.Running) throw new InvalidOperationException("Only running jobs can complete.");
         Status = AutomationJobStatus.Completed;
         CompletedItems = TotalItems - FailedItems;
         LastMessage = string.IsNullOrWhiteSpace(message) ? "İş tamamlandı." : message.Trim();
+        SetReport(reportText, now);
         UpdatedAt = now;
         CompletedAt = now;
     }
 
+    public void SetReport(string? reportText, DateTimeOffset now)
+    {
+        if (string.IsNullOrWhiteSpace(reportText)) return;
+        ReportText = reportText.Trim();
+        UpdatedAt = now;
+    }
+
     public void Fail(string message, DateTimeOffset now)
     {
-        if (Status is AutomationJobStatus.Completed or AutomationJobStatus.Cancelled)
-        {
-            throw new InvalidOperationException("A finished job cannot fail.");
-        }
-
+        if (Status is AutomationJobStatus.Completed or AutomationJobStatus.Cancelled) throw new InvalidOperationException("A finished job cannot fail.");
         ArgumentException.ThrowIfNullOrWhiteSpace(message);
         Status = AutomationJobStatus.Failed;
         LastMessage = message.Trim();

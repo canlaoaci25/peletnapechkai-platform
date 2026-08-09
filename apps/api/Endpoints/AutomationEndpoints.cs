@@ -17,6 +17,7 @@ public static class AutomationEndpoints
             .WithTags("Automation");
 
         group.MapGet("/", ListAsync);
+        group.MapGet("/{id:guid}", DetailAsync);
         group.MapGet("/scan", ScanAsync);
         group.MapPost("/", CreateAsync).ValidateAntiforgery();
         group.MapPost("/{id:guid}/{action}", ChangeStateAsync).ValidateAntiforgery();
@@ -44,6 +45,30 @@ public static class AutomationEndpoints
                 job.CompletedAt
             })
             .ToListAsync(token));
+
+    private static async Task<IResult> DetailAsync(Guid id, PublishingDbContext database, CancellationToken token)
+    {
+        var job = await database.AutomationJobs.AsNoTracking()
+            .Where(candidate => candidate.Id == id)
+            .Select(candidate => new
+            {
+                candidate.Id,
+                type = candidate.Type.ToString(),
+                status = candidate.Status.ToString(),
+                candidate.TargetLocales,
+                candidate.TotalItems,
+                candidate.CompletedItems,
+                candidate.FailedItems,
+                candidate.CurrentPhase,
+                candidate.LastMessage,
+                candidate.ReportText,
+                candidate.CreatedAt,
+                candidate.UpdatedAt,
+                candidate.CompletedAt
+            })
+            .SingleOrDefaultAsync(token);
+        return job is null ? Results.NotFound() : Results.Ok(job);
+    }
 
     private static async Task<IResult> ScanAsync(
         PublishingDbContext database,
@@ -75,6 +100,14 @@ public static class AutomationEndpoints
             .AsNoTracking()
             .CountAsync(article => article.Status == PublicationStatus.Published &&
                 (article.SeoTitle == null || article.SeoDescription == null), token);
+        var completedSiteLocaleSets = await database.AutomationJobs
+            .AsNoTracking()
+            .Where(job => job.Type == AutomationJobType.SiteLocalization && job.Status == AutomationJobStatus.Completed)
+            .Select(job => job.TargetLocales)
+            .ToListAsync(token);
+        var completedSiteLocales = completedSiteLocaleSets.SelectMany(locales => locales)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var pendingSiteLocales = activeLocales.Count(locale => locale != "tr-TR" && !completedSiteLocales.Contains(locale));
 
         return Results.Ok(new
         {
@@ -82,8 +115,8 @@ public static class AutomationEndpoints
             publishedArticles,
             missingTranslations = Math.Max(0, publishedGroups * activeLocales.Length - publishedLocalePairs),
             seoCandidates,
-            siteLanguageCandidates = Math.Max(0, activeLocales.Length - 1),
-            reportCandidates = 1,
+            siteLanguageCandidates = pendingSiteLocales,
+            reportCandidates = 0,
             runnerEnabled = configuration.GetValue<bool>("Automation:RunnerEnabled")
         });
     }

@@ -40,7 +40,8 @@ try {
         throw "Codex exited with code $codexExitCode. $stderrTail"
     }
 
-    $body = @{ message = "Codex işi tamamladı. Ayrıntılı rapor: $jobId-result.txt" } | ConvertTo-Json
+    $report = if (Test-Path -LiteralPath $lastMessage) { Get-Content -LiteralPath $lastMessage -Raw -Encoding UTF8 } else { 'Codex işi tamamladı.' }
+    $body = @{ message = "Codex işi tamamladı."; report = $report } | ConvertTo-Json
     $bodyBytes = [Text.Encoding]::UTF8.GetBytes($body)
     Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/complete" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $bodyBytes | Out-Null
 }
