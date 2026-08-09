@@ -33,15 +33,19 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Codex exited with code $LASTEXITCODE." }
 
     $result = if (Test-Path -LiteralPath $lastMessage) { Get-Content -LiteralPath $lastMessage -Raw } else { 'Codex işi tamamladı.' }
+    if ($result.Length -gt 1800) { $result = $result.Substring(0, 1800) }
     $body = @{ message = $result } | ConvertTo-Json
-    Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/complete" -Headers $headers -ContentType 'application/json' -Body $body | Out-Null
+    $bodyBytes = [Text.Encoding]::UTF8.GetBytes($body)
+    Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/complete" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $bodyBytes | Out-Null
 }
 catch {
     $message = $_.Exception.Message
     if ($jobId) {
         try {
+            if ($message.Length -gt 1800) { $message = $message.Substring(0, 1800) }
             $body = @{ message = $message } | ConvertTo-Json
-            Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/fail" -Headers $headers -ContentType 'application/json' -Body $body | Out-Null
+            $bodyBytes = [Text.Encoding]::UTF8.GetBytes($body)
+            Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/fail" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $bodyBytes | Out-Null
         }
         catch { }
     }
