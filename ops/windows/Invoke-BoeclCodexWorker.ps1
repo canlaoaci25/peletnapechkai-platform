@@ -1,0 +1,54 @@
+[CmdletBinding()]
+param(
+    [string]$ConfigPath = 'C:\ProgramData\Peletnapechkai\Secrets\automation-worker.json'
+)
+
+$ErrorActionPreference = 'Stop'
+$logRoot = 'C:\ProgramData\Peletnapechkai\Logs\AutomationWorker'
+New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
+$mutex = [Threading.Mutex]::new($false, 'Global\BOECL-Codex-Automation-Worker')
+if (-not $mutex.WaitOne(0)) { exit 0 }
+
+try {
+    $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
+    $env:CODEX_HOME = [string]$config.codexHome
+    $headers = @{ 'X-BOECL-Worker-Token' = [string]$config.workerToken }
+    try {
+        $job = Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/claim" -Headers $headers
+    }
+    catch {
+        if ($_.Exception.Response.StatusCode.value__ -eq 204) { exit 0 }
+        throw
+    }
+    if (-not $job.id) { exit 0 }
+
+    $jobId = [string]$job.id
+    $jobLog = Join-Path $logRoot "$jobId.jsonl"
+    $lastMessage = Join-Path $logRoot "$jobId-result.txt"
+    $codexArguments = @(
+        'exec', '--ephemeral', '--json', '--sandbox', 'workspace-write', '--approve-for-me',
+        '--cd', [string]$config.repositoryPath, '--output-last-message', $lastMessage, '-'
+    )
+    [string]$job.prompt | & ([string]$config.codexPath) @codexArguments 2>&1 | Set-Content -LiteralPath $jobLog -Encoding utf8
+    if ($LASTEXITCODE -ne 0) { throw "Codex exited with code $LASTEXITCODE." }
+
+    $result = if (Test-Path -LiteralPath $lastMessage) { Get-Content -LiteralPath $lastMessage -Raw } else { 'Codex işi tamamladı.' }
+    $body = @{ message = $result } | ConvertTo-Json
+    Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/complete" -Headers $headers -ContentType 'application/json' -Body $body | Out-Null
+}
+catch {
+    $message = $_.Exception.Message
+    if ($jobId) {
+        try {
+            $body = @{ message = $message } | ConvertTo-Json
+            Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/fail" -Headers $headers -ContentType 'application/json' -Body $body | Out-Null
+        }
+        catch { }
+    }
+    "$(Get-Date -Format o) $message" | Add-Content -LiteralPath (Join-Path $logRoot 'worker-errors.log')
+    exit 1
+}
+finally {
+    $mutex.ReleaseMutex()
+    $mutex.Dispose()
+}
