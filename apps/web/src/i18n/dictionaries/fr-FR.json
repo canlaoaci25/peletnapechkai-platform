@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "title": "BOECL — Publications indépendantes sur la technologie et la science",
+    "description": "Des contenus fondés sur des sources concernant la technologie, l’intelligence artificielle, la science, les logiciels et le mobile."
+  },
+  "navigation": {
+    "home": "Accueil",
+    "technology": "Technologie",
+    "ai": "Intelligence artificielle",
+    "science": "Science",
+    "software": "Logiciels",
+    "mobile": "Mobile"
+  },
+  "accessibility": { "skipToContent": "Aller au contenu principal" },
+  "search": { "title": "Rechercher sur BOECL", "label": "Termes de recherche", "submit": "Rechercher", "results": "{count} résultats", "empty": "Aucun contenu publié ne correspond à votre recherche." },
+  "home": {
+    "eyebrow": "Une nouvelle plateforme de publication multilingue",
+    "title": "Nous ne nous contentons pas de traduire l’information. Nous la plaçons dans le bon contexte.",
+    "description": "BOECL se construit comme un réseau mondial de publication réunissant des sources vérifiées, des perspectives locales et des normes éditoriales exigeantes.",
+    "status": "La première version de publication est en préparation",
+    "topicsTitle": "Nos premiers domaines de publication",
+    "principleTitle": "Notre principe de publication",
+    "principle": "Chaque contenu sera publié avec ses sources, son contexte et la validation d’une équipe éditoriale humaine.",
+    "latestTitle": "Dernières publications",
+    "noArticles": "Aucun contenu n’a encore été publié dans cette langue.",
+    "readArticle": "Lire l’article"
+  }
+}

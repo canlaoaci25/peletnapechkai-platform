@@ -18,6 +18,7 @@ export default async function PreviewPage({
     "tr-TR": { preview: "Taslak önizleme", back: "Düzenlemeye dön" },
     "en-US": { preview: "Draft preview", back: "Back to editor" },
     "de-DE": { preview: "Entwurfsvorschau", back: "Zurück zum Editor" },
+    "fr-FR": { preview: "Aperçu du brouillon", back: "Retour à l’éditeur" },
   }[locale];
   return (
     <main className="preview-shell">

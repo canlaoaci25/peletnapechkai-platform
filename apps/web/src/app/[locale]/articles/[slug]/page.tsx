@@ -59,6 +59,7 @@ export default async function ArticlePage({
     "tr-TR": "Kaynaklar",
     "en-US": "Sources",
     "de-DE": "Quellen",
+    "fr-FR": "Sources",
   }[locale];
   const structuredData = {
     "@context": "https://schema.org",

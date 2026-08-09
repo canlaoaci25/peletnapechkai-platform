@@ -29,6 +29,7 @@ export default async function EditArticlePage({
       "tr-TR": "Önizle",
       "en-US": "Preview",
       "de-DE": "Vorschau",
+      "fr-FR": "Aperçu",
     }[locale];
   return (
     <main className="admin-shell">
