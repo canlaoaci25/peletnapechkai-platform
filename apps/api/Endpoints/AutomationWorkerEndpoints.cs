@@ -14,6 +14,7 @@ public static class AutomationWorkerEndpoints
         group.MapPost("/claim", ClaimAsync);
         group.MapPost("/{id:guid}/complete", CompleteAsync);
         group.MapPost("/{id:guid}/fail", FailAsync);
+        group.MapPost("/{id:guid}/retry", RetryAsync);
         return endpoints;
     }
 
@@ -81,6 +82,28 @@ public static class AutomationWorkerEndpoints
         try
         {
             job.Fail(TrimMessage(request.Message) ?? "Codex worker işi tamamlayamadı.", DateTimeOffset.UtcNow);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Results.Conflict(new { message = exception.Message });
+        }
+        await database.SaveChangesAsync(token);
+        return Results.Ok();
+    }
+
+    private static async Task<IResult> RetryAsync(
+        Guid id,
+        HttpContext context,
+        PublishingDbContext database,
+        IConfiguration configuration,
+        CancellationToken token)
+    {
+        if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
+        var job = await database.AutomationJobs.SingleOrDefaultAsync(candidate => candidate.Id == id, token);
+        if (job is null) return Results.NotFound();
+        try
+        {
+            job.Retry(DateTimeOffset.UtcNow);
         }
         catch (InvalidOperationException exception)
         {

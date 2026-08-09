@@ -45,7 +45,7 @@ catch {
         }
         catch { }
     }
-    "$(Get-Date -Format o) $message" | Add-Content -LiteralPath (Join-Path $logRoot 'worker-errors.log')
+    "$(Get-Date -Format o) job=$jobId $message" | Add-Content -LiteralPath (Join-Path $logRoot 'worker-errors.log')
     exit 1
 }
 finally {
