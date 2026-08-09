@@ -131,6 +131,8 @@ public static class AutomationWorkerEndpoints
                 """,
             AutomationJobType.SiteLocalization => $"""
                 Yalnız `apps/web/src/i18n`, locale yapılandırması ve bunların doğrudan testlerini incele. Hedef diller ({locales}) için eksik arayüz anahtarlarını kaynak Türkçe sözlüğe göre tamamla. Kaynak Türkçe metni değiştirme. Public içerik veya veritabanına dokunma.
+                Karmaşık PowerShell regex, iç içe tırnak, `rg | rg` zinciri veya dinamik glob üretme. Dosya listesini bir kez `rg --files apps/web/src/i18n` ile al; sonra yalnız açık dosya yollarında `Get-Content -LiteralPath` kullan.
+                Doğrudan i18n testi yoksa test aramaya devam etme; `npm run lint` ve `npm run typecheck` çalıştır.
                 """,
             AutomationJobType.ContentTranslation => $"""
                 Hedef diller ({locales}) için yayımlanmış Türkçe içeriklerin eksik çeviri taslaklarını hazırla. Doğrudan public yayın yapma. Mevcut uygulamada güvenli taslak içe/dışa aktarma komutu yoksa veriyi tahmin etme ve kodu değiştirme; bunu engel olarak açıkça raporla.
