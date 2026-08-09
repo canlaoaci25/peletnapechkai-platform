@@ -41,7 +41,8 @@ try {
     }
 
     $report = if (Test-Path -LiteralPath $lastMessage) { Get-Content -LiteralPath $lastMessage -Raw -Encoding UTF8 } else { 'Codex işi tamamladı.' }
-    $body = @{ message = "Codex işi tamamladı."; report = $report } | ConvertTo-Json
+    $reportBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($report))
+    $body = @{ message = "Codex işi tamamladı."; reportBase64 = $reportBase64 } | ConvertTo-Json
     $bodyBytes = [Text.Encoding]::UTF8.GetBytes($body)
     Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/complete" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $bodyBytes | Out-Null
 }

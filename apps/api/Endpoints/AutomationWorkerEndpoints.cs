@@ -33,7 +33,7 @@ public static class AutomationWorkerEndpoints
     {
         if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
         var job=await database.AutomationJobs.SingleOrDefaultAsync(candidate=>candidate.Id==id,token);if(job is null)return Results.NotFound();
-        try { job.Complete(TrimMessage(request.Message),TrimReport(request.Report),DateTimeOffset.UtcNow); }
+        try { job.Complete(TrimMessage(request.Message),ReadReport(request),DateTimeOffset.UtcNow); }
         catch(InvalidOperationException exception){return Results.Conflict(new{message=exception.Message});}
         await database.SaveChangesAsync(token);return Results.Ok();
     }
@@ -55,7 +55,7 @@ public static class AutomationWorkerEndpoints
 
     private static async Task<IResult> SaveReportAsync(Guid id,WorkerResult request,HttpContext context,PublishingDbContext database,IConfiguration configuration,CancellationToken token)
     {
-        if(!IsAuthorized(context,configuration))return Results.Unauthorized();var job=await database.AutomationJobs.SingleOrDefaultAsync(candidate=>candidate.Id==id,token);if(job is null)return Results.NotFound();var report=TrimReport(request.Report);if(report is null)return Results.BadRequest(new{message="Rapor metni gereklidir."});job.SetReport(report,DateTimeOffset.UtcNow);await database.SaveChangesAsync(token);return Results.Ok();
+        if(!IsAuthorized(context,configuration))return Results.Unauthorized();var job=await database.AutomationJobs.SingleOrDefaultAsync(candidate=>candidate.Id==id,token);if(job is null)return Results.NotFound();var report=ReadReport(request);if(report is null)return Results.BadRequest(new{message="Rapor metni gereklidir."});job.SetReport(report,DateTimeOffset.UtcNow);await database.SaveChangesAsync(token);return Results.Ok();
     }
 
     private static bool IsAuthorized(HttpContext context,IConfiguration configuration)
@@ -83,5 +83,14 @@ public static class AutomationWorkerEndpoints
 
     private static string? TrimMessage(string? message)=>string.IsNullOrWhiteSpace(message)?null:message.Trim()[..Math.Min(message.Trim().Length,1900)];
     private static string? TrimReport(string? report)=>string.IsNullOrWhiteSpace(report)?null:report.Trim()[..Math.Min(report.Trim().Length,100_000)];
-    private sealed record WorkerResult(string? Message,string? Report);
+    private static string? ReadReport(WorkerResult request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.ReportBase64))
+        {
+            try { return TrimReport(Encoding.UTF8.GetString(Convert.FromBase64String(request.ReportBase64))); }
+            catch (FormatException) { return null; }
+        }
+        return TrimReport(request.Report);
+    }
+    private sealed record WorkerResult(string? Message,string? Report,string? ReportBase64);
 }
