@@ -18,7 +18,10 @@ export default async function NewArticlePage({
   )
     redirect(`/${locale}/admin/articles`);
   const copy = adminCopy[locale],
-    library = await getSupportingLibrary();
+    library = await getSupportingLibrary(),
+    canPublishImmediately = session.roles.some((role) =>
+      ["Owner", "Admin", "Editor"].includes(role),
+    );
   return (
     <main className="admin-shell new-article-page">
       <header className="admin-command-header">
@@ -26,7 +29,8 @@ export default async function NewArticlePage({
           <p className="section-kicker">YENİ YAYIN</p>
           <h1>Yeni içerik oluştur</h1>
           <p>
-          Kategori ve zengin içerik alanlarıyla yeni bir Türkçe taslak başlatın.
+            Kategori ve zengin içerik alanlarıyla yeni bir Türkçe taslak
+            başlatın.
           </p>
         </div>
         <Link className="secondary-button" href={`/${locale}/admin/articles`}>
@@ -34,7 +38,11 @@ export default async function NewArticlePage({
         </Link>
       </header>
       <section className="admin-panel new-article-editor">
-        <ArticleEditor copy={copy} categories={library.categories} />
+        <ArticleEditor
+          copy={copy}
+          categories={library.categories}
+          canPublishImmediately={canPublishImmediately}
+        />
       </section>
     </main>
   );

@@ -12,6 +12,7 @@ const text = {
     contents: "İçerik modülü",
     allContents: "Tüm içerikler",
     create: "Yeni içerik",
+    publish: "Makale yayın",
     categories: "Kategoriler",
     tags: "Etiketler",
     library: "Medya ve sözlük",
@@ -32,6 +33,7 @@ const text = {
     contents: "Content module",
     allContents: "All content",
     create: "New content",
+    publish: "Article publishing",
     categories: "Categories",
     tags: "Tags",
     library: "Media and vocabulary",
@@ -52,6 +54,7 @@ const text = {
     contents: "Inhaltsmodul",
     allContents: "Alle Inhalte",
     create: "Neuer Inhalt",
+    publish: "Artikel veröffentlichen",
     categories: "Kategorien",
     tags: "Schlagwörter",
     library: "Medien und Vokabular",
@@ -240,6 +243,13 @@ export function AdminFrame({
                 "+",
                 copy.create,
               )}
+              {editorial &&
+                item(
+                  `/${locale}/admin/articles/publish`,
+                  exact(`/${locale}/admin/articles/publish`),
+                  "✓",
+                  copy.publish,
+                )}
               {editorial &&
                 item(
                   `/${locale}/admin/articles/categories`,

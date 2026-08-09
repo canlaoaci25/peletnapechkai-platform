@@ -1155,6 +1155,7 @@ button:focus-visible {
     padding: 22px;
   }
 }
+.publication-button{width:auto;min-height:42px;padding:9px 12px;border:1px solid var(--accent);border-radius:6px;background:var(--accent);color:#fff;font:inherit;font-size:.75rem;font-weight:800;cursor:pointer}.publication-button:disabled{cursor:wait;opacity:.65}@media(max-width:760px){.publication-row .publication-button{grid-column:2;grid-row:1/span 2;align-self:stretch}}@media(max-width:420px){.publication-row .publication-button{grid-column:1;grid-row:auto;width:100%}}
 @media (max-width: 620px) {
   .admin-sidebar-bottom {
     grid-template-columns: 1fr 1fr;

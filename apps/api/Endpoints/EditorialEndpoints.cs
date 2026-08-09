@@ -27,6 +27,7 @@ public static partial class EditorialEndpoints
         group.MapPost("/{articleId:guid}/return-to-draft", ReturnToDraftAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         group.MapPost("/{articleId:guid}/schedule", ScheduleAsync).RequireAuthorization(AuthorizationPolicies.ManageSeo).ValidateAntiforgery();
         group.MapPost("/{articleId:guid}/publish", PublishAsync).RequireAuthorization(AuthorizationPolicies.ManageSeo).ValidateAntiforgery();
+        group.MapPost("/{articleId:guid}/publish-direct", PublishDirectAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         group.MapPost("/{articleId:guid}/archive", ArchiveAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         return endpoints;
     }
@@ -121,6 +122,24 @@ public static partial class EditorialEndpoints
         TransitionAsync(articleId, "editorial.returned_to_draft", principal, users, database, x => x.ReturnToDraft(DateTimeOffset.UtcNow), token);
     private static Task<IResult> PublishAsync(Guid articleId, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token) =>
         TransitionAsync(articleId, "editorial.published", principal, users, database, x => x.Publish(DateTimeOffset.UtcNow), token);
+    private static async Task<IResult> PublishDirectAsync(Guid articleId, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
+    {
+        var article = await database.ArticleLocalizations.SingleOrDefaultAsync(x => x.Id == articleId, token);
+        var actor = await users.GetUserAsync(principal);
+        if (article is null || actor is null) return Results.NotFound();
+        var now = DateTimeOffset.UtcNow;
+        try
+        {
+            if (article.Status == PublicationStatus.Draft) article.SubmitForEditorialReview(now);
+            if (article.Status == PublicationStatus.InEditorialReview) article.ApproveEditorialReview(now);
+            if (article.Status is PublicationStatus.InSeoReview or PublicationStatus.Scheduled) article.Publish(now);
+            else if (article.Status != PublicationStatus.Published) return Results.Conflict(new { message = "This article cannot be published directly." });
+        }
+        catch (InvalidOperationException exception) { return Results.Conflict(new { message = exception.Message }); }
+        database.AuditLogs.Add(Audit(actor.Id, "editorial.published_directly", article.Id, new { status = article.Status.ToString() }));
+        await database.SaveChangesAsync(token);
+        return Results.Ok(new { article.Id, status = article.Status.ToString(), article.UpdatedAt, article.PublishedAt });
+    }
     private static Task<IResult> ArchiveAsync(Guid articleId, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token) =>
         TransitionAsync(articleId, "editorial.archived", principal, users, database, x => x.Archive(DateTimeOffset.UtcNow), token);
 

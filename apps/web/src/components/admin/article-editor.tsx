@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import type { AdminCopy } from "@/i18n/admin-copy";
 import type { ArticleDetail } from "@/lib/admin-api";
@@ -28,10 +29,12 @@ export function ArticleEditor({
   copy,
   article,
   categories = [],
+  canPublishImmediately = false,
 }: {
   copy: AdminCopy;
   article?: ArticleDetail;
   categories?: Category[];
+  canPublishImmediately?: boolean;
 }) {
   const router = useRouter();
   const [message, setMessage] = useState("");
@@ -83,7 +86,53 @@ export function ArticleEditor({
       if (!response.ok) throw new Error();
       const result = (await response.json()) as { id?: string };
       if (!article && result.id) {
-        router.push(`/${String(payload.locale)}/admin/articles/${result.id}`);
+        let publishNow = false;
+        if (canPublishImmediately) {
+          const decision = await Swal.fire({
+            title: "İçerik doğrudan yayınlansın mı?",
+            text: "Evet derseniz içerik hemen yayına alınır. Hayır derseniz Makale yayın listesine taslak olarak eklenir.",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonText: "Evet, yayınla",
+            cancelButtonText: "Hayır, listeye gönder",
+            reverseButtons: true,
+            background: "#151922",
+            color: "#f4f6fa",
+            confirmButtonColor: "#ff7651",
+          });
+          publishNow = decision.isConfirmed;
+        }
+        if (publishNow) {
+          const publishResponse = await fetch(
+            `/api/admin/articles/${result.id}/publish-direct`,
+            {
+              method: "POST",
+              headers: { "x-csrf-token": token },
+            },
+          );
+          if (!publishResponse.ok) {
+            await Swal.fire({
+              title: "İçerik taslak olarak kaydedildi",
+              text: "Doğrudan yayınlama tamamlanamadı. İçerik Makale yayın listesine gönderildi.",
+              icon: "warning",
+              background: "#151922",
+              color: "#f4f6fa",
+            });
+            router.push(`/${String(payload.locale)}/admin/articles/publish`);
+            return;
+          }
+          await Swal.fire({
+            title: "İçerik yayınlandı",
+            icon: "success",
+            timer: 1200,
+            showConfirmButton: false,
+            background: "#151922",
+            color: "#f4f6fa",
+          });
+          router.push(`/${String(payload.locale)}/admin/articles/${result.id}`);
+          return;
+        }
+        router.push(`/${String(payload.locale)}/admin/articles/publish`);
         return;
       }
       setMessage(copy.saved);
