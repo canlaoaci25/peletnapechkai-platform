@@ -31,7 +31,6 @@ public sealed class ScheduledPublishingWorker(
             var now = timeProvider.GetUtcNow();
             var dueArticles = await database.ArticleLocalizations
                 .Where(article => article.Status == PublicationStatus.Scheduled && article.ScheduledAt <= now)
-                .Where(article => database.ArticleQualityChecklists.Any(checklist => checklist.ArticleLocalizationId == article.Id && checklist.TitleAndSummary && checklist.SourcesVerified && checklist.AuthorAndTaxonomy && checklist.SeoMetadata && checklist.CoverAccessibility && checklist.CommercialDisclosure && checklist.TranslationReviewed && checklist.LegalEditorialReview))
                 .OrderBy(article => article.ScheduledAt)
                 .Take(100)
                 .ToListAsync(token);

@@ -2476,3 +2476,168 @@ button:focus-visible {
 .admin-frame .workflow-panel .button-secondary:hover {
   background: var(--admin-soft);
 }
+
+/* Mobile administration audit */
+@media (max-width: 760px) {
+  .admin-frame,
+  .admin-frame-content,
+  .admin-frame .admin-shell,
+  .admin-panel,
+  .admin-form,
+  .admin-content-workspace {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .admin-sidebar {
+    overflow: hidden;
+  }
+  .admin-sidebar nav {
+    width: 100%;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+  .admin-sidebar nav > a,
+  .admin-sidebar nav .admin-nav-module {
+    flex: 0 0 auto;
+  }
+  .admin-nav-module {
+    max-width: min(88vw, 390px);
+  }
+  .admin-nav-submenu {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .admin-frame .admin-shell {
+    padding: 16px;
+  }
+  .admin-panel,
+  .compact-form {
+    padding: 18px;
+  }
+  .admin-command-header h1 {
+    font-size: clamp(2.15rem, 13vw, 3.7rem);
+    overflow-wrap: anywhere;
+  }
+  .admin-command-header,
+  .workspace-header,
+  .category-create > header,
+  .category-list > header,
+  .knowledge-card header,
+  .user-card header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .workspace-header,
+  .admin-toolbar,
+  .admin-content-workspace .article-table {
+    padding-inline: 16px;
+  }
+  .admin-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .article-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding-block: 17px;
+  }
+  .article-row-head {
+    display: none;
+  }
+  .article-row time {
+    display: block;
+    grid-column: 1;
+  }
+  .article-row .row-action {
+    display: inline-flex;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-items: center;
+    align-self: stretch;
+    padding: 10px 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    background: var(--admin-soft);
+  }
+  .overview-recent > div > article {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .overview-recent article .status-badge {
+    justify-self: end;
+  }
+  .advanced-editor-layout:not(.editor-focus-mode) {
+    padding-top: 0;
+    padding-inline: 0;
+  }
+  .advanced-editor-layout:not(.editor-focus-mode) .editor-action-bar {
+    position: static;
+    margin: 0;
+  }
+  .editor-action-bar nav,
+  .editor-action-bar button {
+    min-height: 44px;
+  }
+  .block-editor-shell,
+  .block-editor-loading {
+    height: max(440px, 58vh);
+  }
+  .category-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .category-row label {
+    grid-column: 1/-1;
+  }
+  .category-row button {
+    width: 100%;
+    min-height: 44px;
+  }
+  .workflow-panel,
+  .workflow-actions,
+  .schedule-form {
+    min-width: 0;
+  }
+  .workflow-actions,
+  .schedule-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .workflow-actions button,
+  .schedule-form label,
+  .schedule-form button {
+    width: 100%;
+    min-width: 0;
+  }
+  .revision-body {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-sidebar-bottom {
+    grid-template-columns: 1fr;
+  }
+  .admin-profile {
+    grid-column: 1;
+  }
+  .overview-kpis {
+    grid-template-columns: 1fr;
+  }
+  .distribution-list > div {
+    grid-template-columns: 88px minmax(0, 1fr) 24px;
+  }
+  .article-row {
+    grid-template-columns: 1fr;
+  }
+  .article-row .row-action {
+    grid-column: 1;
+    grid-row: auto;
+    justify-content: center;
+  }
+  .category-row {
+    grid-template-columns: 1fr;
+  }
+  .category-row label,
+  .category-row button {
+    grid-column: 1;
+  }
+}
