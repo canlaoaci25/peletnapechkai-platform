@@ -1,0 +1,81 @@
+using Peletnapechkai.Api.Domain.Automation;
+
+namespace Peletnapechkai.Api.Tests.Automation;
+
+public sealed class AutomationJobTests
+{
+    [Fact]
+    public void Job_preserves_unique_target_locales_and_checkpoint_progress()
+    {
+        var createdAt = DateTimeOffset.UtcNow;
+        var job = new AutomationJob(
+            AutomationJobType.ContentTranslation,
+            ["de-DE", "en-US", "de-DE"],
+            10,
+            Guid.CreateVersion7(),
+            createdAt);
+
+        job.Start(1, createdAt.AddSeconds(1));
+        job.ReportProgress(4, 1, 2, "İkinci faz işleniyor.", createdAt.AddSeconds(2));
+
+        Assert.Equal(AutomationJobStatus.Running, job.Status);
+        Assert.Equal(["de-DE", "en-US"], job.TargetLocales);
+        Assert.Equal(4, job.CompletedItems);
+        Assert.Equal(1, job.FailedItems);
+        Assert.Equal(2, job.CurrentPhase);
+    }
+
+    [Fact]
+    public void Paused_job_can_resume_from_its_existing_phase()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var job = new AutomationJob(
+            AutomationJobType.SeoLocalization,
+            ["tr-TR"],
+            5,
+            Guid.CreateVersion7(),
+            now);
+
+        job.Start(3, now.AddSeconds(1));
+        job.Pause(now.AddSeconds(2));
+        job.Resume(now.AddSeconds(3));
+
+        Assert.Equal(AutomationJobStatus.Queued, job.Status);
+        Assert.Equal(3, job.CurrentPhase);
+        Assert.Null(job.CompletedAt);
+    }
+
+    [Fact]
+    public void Progress_cannot_exceed_total_item_count()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var job = new AutomationJob(
+            AutomationJobType.SiteLocalization,
+            ["de-DE"],
+            1,
+            Guid.CreateVersion7(),
+            now);
+        job.Start(1, now);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            job.ReportProgress(1, 1, 1, null, now));
+    }
+
+    [Fact]
+    public void Finished_job_rejects_invalid_state_transitions()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var job = new AutomationJob(
+            AutomationJobType.SystemReport,
+            [],
+            1,
+            Guid.CreateVersion7(),
+            now);
+        job.Start(1, now);
+        job.Complete(null, now);
+
+        Assert.Equal(AutomationJobStatus.Completed, job.Status);
+        Assert.Throws<InvalidOperationException>(() => job.Cancel(now));
+        Assert.Throws<InvalidOperationException>(() => job.Pause(now));
+    }
+}

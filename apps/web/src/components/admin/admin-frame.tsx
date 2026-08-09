@@ -21,6 +21,8 @@ const text = {
     languages: "Dil işlemleri",
     languageList: "Dil listesi",
     languageCreate: "Dil ekle",
+    automation: "AI Hazır",
+    bulkRunners: "Toplu çalıştırıcılar",
     site: "Siteyi görüntüle",
     workspace: "Yönetim alanı",
     light: "Açık tema",
@@ -45,6 +47,8 @@ const text = {
     languages: "Language settings",
     languageList: "Language list",
     languageCreate: "Add language",
+    automation: "AI Ready",
+    bulkRunners: "Bulk runners",
     site: "View website",
     workspace: "Administration",
     light: "Light theme",
@@ -69,6 +73,8 @@ const text = {
     languages: "Spracheinstellungen",
     languageList: "Sprachliste",
     languageCreate: "Sprache hinzufügen",
+    automation: "KI bereit",
+    bulkRunners: "Stapelverarbeitung",
     site: "Website ansehen",
     workspace: "Verwaltung",
     light: "Helles Design",
@@ -96,6 +102,7 @@ export function AdminFrame({
   const [collapsed, setCollapsed] = useState(false);
   const [contentOpen, setContentOpen] = useState(false);
   const [languageOpen, setLanguageOpen] = useState(false);
+  const [automationOpen, setAutomationOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   useEffect(() => {
     const saved = localStorage.getItem("boecl-admin-theme"),
@@ -105,6 +112,7 @@ export function AdminFrame({
       setCollapsed(savedMenu === "collapsed");
       setContentOpen(localStorage.getItem("boecl-content-module") === "open");
       setLanguageOpen(localStorage.getItem("boecl-language-module") === "open");
+      setAutomationOpen(localStorage.getItem("boecl-automation-module") === "open");
     }, 0);
     return () => clearTimeout(timer);
   }, []);
@@ -147,6 +155,13 @@ export function AdminFrame({
     setLanguageOpen((value) => {
       const next = !value;
       localStorage.setItem("boecl-language-module", next ? "open" : "closed");
+      return next;
+    });
+  }
+  function toggleAutomation() {
+    setAutomationOpen((value) => {
+      const next = !value;
+      localStorage.setItem("boecl-automation-module", next ? "open" : "closed");
       return next;
     });
   }
@@ -332,6 +347,16 @@ export function AdminFrame({
                   "+",
                   copy.languageCreate,
                 )}
+              </div>
+            </section>
+          )}
+          {admin && (
+            <section className="admin-nav-module" aria-label={copy.automation} data-open={automationOpen}>
+              <button className="admin-nav-module-title" type="button" onClick={toggleAutomation} aria-expanded={automationOpen}>
+                <span aria-hidden>✦</span><span className="nav-label">{copy.automation}</span><span className="module-chevron" aria-hidden>{automationOpen ? "−" : "+"}</span>
+              </button>
+              <div className="admin-nav-submenu">
+                {item(`/${locale}/admin/automation`, pathname.startsWith(`/${locale}/admin/automation`), "▶", copy.bulkRunners)}
               </div>
             </section>
           )}

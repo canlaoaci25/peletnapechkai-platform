@@ -6,6 +6,7 @@ using Peletnapechkai.Api.Domain.Content;
 using Peletnapechkai.Api.Domain.Identity;
 using Peletnapechkai.Api.Domain.Localization;
 using Peletnapechkai.Api.Domain.Knowledge;
+using Peletnapechkai.Api.Domain.Automation;
 
 namespace Peletnapechkai.Api.Infrastructure.Persistence;
 
@@ -34,6 +35,7 @@ public sealed class PublishingDbContext(DbContextOptions<PublishingDbContext> op
     public DbSet<EditorialTask> EditorialTasks => Set<EditorialTask>();
     public DbSet<EditorialComment> EditorialComments => Set<EditorialComment>();
     public DbSet<ArticleQualityChecklist> ArticleQualityChecklists => Set<ArticleQualityChecklist>();
+    public DbSet<AutomationJob> AutomationJobs => Set<AutomationJob>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

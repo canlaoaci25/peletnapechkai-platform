@@ -45,6 +45,7 @@ app.MapAuthEndpoints();
 app.MapUserManagementEndpoints();
 app.MapEditorialEndpoints();
 app.MapLocaleManagementEndpoints();
+app.MapAutomationEndpoints();
 app.MapSupportingContentEndpoints();
 app.MapSystemStatusEndpoints();
 app.MapKnowledgeEndpoints();

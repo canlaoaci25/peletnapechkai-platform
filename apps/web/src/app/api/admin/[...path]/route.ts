@@ -10,6 +10,7 @@ const allowedRoutes = [
   /^status$/,
   /^knowledge(?:\/|$)/,
   /^locales(?:\/|$)/,
+  /^automation(?:\/|$)/,
 ];
 
 function apiPath(path: string[]) {
