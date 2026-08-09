@@ -26,7 +26,7 @@ try {
     $jobLog = Join-Path $logRoot "$jobId.jsonl"
     $lastMessage = Join-Path $logRoot "$jobId-result.txt"
     $codexArguments = @(
-        'exec', '--ephemeral', '--json', '--sandbox', 'workspace-write', '--approve-for-me',
+        'exec', '--ephemeral', '--json', '--approve-for-me',
         '--cd', [string]$config.repositoryPath, '--output-last-message', $lastMessage, '-'
     )
     [string]$job.prompt | & ([string]$config.codexPath) @codexArguments 2>&1 | Set-Content -LiteralPath $jobLog -Encoding utf8

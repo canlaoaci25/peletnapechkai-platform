@@ -227,6 +227,9 @@ export function AutomationCenter({
                     {job.status === "Paused" && (
                       <button disabled={busy} onClick={() => void changeState(job.id, "resume")}>Devam et</button>
                     )}
+                    {job.status === "Failed" && (
+                      <button disabled={busy} onClick={() => void changeState(job.id, "retry")}>Yeniden dene</button>
+                    )}
                     {!(["Completed", "Cancelled"].includes(job.status)) && (
                       <button disabled={busy} onClick={() => void changeState(job.id, "cancel")}>İptal</button>
                     )}

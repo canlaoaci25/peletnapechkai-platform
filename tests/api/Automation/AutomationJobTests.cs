@@ -78,4 +78,24 @@ public sealed class AutomationJobTests
         Assert.Throws<InvalidOperationException>(() => job.Cancel(now));
         Assert.Throws<InvalidOperationException>(() => job.Pause(now));
     }
+
+    [Fact]
+    public void Failed_job_can_be_queued_for_retry()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var job = new AutomationJob(
+            AutomationJobType.SystemReport,
+            [],
+            1,
+            Guid.CreateVersion7(),
+            now);
+        job.Start(1, now);
+        job.Fail("CLI options were incompatible.", now);
+
+        job.Retry(now.AddMinutes(1));
+
+        Assert.Equal(AutomationJobStatus.Queued, job.Status);
+        Assert.Null(job.CompletedAt);
+        Assert.Equal(1, job.CurrentPhase);
+    }
 }

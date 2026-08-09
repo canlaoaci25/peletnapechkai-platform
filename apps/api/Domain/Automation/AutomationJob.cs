@@ -87,6 +87,19 @@ public sealed class AutomationJob
         UpdatedAt = now;
     }
 
+    public void Retry(DateTimeOffset now)
+    {
+        if (Status != AutomationJobStatus.Failed)
+        {
+            throw new InvalidOperationException("Only failed jobs can be retried.");
+        }
+
+        Status = AutomationJobStatus.Queued;
+        CompletedAt = null;
+        LastMessage = "Hatalı iş yeniden denenmek üzere kuyruğa alındı.";
+        UpdatedAt = now;
+    }
+
     public void Cancel(DateTimeOffset now)
     {
         if (Status is AutomationJobStatus.Completed or AutomationJobStatus.Cancelled)

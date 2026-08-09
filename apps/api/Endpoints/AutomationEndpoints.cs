@@ -208,6 +208,7 @@ public static class AutomationEndpoints
             {
                 case "pause": job.Pause(now); break;
                 case "resume": job.Resume(now); break;
+                case "retry": job.Retry(now); break;
                 case "cancel": job.Cancel(now); break;
                 default: return Results.NotFound();
             }
