@@ -30,10 +30,14 @@ try {
         'exec', '--ephemeral', '--json', '--sandbox', 'danger-full-access',
         '--cd', [string]$config.repositoryPath, '--output-last-message', $lastMessage, '-'
     )
+    $savedErrorPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     [string]$job.prompt | & ([string]$config.codexPath) @codexArguments 2> $stderrLog | Set-Content -LiteralPath $jobLog -Encoding utf8
-    if ($LASTEXITCODE -ne 0) {
+    $codexExitCode = $LASTEXITCODE
+    $ErrorActionPreference = $savedErrorPreference
+    if ($codexExitCode -ne 0) {
         $stderrTail = if (Test-Path -LiteralPath $stderrLog) { (Get-Content -LiteralPath $stderrLog -Tail 8) -join ' ' } else { '' }
-        throw "Codex exited with code $LASTEXITCODE. $stderrTail"
+        throw "Codex exited with code $codexExitCode. $stderrTail"
     }
 
     $result = if (Test-Path -LiteralPath $lastMessage) { Get-Content -LiteralPath $lastMessage -Raw } else { 'Codex işi tamamladı.' }
