@@ -8,6 +8,7 @@ public sealed class SupportedLocalesTests
     [InlineData("tr-TR")]
     [InlineData("en-US")]
     [InlineData("de-DE")]
+    [InlineData("fr-FR")]
     [InlineData("TR-tr")]
     public void Contains_ReturnsTrue_ForSupportedLocales(string locale)
     {
@@ -16,7 +17,7 @@ public sealed class SupportedLocalesTests
 
     [Theory]
     [InlineData("tr")]
-    [InlineData("fr-FR")]
+    [InlineData("es-ES")]
     [InlineData("")]
     public void Contains_ReturnsFalse_ForUnsupportedLocales(string locale)
     {

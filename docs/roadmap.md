@@ -69,7 +69,7 @@ limiting, backup/restore, monitoring, end-to-end tests, rollback, and controlled
 ## Phase 9 — Measurement and launch
 
 Search Console, Analytics, Clarity, Bing Webmaster Tools, uptime monitoring, indexing,
-content quality, and a controlled three-region launch.
+content quality, and a controlled multi-region launch.
 
 ## Phase 10 — Revenue
 

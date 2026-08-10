@@ -12,7 +12,7 @@ content relationships across every change.
 - `apps/api`: ASP.NET Core Web API.
 - `tests/api`: .NET API tests.
 - `docs`: Architecture and operating documentation.
-- Supported locales: `tr-TR` (default), `en-US`, and `de-DE`.
+- Supported locales: `tr-TR` (default), `en-US`, `de-DE`, and `fr-FR`.
 
 ## Working rules
 

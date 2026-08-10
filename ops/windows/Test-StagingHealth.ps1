@@ -14,6 +14,7 @@ foreach ($name in 'BoeclStagingWeb', 'W3SVC', 'postgresql-x64-18') {
 foreach ($uri in 'https://staging.peletnapechkai.com/tr-TR',
     'https://staging.peletnapechkai.com/en-US',
     'https://staging.peletnapechkai.com/de-DE',
+    'https://staging.peletnapechkai.com/fr-FR',
     'https://staging.peletnapechkai.com/api/admin/auth/csrf') {
     try {
         $response = Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec 30

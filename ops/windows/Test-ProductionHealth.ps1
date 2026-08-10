@@ -23,6 +23,7 @@ $endpoints = foreach ($uri in @(
     'https://peletnapechkai.com/tr-TR',
     'https://peletnapechkai.com/en-US',
     'https://peletnapechkai.com/de-DE',
+    'https://peletnapechkai.com/fr-FR',
     'https://peletnapechkai.com/api/admin/auth/csrf'
 )) {
     try {

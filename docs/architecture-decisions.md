@@ -12,8 +12,8 @@ separate from the domain and provides a future API surface for other clients.
 
 Status: Accepted — 2026-08-04
 
-Every public route starts with a locale-region segment. The initial values are `tr-TR`,
-`en-US`, and `de-DE`, with `tr-TR` as the default. IP detection may suggest a region but
+Every public route starts with a locale-region segment. The current interface values are
+`tr-TR`, `en-US`, `de-DE`, and `fr-FR`, with `tr-TR` as the default. IP detection may suggest a region but
 must not make content inaccessible or force a redirect.
 
 ## ADR-003: Editorially controlled localization

@@ -8,7 +8,8 @@ public static class SupportedLocales
     [
         Default,
         "en-US",
-        "de-DE"
+        "de-DE",
+        "fr-FR"
     ];
 
     public static bool Contains(string locale) =>

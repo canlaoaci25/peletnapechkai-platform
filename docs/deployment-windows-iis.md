@@ -56,7 +56,7 @@ After deployment or a service restart, verify:
 1. `PeletnapechkaiWeb`, `W3SVC`, and `postgresql-x64-18` are running.
 2. `http://peletnapechkai.com/` redirects to HTTPS.
 3. `https://www.peletnapechkai.com/` redirects to the apex hostname.
-4. `/tr-TR`, `/en-US`, and `/de-DE` return successful pages.
+4. `/tr-TR`, `/en-US`, `/de-DE`, and `/fr-FR` return successful pages.
 5. `/tr-TR/admin/login` returns the login page.
 6. `/api/admin/auth/csrf` returns HTTP 200 and a secure antiforgery cookie.
 

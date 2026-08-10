@@ -1,7 +1,7 @@
 # BOECL Publishing Platform
 
-BOECL is a multilingual, multi-region publishing platform. The initial release
-supports Turkish/Türkiye, English/United States, and German/Germany.
+BOECL is a multilingual, multi-region publishing platform. The current interface
+supports Turkish/Türkiye, English/United States, German/Germany, and French/France.
 
 ## Projects
 
