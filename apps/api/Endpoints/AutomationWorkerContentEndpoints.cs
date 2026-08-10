@@ -32,7 +32,7 @@ public static partial class AutomationWorkerEndpoints
             var existing = await database.ArticleLocalizations.AsNoTracking().Where(article => groupIds.Contains(article.ArticleGroupId) && job.TargetLocales.Contains(article.Locale.Code) && article.Status != PublicationStatus.Archived)
                 .Select(article => new { article.ArticleGroupId, Locale = article.Locale.Code }).ToListAsync(token);
             var existingKeys = existing.Select(item => $"{item.ArticleGroupId:N}|{item.Locale}").ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var candidates = (from source in sources from locale in locales where !existingKeys.Contains($"{source.ArticleGroupId:N}|{locale}") select new { source.Id, source.ArticleGroupId, source.Slug, source.Title, source.Summary, source.Body, targetLocale = locale }).Take(5).ToArray();
+            var candidates = (from source in sources from locale in locales where !existingKeys.Contains($"{source.ArticleGroupId:N}|{locale}") select new { sourceArticleId = source.Id, sourceArticleGroupId = source.ArticleGroupId, source.Slug, source.Title, source.Summary, source.Body, locale }).Take(5).ToArray();
             return Results.Ok(new { kind = "translation", candidates });
         }
 
