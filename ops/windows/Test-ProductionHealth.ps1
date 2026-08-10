@@ -7,6 +7,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $failures = [Collections.Generic.List[string]]::new()
 $serviceNames = @('W3SVC', 'postgresql-x64-18', 'PeletnapechkaiWeb')
+$localeConfig = Get-Content (Join-Path $PSScriptRoot '..\..\config\supported-locales.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$localeUris = $localeConfig.locales.PSObject.Properties.Name | ForEach-Object { "https://peletnapechkai.com/$_" }
 
 $services = foreach ($name in $serviceNames) {
     $service = Get-Service -Name $name -ErrorAction SilentlyContinue
@@ -19,13 +21,7 @@ $services = foreach ($name in $serviceNames) {
     }
 }
 
-$endpoints = foreach ($uri in @(
-    'https://peletnapechkai.com/tr-TR',
-    'https://peletnapechkai.com/en-US',
-    'https://peletnapechkai.com/de-DE',
-    'https://peletnapechkai.com/fr-FR',
-    'https://peletnapechkai.com/api/admin/auth/csrf'
-)) {
+$endpoints = foreach ($uri in @($localeUris) + 'https://peletnapechkai.com/api/admin/auth/csrf') {
     try {
         $response = Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec 30
         if ($response.StatusCode -ne 200) { $failures.Add("Unexpected HTTP status for ${uri}: $($response.StatusCode)") }

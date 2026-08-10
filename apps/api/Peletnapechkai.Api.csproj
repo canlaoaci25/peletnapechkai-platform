@@ -22,4 +22,8 @@
     <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="4.150.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\..\config\supported-locales.json" Link="supported-locales.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

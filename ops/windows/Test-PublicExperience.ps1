@@ -6,7 +6,9 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $base = $BaseUrl.TrimEnd('/')
-foreach ($locale in 'tr-TR', 'en-US', 'de-DE', 'fr-FR') {
+$localeConfig = Get-Content (Join-Path $PSScriptRoot '..\..\config\supported-locales.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$locales = $localeConfig.locales.PSObject.Properties.Name
+foreach ($locale in $locales) {
     $homeResponse = Invoke-WebRequest "$base/$locale" -UseBasicParsing -TimeoutSec 30
     if ($homeResponse.StatusCode -ne 200 -or $homeResponse.Content -notmatch 'class="skip-link"') {
         throw "Public accessibility check failed for $locale."
@@ -23,4 +25,4 @@ foreach ($locale in 'tr-TR', 'en-US', 'de-DE', 'fr-FR') {
 
 $sitemap = Invoke-WebRequest "$base/sitemap.xml" -UseBasicParsing -TimeoutSec 30
 if ($sitemap.StatusCode -ne 200) { throw 'Sitemap check failed.' }
-[pscustomobject]@{ BaseUrl = $base; Locales = 4; Search = 'Success'; Accessibility = 'Success'; Result = 'Success' }
+[pscustomobject]@{ BaseUrl = $base; Locales = $locales.Count; Search = 'Success'; Accessibility = 'Success'; Result = 'Success' }

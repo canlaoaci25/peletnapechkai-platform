@@ -1,0 +1,9 @@
+{
+  "defaultLocale": "tr-TR",
+  "locales": {
+    "tr-TR": "Türkiye — Türkçe",
+    "en-US": "United States — English",
+    "de-DE": "Deutschland — Deutsch",
+    "fr-FR": "France — Français"
+  }
+}

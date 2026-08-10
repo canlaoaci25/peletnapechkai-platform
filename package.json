@@ -7,6 +7,8 @@
     "build:web": "npm --prefix apps/web run build",
     "lint": "npm --prefix apps/web run lint",
     "typecheck": "npm --prefix apps/web run typecheck",
+    "check:locales": "node tools/check-locales.mjs",
+    "sync:locales": "node tools/sync-locales.mjs",
     "test:api": "dotnet test Peletnapechkai.slnx",
     "build:api": "dotnet build Peletnapechkai.slnx --configuration Release"
   },

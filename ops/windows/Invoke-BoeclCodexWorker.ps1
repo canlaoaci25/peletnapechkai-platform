@@ -40,9 +40,35 @@ try {
         throw "Codex exited with code $codexExitCode. $stderrTail"
     }
 
+    $qualityLog = Join-Path $logRoot "$jobId-quality.log"
+    $checks = @(
+        @{ Name = 'Locale bütünlüğü'; Command = 'npm.cmd'; Arguments = @('run', 'check:locales') },
+        @{ Name = 'Web lint'; Command = 'npm.cmd'; Arguments = @('run', 'lint') },
+        @{ Name = 'Web tip denetimi'; Command = 'npm.cmd'; Arguments = @('run', 'typecheck') },
+        @{ Name = 'Web üretim derlemesi'; Command = 'npm.cmd'; Arguments = @('run', 'build:web') },
+        @{ Name = 'API testleri'; Command = 'dotnet.exe'; Arguments = @('test', 'Peletnapechkai.slnx', '--configuration', 'Release') },
+        @{ Name = '.NET Release derlemesi'; Command = 'dotnet.exe'; Arguments = @('build', 'Peletnapechkai.slnx', '--configuration', 'Release') },
+        @{ Name = 'Staging sağlık kontrolü'; Command = 'powershell.exe'; Arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'ops\windows\Test-StagingHealth.ps1') },
+        @{ Name = 'Production sağlık kontrolü'; Command = 'powershell.exe'; Arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'ops\windows\Test-ProductionHealth.ps1') }
+    )
+    $qualityResults = [Collections.Generic.List[string]]::new()
+    foreach ($check in $checks) {
+        "[$(Get-Date -Format o)] START $($check.Name)" | Add-Content -LiteralPath $qualityLog -Encoding UTF8
+        $ErrorActionPreference = 'Continue'
+        $checkArguments = $check.Arguments
+        & $check.Command @checkArguments 2>&1 | Add-Content -LiteralPath $qualityLog -Encoding UTF8
+        $checkExitCode = $LASTEXITCODE
+        $ErrorActionPreference = $savedErrorPreference
+        if ($checkExitCode -ne 0) { throw "Kalite kapısı başarısız: $($check.Name) (exit $checkExitCode). Ayrıntı: $qualityLog" }
+        $qualityResults.Add("- $($check.Name): Başarılı")
+    }
+
     $report = if (Test-Path -LiteralPath $lastMessage) { Get-Content -LiteralPath $lastMessage -Raw -Encoding UTF8 } else { 'Codex işi tamamladı.' }
+    $commit = (& git.exe -C ([string]$config.repositoryPath) rev-parse HEAD).Trim()
+    $workingChanges = @(& git.exe -C ([string]$config.repositoryPath) status --short).Count
+    $report += "`r`n`r`n## Zorunlu doğrulama kapıları`r`n`r`n$($qualityResults -join "`r`n")`r`n- Commit: $commit`r`n- Ortam: staging + production`r`n- Çalışma ağacı değişiklik sayısı: $workingChanges`r`n- Doğrulama zamanı: $((Get-Date).ToString('o'))"
     $reportBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($report))
-    $body = @{ message = "Codex işi tamamladı."; reportBase64 = $reportBase64 } | ConvertTo-Json
+    $body = @{ message = "Codex işi tamamladı; tüm zorunlu kalite kapıları geçti."; reportBase64 = $reportBase64 } | ConvertTo-Json
     $bodyBytes = [Text.Encoding]::UTF8.GetBytes($body)
     Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/complete" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $bodyBytes | Out-Null
 }

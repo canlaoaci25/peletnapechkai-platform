@@ -1,15 +1,12 @@
-export const locales = ["tr-TR", "en-US", "de-DE", "fr-FR"] as const;
+import localeConfig from "./supported-locales.generated.json";
 
-export type Locale = (typeof locales)[number];
+export type Locale = keyof typeof localeConfig.locales;
 
-export const defaultLocale: Locale = "tr-TR";
+export const locales = Object.keys(localeConfig.locales) as Locale[];
 
-export const localeLabels: Record<Locale, string> = {
-  "tr-TR": "Türkiye — Türkçe",
-  "en-US": "United States — English",
-  "de-DE": "Deutschland — Deutsch",
-  "fr-FR": "France — Français",
-};
+export const defaultLocale = localeConfig.defaultLocale as Locale;
+
+export const localeLabels: Record<Locale, string> = localeConfig.locales;
 
 export function hasLocale(value: string): value is Locale {
   return locales.some((locale) => locale === value);

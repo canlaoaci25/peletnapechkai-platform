@@ -37,6 +37,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Check locale consistency
+        run: npm run check:locales
+
       - name: Type-check
         run: npm run typecheck
 
