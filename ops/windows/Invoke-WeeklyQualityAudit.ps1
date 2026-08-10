@@ -27,8 +27,12 @@ try {
     foreach ($check in $checks) {
         "[$(Get-Date -Format o)] START $($check.Name)" | Add-Content -LiteralPath $log -Encoding UTF8
         $arguments = $check.Arguments
+        $savedErrorPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
         & $check.Command @arguments 2>&1 | Add-Content -LiteralPath $log -Encoding UTF8
-        if ($LASTEXITCODE -ne 0) { throw "Quality audit failed: $($check.Name) (exit $LASTEXITCODE)" }
+        $checkExitCode = $LASTEXITCODE
+        $ErrorActionPreference = $savedErrorPreference
+        if ($checkExitCode -ne 0) { throw "Quality audit failed: $($check.Name) (exit $checkExitCode)" }
         "[$(Get-Date -Format o)] PASS $($check.Name)" | Add-Content -LiteralPath $log -Encoding UTF8
     }
     "[$(Get-Date -Format o)] COMPLETE commit=$((& git.exe rev-parse HEAD).Trim())" | Add-Content -LiteralPath $log -Encoding UTF8
