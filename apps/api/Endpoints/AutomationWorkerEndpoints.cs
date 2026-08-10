@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Peletnapechkai.Api.Domain.Automation;
 using Peletnapechkai.Api.Infrastructure.Persistence;
+using Peletnapechkai.Api.Infrastructure.Automation;
 
 namespace Peletnapechkai.Api.Endpoints;
 
@@ -33,7 +34,21 @@ public static class AutomationWorkerEndpoints
     {
         if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
         var job=await database.AutomationJobs.SingleOrDefaultAsync(candidate=>candidate.Id==id,token);if(job is null)return Results.NotFound();
-        try { job.Complete(TrimMessage(request.Message),ReadReport(request),DateTimeOffset.UtcNow); }
+        var report = ReadReport(request);
+        var remaining = job.Type switch
+        {
+            AutomationJobType.ContentTranslation => await AutomationCandidateCounter.CountMissingTranslationsAsync(database, job.TargetLocales, token),
+            AutomationJobType.SeoLocalization => await AutomationCandidateCounter.CountSeoCandidatesAsync(database, job.TargetLocales, token),
+            _ => 0
+        };
+        if (!AutomationCompletionPolicy.CanComplete(job.Type, remaining))
+        {
+            job.SetReport(report, DateTimeOffset.UtcNow);
+            job.Fail($"İş çıktısı doğrulanamadı: {remaining} aday hâlâ işlenmeyi bekliyor. İş tamamlanmış sayılmadı.", DateTimeOffset.UtcNow);
+            await database.SaveChangesAsync(token);
+            return Results.Conflict(new { message = job.LastMessage });
+        }
+        try { job.Complete(TrimMessage(request.Message),report,DateTimeOffset.UtcNow); }
         catch(InvalidOperationException exception){return Results.Conflict(new{message=exception.Message});}
         await database.SaveChangesAsync(token);return Results.Ok();
     }

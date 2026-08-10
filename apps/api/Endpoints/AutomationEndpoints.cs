@@ -4,6 +4,7 @@ using Peletnapechkai.Api.Domain.Automation;
 using Peletnapechkai.Api.Domain.Content;
 using Peletnapechkai.Api.Domain.Identity;
 using Peletnapechkai.Api.Infrastructure.Identity;
+using Peletnapechkai.Api.Infrastructure.Automation;
 using Peletnapechkai.Api.Infrastructure.Persistence;
 
 namespace Peletnapechkai.Api.Endpoints;
@@ -86,20 +87,11 @@ public static class AutomationEndpoints
         var publishedArticles = await database.ArticleLocalizations
             .AsNoTracking()
             .CountAsync(article => article.Status == PublicationStatus.Published, token);
-        var publishedGroups = await database.ArticleLocalizations
-            .AsNoTracking()
-            .Where(article => article.Status == PublicationStatus.Published)
-            .Select(article => article.ArticleGroupId)
-            .Distinct()
-            .CountAsync(token);
-        var publishedLocalePairs = await database.ArticleLocalizations
-            .AsNoTracking()
-            .Where(article => article.Status == PublicationStatus.Published && article.Locale.IsEnabled)
-            .CountAsync(token);
-        var seoCandidates = await database.ArticleLocalizations
-            .AsNoTracking()
-            .CountAsync(article => article.Status == PublicationStatus.Published &&
-                (article.SeoTitle == null || article.SeoDescription == null), token);
+        var defaultLocale = await database.Locales.AsNoTracking().Where(locale => locale.IsDefault).Select(locale => locale.Code).SingleAsync(token);
+        var targetLocales = activeLocales.Where(locale => !locale.Equals(defaultLocale, StringComparison.OrdinalIgnoreCase)).ToArray();
+        var missingTranslations = await AutomationCandidateCounter.CountMissingTranslationsAsync(database, targetLocales, token);
+        var seoCandidates = await AutomationCandidateCounter.CountSeoCandidatesAsync(database, targetLocales, token);
+        var seoTargetLocales = await AutomationCandidateCounter.GetSeoCandidateLocalesAsync(database, targetLocales, token);
         var completedSiteLocaleSets = await database.AutomationJobs
             .AsNoTracking()
             .Where(job => job.Type == AutomationJobType.SiteLocalization && job.Status == AutomationJobStatus.Completed)
@@ -113,11 +105,18 @@ public static class AutomationEndpoints
         {
             activeLocales,
             publishedArticles,
-            missingTranslations = Math.Max(0, publishedGroups * activeLocales.Length - publishedLocalePairs),
+            missingTranslations,
             seoCandidates,
             siteLanguageCandidates = pendingSiteLocales,
             reportCandidates = 0,
-            runnerEnabled = configuration.GetValue<bool>("Automation:RunnerEnabled")
+            runnerEnabled = configuration.GetValue<bool>("Automation:RunnerEnabled"),
+            workloads = new
+            {
+                contentTranslation = new { count = missingTranslations, targetLocales, blockedReason = missingTranslations == 0 ? "Çevrilecek eksik içerik bulunmuyor." : null },
+                seoLocalization = new { count = seoCandidates, targetLocales = seoTargetLocales, blockedReason = seoCandidates == 0 && missingTranslations > 0 ? "Önce hedef dillerde içerik çeviri taslakları oluşturulmalıdır." : seoCandidates == 0 ? "SEO yerelleştirmesi bekleyen hedef dil kaydı bulunmuyor." : null },
+                siteLocalization = new { count = pendingSiteLocales, targetLocales = targetLocales.Where(locale => !completedSiteLocales.Contains(locale)).ToArray(), blockedReason = pendingSiteLocales == 0 ? "Eksik site dili bulunmuyor." : null },
+                systemReport = new { count = 0, targetLocales = Array.Empty<string>(), blockedReason = (string?)null }
+            }
         });
     }
 
@@ -179,7 +178,10 @@ public static class AutomationEndpoints
         var totalItems = await CountItemsAsync(type, requestedLocales, database, token);
         if (totalItems == 0)
         {
-            return Results.Conflict(new { message = "Bu iş türü için işlenecek eksik kayıt bulunamadı." });
+            var message = type == AutomationJobType.SeoLocalization
+                ? "SEO yerelleştirmesi için önce hedef dillerde içerik çeviri taslakları oluşturulmalıdır."
+                : "Bu iş türü için işlenecek eksik kayıt bulunamadı.";
+            return Results.Conflict(new { message });
         }
 
         var job = new AutomationJob(type, requestedLocales, totalItems, actor.Id, DateTimeOffset.UtcNow);
@@ -206,20 +208,10 @@ public static class AutomationEndpoints
 
         if (type == AutomationJobType.SeoLocalization)
         {
-            return await database.ArticleLocalizations.CountAsync(article =>
-                article.Status == PublicationStatus.Published &&
-                targetLocales.Contains(article.Locale.Code) &&
-                (article.SeoTitle == null || article.SeoDescription == null), token);
+            return await AutomationCandidateCounter.CountSeoCandidatesAsync(database, targetLocales, token);
         }
 
-        var publishedGroups = await database.ArticleLocalizations
-            .Where(article => article.Status == PublicationStatus.Published)
-            .Select(article => article.ArticleGroupId)
-            .Distinct()
-            .CountAsync(token);
-        var existingPairs = await database.ArticleLocalizations.CountAsync(article =>
-            article.Status == PublicationStatus.Published && targetLocales.Contains(article.Locale.Code), token);
-        return Math.Max(0, publishedGroups * targetLocales.Length - existingPairs);
+        return await AutomationCandidateCounter.CountMissingTranslationsAsync(database, targetLocales, token);
     }
 
     private static async Task<IResult> ChangeStateAsync(
