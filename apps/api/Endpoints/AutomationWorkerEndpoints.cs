@@ -7,7 +7,7 @@ using Peletnapechkai.Api.Infrastructure.Automation;
 
 namespace Peletnapechkai.Api.Endpoints;
 
-public static class AutomationWorkerEndpoints
+public static partial class AutomationWorkerEndpoints
 {
     public static IEndpointRouteBuilder MapAutomationWorkerEndpoints(this IEndpointRouteBuilder endpoints)
     {
@@ -17,6 +17,9 @@ public static class AutomationWorkerEndpoints
         group.MapPost("/{id:guid}/fail", FailAsync);
         group.MapPost("/{id:guid}/retry", RetryAsync);
         group.MapPost("/{id:guid}/report", SaveReportAsync);
+        group.MapGet("/{id:guid}/candidates", GetCandidatesAsync);
+        group.MapPost("/{id:guid}/translations", SaveTranslationsAsync);
+        group.MapPost("/{id:guid}/seo-drafts", SaveSeoDraftsAsync);
         return endpoints;
     }
 

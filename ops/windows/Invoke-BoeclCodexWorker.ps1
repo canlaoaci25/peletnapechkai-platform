@@ -26,18 +26,54 @@ try {
     $jobLog = Join-Path $logRoot "$jobId.jsonl"
     $stderrLog = Join-Path $logRoot "$jobId-stderr.log"
     $lastMessage = Join-Path $logRoot "$jobId-result.txt"
-    $codexArguments = @(
-        'exec', '--ephemeral', '--json', '--sandbox', 'danger-full-access',
-        '--cd', [string]$config.repositoryPath, '--output-last-message', $lastMessage, '-'
-    )
     $savedErrorPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    [string]$job.prompt | & ([string]$config.codexPath) @codexArguments 2> $stderrLog | Set-Content -LiteralPath $jobLog -Encoding utf8
-    $codexExitCode = $LASTEXITCODE
-    $ErrorActionPreference = $savedErrorPreference
-    if ($codexExitCode -ne 0) {
-        $stderrTail = if (Test-Path -LiteralPath $stderrLog) { (Get-Content -LiteralPath $stderrLog -Tail 8) -join ' ' } else { '' }
-        throw "Codex exited with code $codexExitCode. $stderrTail"
+    if ($job.type -in @('ContentTranslation', 'SeoLocalization')) {
+        $batch = 0
+        $processed = 0
+        do {
+            $candidateSet = Invoke-RestMethod -Method Get -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/candidates" -Headers $headers
+            $candidates = @($candidateSet.candidates)
+            if ($candidates.Count -eq 0) { break }
+            $batch++
+            $batchResult = Join-Path $logRoot "$jobId-batch-$batch-result.json"
+            $batchLog = Join-Path $logRoot "$jobId-batch-$batch.jsonl"
+            $batchError = Join-Path $logRoot "$jobId-batch-$batch-stderr.log"
+            $schemaRelative = if ($job.type -eq 'ContentTranslation') { 'ops\automation\translation-output.schema.json' } else { 'ops\automation\seo-output.schema.json' }
+            $schema = Join-Path ([string]$config.repositoryPath) $schemaRelative
+            $candidateJson = $candidateSet | ConvertTo-Json -Depth 8 -Compress
+            $instruction = if ($job.type -eq 'ContentTranslation') {
+                "Aşağıdaki Türkçe kaynakları belirtilen hedef dile doğal, eksiksiz ve editoryal kalitede çevir. HTML yapısını koru; yeni bilgi ekleme. Slug yalnız küçük ASCII harf, rakam ve tire içersin. Kimlikleri ve locale değerlerini aynen koru. Yalnız şemaya uyan JSON döndür. Çıktılar Draft olarak kaydedilecek ve insan editoryal onayı olmadan yayımlanmayacak.`r`n$candidateJson"
+            } else {
+                "Aşağıdaki hedef dil taslakları için o dilde doğal SEO başlığı ve açıklaması üret. İçerikte olmayan iddia ekleme; articleId değerini aynen koru. Yalnız şemaya uyan JSON döndür. Sonuçlar Draft kalacak ve insan editoryal onayı gerektirecek.`r`n$candidateJson"
+            }
+            $codexArguments = @('exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--cd', [string]$config.repositoryPath, '--output-schema', $schema, '--output-last-message', $batchResult, '-')
+            $ErrorActionPreference = 'Continue'
+            $instruction | & ([string]$config.codexPath) @codexArguments 2> $batchError | Set-Content -LiteralPath $batchLog -Encoding utf8
+            $codexExitCode = $LASTEXITCODE
+            $ErrorActionPreference = $savedErrorPreference
+            if ($codexExitCode -ne 0) { throw "Codex yapılandırılmış içerik grubunu tamamlayamadı (batch $batch, exit $codexExitCode)." }
+            $resultJson = Get-Content -LiteralPath $batchResult -Raw -Encoding UTF8
+            $parsedResult = $resultJson | ConvertFrom-Json
+            if (@($parsedResult.items).Count -ne $candidates.Count) { throw "Codex aday sayısını eksik döndürdü (batch $batch)." }
+            $payloadBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($resultJson))
+            $submitPath = if ($job.type -eq 'ContentTranslation') { 'translations' } else { 'seo-drafts' }
+            $submitBody = @{ payloadBase64 = $payloadBase64 } | ConvertTo-Json
+            $submitBytes = [Text.Encoding]::UTF8.GetBytes($submitBody)
+            Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/$submitPath" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $submitBytes | Out-Null
+            $processed += $candidates.Count
+        } while ($true)
+        "## Yapılandırılmış otomasyon sonucu`r`n`r`n- İş türü: $($job.type)`r`n- Hazırlanan taslak: $processed`r`n- Yayın durumu: Draft`r`n- Editoryal insan onayı: Zorunlu" | Set-Content -LiteralPath $lastMessage -Encoding UTF8
+    }
+    else {
+        $codexArguments = @('exec', '--ephemeral', '--json', '--sandbox', 'danger-full-access', '--cd', [string]$config.repositoryPath, '--output-last-message', $lastMessage, '-')
+        $ErrorActionPreference = 'Continue'
+        [string]$job.prompt | & ([string]$config.codexPath) @codexArguments 2> $stderrLog | Set-Content -LiteralPath $jobLog -Encoding utf8
+        $codexExitCode = $LASTEXITCODE
+        $ErrorActionPreference = $savedErrorPreference
+        if ($codexExitCode -ne 0) {
+            $stderrTail = if (Test-Path -LiteralPath $stderrLog) { (Get-Content -LiteralPath $stderrLog -Tail 8) -join ' ' } else { '' }
+            throw "Codex exited with code $codexExitCode. $stderrTail"
+        }
     }
 
     $qualityLog = Join-Path $logRoot "$jobId-quality.log"
