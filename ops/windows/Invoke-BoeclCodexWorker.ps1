@@ -47,6 +47,11 @@ function Invoke-CodexProcess {
 try {
     $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
     $env:CODEX_HOME = [string]$config.codexHome
+    $repositoryPath = [string]$config.repositoryPath
+    if (-not (Test-Path -LiteralPath (Join-Path $repositoryPath 'package.json') -PathType Leaf)) {
+        throw "Worker depo klasörü geçersiz veya package.json bulunamadı: $repositoryPath"
+    }
+    Set-Location -LiteralPath $repositoryPath
     $headers = @{ 'X-BOECL-Worker-Token' = [string]$config.workerToken }
     try {
         $job = Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/claim" -Headers $headers
