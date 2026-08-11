@@ -50,3 +50,8 @@ Run the checks relevant to the changed area. Before a milestone commit, run:
 5. `dotnet build Peletnapechkai.slnx --configuration Release`
 
 Report changed files, checks performed, and unresolved risks.
+
+## Live development status
+
+- For every multi-step implementation, update `C:\ProgramData\Peletnapechkai\LiveDevelopment\status.json` through `ops/windows/Set-CodexLiveStatus.ps1` when work starts, when the active phase changes, after a material verification result, and when the work completes or fails.
+- Never put secrets, prompts, credentials, command output, or user data in the live status. Keep updates to task name, phase, safe step labels, last action, status, and commit identifier.

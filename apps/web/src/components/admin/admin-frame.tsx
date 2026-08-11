@@ -18,6 +18,7 @@ const text = {
     library: "Medya ve sözlük",
     knowledge: "Bilgi kasası",
     homepage: "Ana sayfa yönetimi",
+    development: "Codex canlı takip",
     users: "Kullanıcılar",
     languages: "Dil işlemleri",
     languageList: "Dil listesi",
@@ -46,6 +47,7 @@ const text = {
     library: "Media and vocabulary",
     knowledge: "Knowledge vault",
     homepage: "Homepage management",
+    development: "Codex live progress",
     users: "Users",
     languages: "Language settings",
     languageList: "Language list",
@@ -74,6 +76,7 @@ const text = {
     library: "Medien und Vokabular",
     knowledge: "Wissensspeicher",
     homepage: "Startseitenverwaltung",
+    development: "Codex-Livefortschritt",
     users: "Benutzer",
     languages: "Spracheinstellungen",
     languageList: "Sprachliste",
@@ -102,6 +105,7 @@ const text = {
     library: "Médias et vocabulaire",
     knowledge: "Base de connaissances",
     homepage: "Gestion de l’accueil",
+    development: "Suivi Codex en direct",
     users: "Utilisateurs",
     languages: "Gestion des langues",
     languageList: "Liste des langues",
@@ -403,6 +407,7 @@ export function AdminFrame({
               "♙",
               copy.users,
             )}
+          {admin && item(`/${locale}/admin/development`, pathname.startsWith(`/${locale}/admin/development`), "●", copy.development)}
         </nav>
         <div className="admin-sidebar-bottom">
           <Link

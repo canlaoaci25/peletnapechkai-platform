@@ -12,6 +12,8 @@ const allowedRoutes = [
   /^locales(?:\/|$)/,
   /^automation(?:\/|$)/,
   /^homepage(?:\/|$)/,
+  /^development(?:\/|$)/,
+  /^account(?:\/|$)/,
 ];
 
 function apiPath(path: string[]) {
@@ -19,7 +21,7 @@ function apiPath(path: string[]) {
   if (!allowedRoutes.some((route) => route.test(joined))) return null;
   return joined.startsWith("auth/")
     ? `/api/v1/${joined}`
-    : `/api/v1/admin/${joined}`;
+    : joined.startsWith("account") ? `/api/v1/${joined}` : `/api/v1/admin/${joined}`;
 }
 
 async function forward(

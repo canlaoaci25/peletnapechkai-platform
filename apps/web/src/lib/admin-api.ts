@@ -245,3 +245,7 @@ export async function getLocaleCatalog() {
   );
 }
 export function getHomepageAdmin(locale:string){return apiGet<HomepageAdminData>(`/api/v1/admin/homepage/${encodeURIComponent(locale)}`)}
+export type DevelopmentStatus={task:string;phase:string;status:string;steps:string[];currentStep:number;lastAction:string;commit:string;startedAt:string|null;updatedAt:string|null;machine:string};
+export async function getDevelopmentStatus(){return await apiGet<DevelopmentStatus>("/api/v1/admin/development/status")??{task:"Bekleyen Codex görevi yok",phase:"Hazır",status:"Paused",steps:[],currentStep:0,lastAction:"—",commit:"",startedAt:null,updatedAt:null,machine:"—"}}
+export type MemberAccount={id:string;email:string;displayName:string;emailConfirmed:boolean;roles:string[];verificationAvailable:boolean;createdAt:string};
+export function getMemberAccount(){return apiGet<MemberAccount>("/api/v1/account/")}

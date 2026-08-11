@@ -1,0 +1,2 @@
+import{redirect}from"next/navigation";import{AccountDashboard}from"@/components/account-dashboard";import{hasLocale}from"@/i18n/config";import{getMemberAccount}from"@/lib/admin-api";
+export default async function AccountPage({params}:PageProps<"/[locale]/account">){const{locale}=await params;if(!hasLocale(locale))redirect("/tr-TR");const account=await getMemberAccount();if(!account)redirect(`/${locale}/account/login`);return <main className="account-dashboard-page"><AccountDashboard account={account}/></main>}
