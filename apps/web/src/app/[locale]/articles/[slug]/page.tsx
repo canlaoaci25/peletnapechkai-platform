@@ -146,7 +146,7 @@ export default async function ArticlePage({
               />
               {(article.cover.caption || article.cover.credit) && (
                 <figcaption>
-                  {article.cover.caption}
+                  {article.cover.caption?.startsWith("https://") ? <a href={article.cover.caption} target="_blank" rel="noreferrer">Pexels kaynak sayfası</a> : article.cover.caption}
                   {article.cover.caption && article.cover.credit && " — "}
                   {article.cover.credit}
                 </figcaption>

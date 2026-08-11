@@ -123,7 +123,7 @@ public static partial class AutomationWorkerEndpoints
                 slug = $"{slug[..Math.Min(slug.Length, 230)]}-{source.ArticleGroupId.ToString("N")[..8]}";
             var article = new ArticleLocalization(source.ArticleGroup, locale, slug, item.Title, item.Summary, SanitizeBody(item.Body), now);
             if (job.Type == AutomationJobType.ReadyContentGeneration) article.MarkGeneratedTranslation(job.Id);
-            if (source.CoverMediaAsset is not null) article.UpdateCover(source.CoverMediaAsset, item.Title, null, source.CoverCredit, now);
+            if (source.CoverMediaAsset is not null) article.UpdateCover(source.CoverMediaAsset, item.Title, source.CoverCaption, source.CoverCredit, now);
             article.PublishAutomatedTranslation(now);
             database.ArticleLocalizations.Add(article);
             database.AuditLogs.Add(new AuditLog(job.CreatedByUserId, "automation.translation_published", nameof(ArticleLocalization), article.Id, JsonSerializer.Serialize(new { sourceArticleId = source.Id, item.Locale, jobId = job.Id }), now));
@@ -220,9 +220,9 @@ public static partial class AutomationWorkerEndpoints
             if (job.AutoSeo) article.UpdateDraft(article.Slug, article.Title, article.Summary, article.Body, item.SeoTitle, item.SeoDescription, now);
             if (job.IncludeImages)
             {
-                var asset = await CreateGeneratedCoverAsync(item.Title, category.Name, configuration, now, token);
-                database.MediaAssets.Add(asset); group.MediaAssets.Add(asset);
-                article.UpdateCover(asset, item.ImageAltText ?? item.Title, null, "BOECL otomatik kapak", now);
+                var cover = await CreateGeneratedCoverAsync(item.ImageSearchQuery ?? item.Title, category.Name, configuration, now, token);
+                database.MediaAssets.Add(cover.Asset); group.MediaAssets.Add(cover.Asset);
+                article.UpdateCover(cover.Asset, item.ImageAltText ?? item.Title, cover.SourceUrl, cover.Credit, now);
             }
             article.PublishAutomatedSource(job.Id, now);
             database.ArticleGroups.Add(group); database.ArticleLocalizations.Add(article);
@@ -282,14 +282,14 @@ public static partial class AutomationWorkerEndpoints
         var intersection = a.Intersect(b).Count(); var union = a.Union(b).Count(); return union == 0 ? 0 : (double)intersection / union;
     }
 
-    private static async Task<MediaAsset> CreateGeneratedCoverAsync(string title, string category, IConfiguration configuration, DateTimeOffset now, CancellationToken token)
+    private static async Task<GeneratedCover> CreateGeneratedCoverAsync(string title, string category, IConfiguration configuration, DateTimeOffset now, CancellationToken token)
     {
         var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
         var key = Path.Combine(now.ToString("yyyy"), now.ToString("MM"), $"{Guid.CreateVersion7()}-ai-cover.webp");
         var path = Path.GetFullPath(Path.Combine(root, key)); if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Invalid media path.");
-        await WriteTextlessCoverAsync(path, title + " " + category, false, token);
+        var attribution = await WriteTextlessCoverAsync(path, title + " " + category, false, configuration, token);
         var length = new FileInfo(path).Length; var normalizedKey = key.Replace('\\', '/');
-        var asset = new MediaAsset(normalizedKey, "boecl-ai-cover.webp", "image/webp", length, now); asset.SetImageMetadata(width, height, normalizedKey, length); return asset;
+        var asset = new MediaAsset(normalizedKey, "boecl-ai-cover.webp", "image/webp", length, now); asset.SetImageMetadata(width, height, normalizedKey, length); return new GeneratedCover(asset, attribution.Credit, attribution.SourceUrl);
     }
 
     private static async Task<IResult> RefreshGeneratedCoversAsync(Guid id, HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
@@ -297,7 +297,7 @@ public static partial class AutomationWorkerEndpoints
         if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
         var job = await database.AutomationJobs.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id && item.Type == AutomationJobType.ReadyContentGeneration, token);
         if (job is null) return Results.NotFound();
-        var articles = await database.ArticleLocalizations.AsNoTracking().Include(item => item.Locale).Include(item => item.Categories).Include(item => item.CoverMediaAsset)
+        var articles = await database.ArticleLocalizations.Include(item => item.Locale).Include(item => item.Categories).Include(item => item.CoverMediaAsset)
             .Where(item => item.GeneratedByAutomationJobId == id && item.Locale.IsDefault && item.CoverMediaAsset != null).ToListAsync(token);
         var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
         var refreshed = 0;
@@ -305,14 +305,52 @@ public static partial class AutomationWorkerEndpoints
         {
             var path = Path.GetFullPath(Path.Combine(root, article.CoverMediaAsset!.StorageKey));
             if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return Results.BadRequest();
-            await WriteTextlessCoverAsync(path, article.Title + " " + string.Join(' ', article.Categories.Select(item => item.Name)), true, token); refreshed++;
+            var attribution = await WriteTextlessCoverAsync(path, article.Title + " " + string.Join(' ', article.Categories.Select(item => item.Name)), true, configuration, token);
+            var siblings = await database.ArticleLocalizations.Where(item => item.GeneratedByAutomationJobId == id && item.CoverMediaAssetId == article.CoverMediaAssetId).ToListAsync(token);
+            foreach (var sibling in siblings) sibling.RefreshGeneratedCover(id, article.CoverMediaAsset, sibling.CoverAltText ?? sibling.Title, attribution.SourceUrl, attribution.Credit, DateTimeOffset.UtcNow);
+            refreshed++;
         }
+        await database.SaveChangesAsync(token);
         return Results.Ok(new { refreshed });
     }
 
     private const int width = 1200, height = 675;
-    private static async Task WriteTextlessCoverAsync(string path, string seed, bool overwrite, CancellationToken token)
+    private static async Task<CoverAttribution> WriteTextlessCoverAsync(string path, string seed, bool overwrite, IConfiguration configuration, CancellationToken token)
     {
+        var pexelsKey = configuration["Media:PexelsApiKey"];
+        if (!string.IsNullOrWhiteSpace(pexelsKey))
+        {
+            try
+            {
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(25) };
+                client.DefaultRequestHeaders.Add("Authorization", pexelsKey);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("BOECL/1.0 (+https://peletnapechkai.com)");
+                var query = Uri.EscapeDataString(seed.Length > 120 ? seed[..120] : seed);
+                using var response = await client.GetAsync($"https://api.pexels.com/v1/search?query={query}&orientation=landscape&size=large&per_page=5", token);
+                response.EnsureSuccessStatusCode();
+                using var document = JsonDocument.Parse(await response.Content.ReadAsStreamAsync(token));
+                var photos = document.RootElement.GetProperty("photos");
+                if (photos.GetArrayLength() > 0)
+                {
+                    var photo = photos[RandomNumberGenerator.GetInt32(photos.GetArrayLength())];
+                    var source = photo.GetProperty("src");
+                    var imageUrl = source.TryGetProperty("large2x", out var large2x) ? large2x.GetString() : source.GetProperty("large").GetString();
+                    if (Uri.TryCreate(imageUrl, UriKind.Absolute, out var imageUri))
+                    {
+                        var bytes = await client.GetByteArrayAsync(imageUri, token);
+                        if (bytes.Length is > 0 and <= 15_000_000)
+                        {
+                            using var bitmap = SKBitmap.Decode(bytes) ?? throw new InvalidDataException("Pexels image could not be decoded.");
+                            await SaveCoverBitmapAsync(path, bitmap, overwrite, token);
+                            var photographer = photo.GetProperty("photographer").GetString() ?? "Pexels içerik üreticisi";
+                            return new CoverAttribution($"Fotoğraf: {photographer} / Pexels", photo.GetProperty("url").GetString());
+                        }
+                    }
+                }
+            }
+            catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or InvalidDataException or KeyNotFoundException) { }
+        }
+
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(seed));
         var background = new SKColor((byte)(18 + hash[0] % 30), (byte)(22 + hash[1] % 34), (byte)(34 + hash[2] % 44));
         var accent = new SKColor((byte)(110 + hash[3] % 130), (byte)(80 + hash[4] % 150), (byte)(90 + hash[5] % 145));
@@ -325,11 +363,25 @@ public static partial class AutomationWorkerEndpoints
         canvas.Save(); canvas.RotateDegrees(-12 + hash[12] % 25, 600, 338);
         for (var index = 0; index < 5; index++) canvas.DrawRoundRect(90 + index * 205, 120 + (hash[13 + index] % 170), 170, 330, 38, 38, soft);
         canvas.Restore();
-        using var image = surface.Snapshot(); using var data = image.Encode(SKEncodedImageFormat.Webp, 88);
+        using var image = surface.Snapshot(); using var generatedBitmap = SKBitmap.FromImage(image);
+        await SaveCoverBitmapAsync(path, generatedBitmap, overwrite, token);
+        return new CoverAttribution("BOECL yazısız otomatik görsel", null);
+    }
+
+    private static async Task SaveCoverBitmapAsync(string path, SKBitmap bitmap, bool overwrite, CancellationToken token)
+    {
+        var scale = Math.Max((float)width / bitmap.Width, (float)height / bitmap.Height);
+        var scaledWidth = (int)Math.Ceiling(bitmap.Width * scale); var scaledHeight = (int)Math.Ceiling(bitmap.Height * scale);
+        using var resized = bitmap.Resize(new SKImageInfo(scaledWidth, scaledHeight), SKSamplingOptions.Default) ?? throw new InvalidDataException("Image resize failed.");
+        using var cropped = new SKBitmap(width, height); using (var canvas = new SKCanvas(cropped)) canvas.DrawBitmap(resized, (width - scaledWidth) / 2f, (height - scaledHeight) / 2f, SKSamplingOptions.Default, null);
+        using var image = SKImage.FromBitmap(cropped); using var data = image.Encode(SKEncodedImageFormat.Webp, 88);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         await using var stream = new FileStream(path, overwrite ? FileMode.Create : FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true);
         data.SaveTo(stream); await stream.FlushAsync(token);
     }
+
+    private sealed record GeneratedCover(MediaAsset Asset, string Credit, string? SourceUrl);
+    private sealed record CoverAttribution(string Credit, string? SourceUrl);
 
     private static string SanitizeBody(string? body)
     {
@@ -347,6 +399,6 @@ public static partial class AutomationWorkerEndpoints
     private sealed record SeoBatch(SeoItem[] Items);
     private sealed record SeoItem(Guid ArticleId, string SeoTitle, string SeoDescription);
     private sealed record GeneratedContentBatch(GeneratedContentItem[] Items);
-    private sealed record GeneratedContentItem(string Slug, string Title, string Summary, string Body, string? SeoTitle, string? SeoDescription, string? ImageAltText, GeneratedSource[] Sources);
+    private sealed record GeneratedContentItem(string Slug, string Title, string Summary, string Body, string? SeoTitle, string? SeoDescription, string? ImageAltText, string? ImageSearchQuery, GeneratedSource[] Sources);
     private sealed record GeneratedSource(string Name, string Url);
 }

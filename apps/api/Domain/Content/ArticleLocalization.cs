@@ -230,6 +230,15 @@ public sealed class ArticleLocalization
         SeoTitle = seoTitle.Trim(); SeoDescription = seoDescription.Trim(); UpdatedAt = updatedAt;
     }
 
+    public void RefreshGeneratedCover(Guid jobId, MediaAsset asset, string altText, string? caption, string credit, DateTimeOffset updatedAt)
+    {
+        if (GeneratedByAutomationJobId != jobId || Status != PublicationStatus.Published)
+            throw new InvalidOperationException("Only published content from the same generation job can refresh its cover.");
+        ArgumentException.ThrowIfNullOrWhiteSpace(altText); ArgumentException.ThrowIfNullOrWhiteSpace(credit);
+        CoverMediaAsset = asset; CoverMediaAssetId = asset.Id; CoverAltText = altText.Trim();
+        CoverCaption = string.IsNullOrWhiteSpace(caption) ? null : caption.Trim(); CoverCredit = credit.Trim(); UpdatedAt = updatedAt;
+    }
+
     private void Transition(PublicationStatus expected, PublicationStatus target, DateTimeOffset updatedAt)
     {
         if (Status != expected)
