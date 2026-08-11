@@ -292,7 +292,7 @@ public static partial class AutomationWorkerEndpoints
         var asset = new MediaAsset(normalizedKey, "boecl-ai-cover.webp", "image/webp", length, now); asset.SetImageMetadata(width, height, normalizedKey, length); return new GeneratedCover(asset, attribution.Credit, attribution.SourceUrl);
     }
 
-    private static async Task<IResult> RefreshGeneratedCoversAsync(Guid id, HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
+    private static async Task<IResult> RefreshGeneratedCoversAsync(Guid id, CoverRefreshRequest? request, HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
     {
         if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
         var job = await database.AutomationJobs.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id && item.Type == AutomationJobType.ReadyContentGeneration, token);
@@ -305,7 +305,9 @@ public static partial class AutomationWorkerEndpoints
         {
             var path = Path.GetFullPath(Path.Combine(root, article.CoverMediaAsset!.StorageKey));
             if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return Results.BadRequest();
-            var attribution = await WriteTextlessCoverAsync(path, article.Title + " " + string.Join(' ', article.Categories.Select(item => item.Name)), true, configuration, token);
+            var requestedQuery = request?.Queries?.GetValueOrDefault(article.Id);
+            var query = string.IsNullOrWhiteSpace(requestedQuery) ? article.Title + " " + string.Join(' ', article.Categories.Select(item => item.Name)) : requestedQuery.Trim();
+            var attribution = await WriteTextlessCoverAsync(path, query, true, configuration, token);
             var siblings = await database.ArticleLocalizations.Where(item => item.GeneratedByAutomationJobId == id && item.CoverMediaAssetId == article.CoverMediaAssetId).ToListAsync(token);
             foreach (var sibling in siblings) sibling.RefreshGeneratedCover(id, article.CoverMediaAsset, sibling.CoverAltText ?? sibling.Title, attribution.SourceUrl, attribution.Credit, DateTimeOffset.UtcNow);
             refreshed++;
@@ -382,6 +384,7 @@ public static partial class AutomationWorkerEndpoints
 
     private sealed record GeneratedCover(MediaAsset Asset, string Credit, string? SourceUrl);
     private sealed record CoverAttribution(string Credit, string? SourceUrl);
+    private sealed record CoverRefreshRequest(Dictionary<Guid, string>? Queries);
 
     private static string SanitizeBody(string? body)
     {
