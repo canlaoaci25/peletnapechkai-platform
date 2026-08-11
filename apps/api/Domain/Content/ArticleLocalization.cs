@@ -176,6 +176,32 @@ public sealed class ArticleLocalization
         UpdatedAt = updatedAt;
     }
 
+    public void PublishAutomatedTranslation(DateTimeOffset publishedAt)
+    {
+        if (Locale.IsDefault || Status != PublicationStatus.Draft)
+        {
+            throw new InvalidOperationException("Only non-default draft translations can be automatically published.");
+        }
+
+        Status = PublicationStatus.Published;
+        PublishedAt = publishedAt;
+        ScheduledAt = null;
+        UpdatedAt = publishedAt;
+    }
+
+    public void UpdateAutomatedSeo(string seoTitle, string seoDescription, DateTimeOffset updatedAt)
+    {
+        if (Locale.IsDefault || Status is not (PublicationStatus.Draft or PublicationStatus.Published))
+        {
+            throw new InvalidOperationException("Only non-default draft or published translations can receive automated SEO.");
+        }
+        ArgumentException.ThrowIfNullOrWhiteSpace(seoTitle);
+        ArgumentException.ThrowIfNullOrWhiteSpace(seoDescription);
+        SeoTitle = seoTitle.Trim();
+        SeoDescription = seoDescription.Trim();
+        UpdatedAt = updatedAt;
+    }
+
     private void Transition(PublicationStatus expected, PublicationStatus target, DateTimeOffset updatedAt)
     {
         if (Status != expected)

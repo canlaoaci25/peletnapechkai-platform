@@ -22,13 +22,13 @@ public static class AutomationCandidateCounter
     public static Task<int> CountSeoCandidatesAsync(PublishingDbContext database, string[] targetLocales, CancellationToken token) =>
         targetLocales.Length == 0 ? Task.FromResult(0) : database.ArticleLocalizations.AsNoTracking().CountAsync(article =>
             targetLocales.Contains(article.Locale.Code) &&
-            article.Status == PublicationStatus.Draft &&
+            article.Status == PublicationStatus.Published &&
             (article.SeoTitle == null || article.SeoDescription == null), token);
 
     public static async Task<string[]> GetSeoCandidateLocalesAsync(PublishingDbContext database, string[] targetLocales, CancellationToken token) =>
         await database.ArticleLocalizations.AsNoTracking()
             .Where(article => targetLocales.Contains(article.Locale.Code) &&
-                article.Status == PublicationStatus.Draft &&
+                article.Status == PublicationStatus.Published &&
                 (article.SeoTitle == null || article.SeoDescription == null))
             .Select(article => article.Locale.Code).Distinct().Order().ToArrayAsync(token);
 }

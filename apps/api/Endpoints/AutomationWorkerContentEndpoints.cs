@@ -38,7 +38,7 @@ public static partial class AutomationWorkerEndpoints
 
         if (job.Type == AutomationJobType.SeoLocalization)
         {
-            var candidates = await database.ArticleLocalizations.AsNoTracking().Where(article => job.TargetLocales.Contains(article.Locale.Code) && article.Status == PublicationStatus.Draft && (article.SeoTitle == null || article.SeoDescription == null))
+            var candidates = await database.ArticleLocalizations.AsNoTracking().Where(article => job.TargetLocales.Contains(article.Locale.Code) && article.Status == PublicationStatus.Published && (article.SeoTitle == null || article.SeoDescription == null))
                 .OrderBy(article => article.Id).Take(10).Select(article => new { article.Id, locale = article.Locale.Code, article.Slug, article.Title, article.Summary, article.Body }).ToArrayAsync(token);
             return Results.Ok(new { kind = "seo", candidates });
         }
@@ -67,8 +67,9 @@ public static partial class AutomationWorkerEndpoints
             if (await database.ArticleLocalizations.AnyAsync(article => article.LocaleId == locale.Id && article.Slug == slug, token))
                 slug = $"{slug[..Math.Min(slug.Length, 230)]}-{source.ArticleGroupId.ToString("N")[..8]}";
             var article = new ArticleLocalization(source.ArticleGroup, locale, slug, item.Title, item.Summary, SanitizeBody(item.Body), now);
+            article.PublishAutomatedTranslation(now);
             database.ArticleLocalizations.Add(article);
-            database.AuditLogs.Add(new AuditLog(job.CreatedByUserId, "automation.translation_draft_created", nameof(ArticleLocalization), article.Id, JsonSerializer.Serialize(new { sourceArticleId = source.Id, item.Locale, jobId = job.Id }), now));
+            database.AuditLogs.Add(new AuditLog(job.CreatedByUserId, "automation.translation_published", nameof(ArticleLocalization), article.Id, JsonSerializer.Serialize(new { sourceArticleId = source.Id, item.Locale, jobId = job.Id }), now));
         }
         await database.SaveChangesAsync(token);
         await UpdateProgressAsync(job, database, token);
@@ -88,13 +89,40 @@ public static partial class AutomationWorkerEndpoints
         {
             if (string.IsNullOrWhiteSpace(item.SeoTitle) || item.SeoTitle.Length > 180 || string.IsNullOrWhiteSpace(item.SeoDescription) || item.SeoDescription.Length > 320) return Results.BadRequest(new { message = "SEO alanları geçersiz." });
             var article = await database.ArticleLocalizations.SingleOrDefaultAsync(candidate => candidate.Id == item.ArticleId && job.TargetLocales.Contains(candidate.Locale.Code), token);
-            if (article is null || article.Status != PublicationStatus.Draft) return Results.BadRequest(new { message = "SEO hedef taslağı bulunamadı." });
-            article.UpdateDraft(article.Slug, article.Title, article.Summary, article.Body, item.SeoTitle, item.SeoDescription, now);
-            database.AuditLogs.Add(new AuditLog(job.CreatedByUserId, "automation.seo_draft_created", nameof(ArticleLocalization), article.Id, JsonSerializer.Serialize(new { job.Id }), now));
+            if (article is null || article.Status != PublicationStatus.Published || article.Locale.IsDefault) return Results.BadRequest(new { message = "SEO hedef çevirisi bulunamadı." });
+            article.UpdateAutomatedSeo(item.SeoTitle, item.SeoDescription, now);
+            database.AuditLogs.Add(new AuditLog(job.CreatedByUserId, "automation.seo_localized", nameof(ArticleLocalization), article.Id, JsonSerializer.Serialize(new { job.Id }), now));
         }
         await database.SaveChangesAsync(token);
         await UpdateProgressAsync(job, database, token);
         return Results.Ok();
+    }
+
+    private static async Task<IResult> PublishExistingTranslationsAsync(HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
+    {
+        if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
+        var automatedIds = await database.AuditLogs.AsNoTracking()
+            .Where(log => log.Action == "automation.translation_draft_created" && log.EntityType == nameof(ArticleLocalization))
+            .Select(log => log.EntityId).Distinct().ToArrayAsync(token);
+        if (automatedIds.Length == 0) return Results.Ok(new { published = 0 });
+
+        var articles = await database.ArticleLocalizations
+            .Include(article => article.Locale)
+            .Include(article => article.ArticleGroup).ThenInclude(group => group.Localizations).ThenInclude(article => article.Locale)
+            .Where(article => automatedIds.Contains(article.Id) && article.Status == PublicationStatus.Draft && !article.Locale.IsDefault)
+            .ToListAsync(token);
+        var now = DateTimeOffset.UtcNow;
+        var published = 0;
+        foreach (var article in articles)
+        {
+            var source = article.ArticleGroup.Localizations.SingleOrDefault(candidate => candidate.Locale.IsDefault && candidate.Status == PublicationStatus.Published);
+            if (source is null) continue;
+            article.PublishAutomatedTranslation(now);
+            database.AuditLogs.Add(new AuditLog(null, "automation.translation_published", nameof(ArticleLocalization), article.Id, JsonSerializer.Serialize(new { sourceArticleId = source.Id, migratedFromDraft = true }), now));
+            published++;
+        }
+        await database.SaveChangesAsync(token);
+        return Results.Ok(new { published });
     }
 
     private static async Task UpdateProgressAsync(AutomationJob job, PublishingDbContext database, CancellationToken token)

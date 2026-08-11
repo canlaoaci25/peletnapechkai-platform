@@ -20,6 +20,7 @@ public static partial class AutomationWorkerEndpoints
         group.MapGet("/{id:guid}/candidates", GetCandidatesAsync);
         group.MapPost("/{id:guid}/translations", SaveTranslationsAsync);
         group.MapPost("/{id:guid}/seo-drafts", SaveSeoDraftsAsync);
+        group.MapPost("/publish-existing-translations", PublishExistingTranslationsAsync);
         return endpoints;
     }
 
@@ -88,14 +89,14 @@ public static partial class AutomationWorkerEndpoints
         {
             AutomationJobType.SystemReport=>"Yalnız rapor üret; kodu ve veritabanını değiştirme. Git durumunu, son 10 commit'i, servis durumunu ve dokümantasyonu incele. Bulunan sorunları ve önerilen düzeltmeleri ayrıntılı Türkçe raporla. Lint, test, build, locale bütünlüğü ve ortam sağlık kapıları worker tarafından ayrıca çalıştırılıp rapora eklenecek; bunları ikinci kez çalıştırma.",
             AutomationJobType.SiteLocalization=>$"Yalnız apps/web/src/i18n, locale yapılandırması ve doğrudan ilgili bileşenleri incele. Hedef diller ({locales}) için eksik arayüz anahtarlarını kaynak Türkçe sözlüğe göre tamamla. Kaynak Türkçe metni, public içeriği ve veritabanını değiştirme. Sonra lint ve tip denetimini çalıştır.",
-            AutomationJobType.ContentTranslation=>$"Hedef diller ({locales}) için yayımlanmış Türkçe içeriklerin eksik çeviri taslaklarını hazırla. Doğrudan public yayın yapma. Güvenli taslak komutu yoksa kodu ve veriyi değiştirmeden engeli ayrıntılı raporla.",
-            AutomationJobType.SeoLocalization=>$"Hedef diller ({locales}) için eksik SEO alanlarını insan onayı bekleyen taslak olarak hazırla. Public içeriği değiştirme. Güvenli SEO taslak komutu yoksa kodu ve veriyi değiştirmeden engeli ayrıntılı raporla.",
+            AutomationJobType.ContentTranslation=>$"Hedef diller ({locales}) için yalnızca yayımlanmış Türkçe içeriklerin eksik çevirilerini hazırla. Doğrulanmış çeviri teslim API'si yabancı dil makalesini doğrudan yayımlar; ham model çıktısıyla veritabanını değiştirme.",
+            AutomationJobType.SeoLocalization=>$"Hedef diller ({locales}) için yayımlanmış çevirilerin eksik SEO alanlarını doğrulanmış SEO teslim API'siyle hazırla. Ham model çıktısıyla veritabanını değiştirme.",
             _=>throw new InvalidOperationException("Unsupported automation job type.")
         };
         return $"""
             BOECL otomasyon işi {job.Id} üzerinde çalış. İş türü: {job.Type}. Hedef diller: {locales}. Faz: {job.CurrentPhase}.
             {assignment}
-            Repo AGENTS.md kurallarını uygula ve incelemeyi belirtilen dizinlerle sınırla. .artifacts, .git, node_modules, bin, obj, IIS yayın klasörleri ve PDF dosyalarını özyinelemeli tarama. PowerShell Get-ChildItem -Recurse kullanma; aramada rg kullan. Kullanıcıya görünen yeni içerikler Türkçe olmalıdır. AI içeriğini veya çeviriyi doğrudan yayımlama; editoryal insan incelemesini daima koru. Sırları rapora yazma. IIS, Windows hizmetleri ve canlı migration işlemlerini değiştirme. Son raporu ayrıntılı ve düzgün Türkçe karakterlerle yaz. Her bulguyu Kritik, Hata, Uyarı veya Bilgi önem derecesiyle; kanıt, etki, yapılan işlem ve kalan öneri alanları altında yapılandır. Sorun yoksa bunu açıkça belirt.
+            Repo AGENTS.md kurallarını uygula ve incelemeyi belirtilen dizinlerle sınırla. .artifacts, .git, node_modules, bin, obj, IIS yayın klasörleri ve PDF dosyalarını özyinelemeli tarama. PowerShell Get-ChildItem -Recurse kullanma; aramada rg kullan. Manuel yeni içerikler Türkçe olmalıdır; yabancı dil içerikleri yalnızca yayımlanmış Türkçe kaynaktan ve doğrulanan otomasyon teslim API'sinden üretilir. Sırları rapora yazma. IIS, Windows hizmetleri ve canlı migration işlemlerini değiştirme. Son raporu ayrıntılı ve düzgün Türkçe karakterlerle yaz. Her bulguyu Kritik, Hata, Uyarı veya Bilgi önem derecesiyle; kanıt, etki, yapılan işlem ve kalan öneri alanları altında yapılandır. Sorun yoksa bunu açıkça belirt.
             """;
     }
 
