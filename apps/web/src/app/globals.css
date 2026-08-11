@@ -1964,6 +1964,16 @@ button:focus-visible {
   max-width: 100%;
   height: auto;
 }
+.rich-article-body .article-inline-image {
+  margin: 2rem 0;
+}
+.rich-article-body .article-inline-image img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  object-fit: cover;
+}
 .rich-article-body table {
   display: block;
   max-width: 100%;

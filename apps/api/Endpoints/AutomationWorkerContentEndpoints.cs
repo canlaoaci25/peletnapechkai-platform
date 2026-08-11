@@ -215,15 +215,24 @@ public static partial class AutomationWorkerEndpoints
                 if (database.Entry(source).State == EntityState.Detached) database.Sources.Add(source);
                 group.Sources.Add(source);
             }
+            GeneratedCover? cover = null;
+            if (job.IncludeImages)
+            {
+                if (item.InlineImageQueries is not { Length: 2 } || item.InlineImageAltTexts is not { Length: 2 }) return Results.BadRequest(new { message = "Resimli makalede iki gövde görseli gereklidir." });
+                cover = await CreateGeneratedCoverAsync(item.ImageSearchQuery ?? item.Title, category.Name, configuration, now, token);
+                database.MediaAssets.Add(cover.Asset); group.MediaAssets.Add(cover.Asset);
+                var inlineAssets = new List<MediaAsset>(2);
+                for (var imageIndex = 0; imageIndex < 2; imageIndex++)
+                {
+                    var inline = await CreateGeneratedInlineAsync(item.InlineImageQueries[imageIndex], category.Name, imageIndex, configuration, now, token);
+                    database.MediaAssets.Add(inline); group.MediaAssets.Add(inline); inlineAssets.Add(inline);
+                }
+                sanitizedBody = InsertInlineImages(sanitizedBody, inlineAssets, item.InlineImageAltTexts);
+            }
             var article = new ArticleLocalization(group, locale, item.Slug, item.Title, item.Summary, sanitizedBody, now);
             article.Categories.Add(category);
             if (job.AutoSeo) article.UpdateDraft(article.Slug, article.Title, article.Summary, article.Body, item.SeoTitle, item.SeoDescription, now);
-            if (job.IncludeImages)
-            {
-                var cover = await CreateGeneratedCoverAsync(item.ImageSearchQuery ?? item.Title, category.Name, configuration, now, token);
-                database.MediaAssets.Add(cover.Asset); group.MediaAssets.Add(cover.Asset);
-                article.UpdateCover(cover.Asset, item.ImageAltText ?? item.Title, cover.SourceUrl, cover.Credit, now);
-            }
+            if (cover is not null) article.UpdateCover(cover.Asset, item.ImageAltText ?? item.Title, cover.SourceUrl, cover.Credit, now);
             article.PublishAutomatedSource(job.Id, now);
             database.ArticleGroups.Add(group); database.ArticleLocalizations.Add(article);
             database.AuditLogs.Add(new AuditLog(job.CreatedByUserId, "automation.ready_content_published", nameof(ArticleLocalization), article.Id, JsonSerializer.Serialize(new { jobId = job.Id, categoryId = category.Id, articleType, sourceCount = item.Sources.Length, job.IncludeImages }), now));
@@ -287,9 +296,28 @@ public static partial class AutomationWorkerEndpoints
         var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
         var key = Path.Combine(now.ToString("yyyy"), now.ToString("MM"), $"{Guid.CreateVersion7()}-ai-cover.webp");
         var path = Path.GetFullPath(Path.Combine(root, key)); if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Invalid media path.");
-        var attribution = await WriteTextlessCoverAsync(path, title + " " + category, false, configuration, token);
+        var attribution = await WriteTextlessCoverAsync(path, title + " " + category, false, configuration, false, token);
         var length = new FileInfo(path).Length; var normalizedKey = key.Replace('\\', '/');
         var asset = new MediaAsset(normalizedKey, "boecl-ai-cover.webp", "image/webp", length, now); asset.SetImageMetadata(width, height, normalizedKey, length); return new GeneratedCover(asset, attribution.Credit, attribution.SourceUrl);
+    }
+
+    private static async Task<MediaAsset> CreateGeneratedInlineAsync(string query, string category, int index, IConfiguration configuration, DateTimeOffset now, CancellationToken token)
+    {
+        var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
+        var key = Path.Combine(now.ToString("yyyy"), now.ToString("MM"), $"{Guid.CreateVersion7()}-inline-{index + 1}.webp");
+        var path = Path.GetFullPath(Path.Combine(root, key)); if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Invalid media path.");
+        await WriteTextlessCoverAsync(path, query + " " + category + " inline " + index, false, configuration, false, token);
+        var length = new FileInfo(path).Length; var normalizedKey = key.Replace('\\', '/');
+        var asset = new MediaAsset(normalizedKey, $"boecl-inline-{index + 1}.webp", "image/webp", length, now); asset.SetImageMetadata(width, height, normalizedKey, length); return asset;
+    }
+
+    private static string InsertInlineImages(string body, IReadOnlyList<MediaAsset> assets, IReadOnlyList<string> altTexts)
+    {
+        var figures = assets.Select((asset, index) => $"<figure class=\"article-inline-image\"><img src=\"/api/media/{asset.Id}?v={asset.OptimizedByteLength}\" alt=\"{System.Net.WebUtility.HtmlEncode(altTexts[index])}\" width=\"1200\" height=\"675\" loading=\"lazy\"></figure>").ToArray();
+        var next = 0;
+        var result = Regex.Replace(body, "</h2>", match => next < figures.Length ? match.Value + figures[next++] : match.Value, RegexOptions.IgnoreCase);
+        while (next < figures.Length) result += figures[next++];
+        return result;
     }
 
     private static async Task<IResult> RefreshGeneratedCoversAsync(Guid id, CoverRefreshRequest? request, HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
@@ -307,7 +335,7 @@ public static partial class AutomationWorkerEndpoints
             if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return Results.BadRequest();
             var requestedQuery = request?.Queries?.GetValueOrDefault(article.Id);
             var query = string.IsNullOrWhiteSpace(requestedQuery) ? article.Title + " " + string.Join(' ', article.Categories.Select(item => item.Name)) : requestedQuery.Trim();
-            var attribution = await WriteTextlessCoverAsync(path, query, true, configuration, token);
+            var attribution = await WriteTextlessCoverAsync(path, query, true, configuration, true, token);
             var siblings = await database.ArticleLocalizations.Where(item => item.GeneratedByAutomationJobId == id && item.CoverMediaAssetId == article.CoverMediaAssetId).ToListAsync(token);
             foreach (var sibling in siblings) sibling.RefreshGeneratedCover(id, article.CoverMediaAsset, sibling.CoverAltText ?? sibling.Title, attribution.SourceUrl, attribution.Credit, DateTimeOffset.UtcNow);
             refreshed++;
@@ -317,10 +345,10 @@ public static partial class AutomationWorkerEndpoints
     }
 
     private const int width = 1200, height = 675;
-    private static async Task<CoverAttribution> WriteTextlessCoverAsync(string path, string seed, bool overwrite, IConfiguration configuration, CancellationToken token)
+    private static async Task<CoverAttribution> WriteTextlessCoverAsync(string path, string seed, bool overwrite, IConfiguration configuration, bool allowStockProvider, CancellationToken token)
     {
         var pexelsKey = configuration["Media:PexelsApiKey"];
-        if (!string.IsNullOrWhiteSpace(pexelsKey))
+        if (allowStockProvider && !string.IsNullOrWhiteSpace(pexelsKey))
         {
             try
             {
@@ -402,6 +430,6 @@ public static partial class AutomationWorkerEndpoints
     private sealed record SeoBatch(SeoItem[] Items);
     private sealed record SeoItem(Guid ArticleId, string SeoTitle, string SeoDescription);
     private sealed record GeneratedContentBatch(GeneratedContentItem[] Items);
-    private sealed record GeneratedContentItem(string Slug, string Title, string Summary, string Body, string? SeoTitle, string? SeoDescription, string? ImageAltText, string? ImageSearchQuery, GeneratedSource[] Sources);
+    private sealed record GeneratedContentItem(string Slug, string Title, string Summary, string Body, string? SeoTitle, string? SeoDescription, string? ImageAltText, string? ImageSearchQuery, string[]? InlineImageAltTexts, string[]? InlineImageQueries, GeneratedSource[] Sources);
     private sealed record GeneratedSource(string Name, string Url);
 }

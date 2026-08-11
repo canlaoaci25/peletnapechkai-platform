@@ -11,7 +11,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["slug", "title", "summary", "body", "seoTitle", "seoDescription", "imageAltText", "imageSearchQuery", "sources"],
+        "required": ["slug", "title", "summary", "body", "seoTitle", "seoDescription", "imageAltText", "imageSearchQuery", "inlineImageAltTexts", "inlineImageQueries", "sources"],
         "properties": {
           "slug": { "type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$", "maxLength": 240 },
           "title": { "type": "string", "minLength": 20, "maxLength": 180 },
@@ -21,6 +21,8 @@
           "seoDescription": { "type": ["string", "null"], "maxLength": 320 },
           "imageAltText": { "type": ["string", "null"], "maxLength": 500 },
           "imageSearchQuery": { "type": ["string", "null"], "maxLength": 120 },
+          "inlineImageAltTexts": { "type": ["array", "null"], "minItems": 2, "maxItems": 2, "items": { "type": "string", "minLength": 10, "maxLength": 500 } },
+          "inlineImageQueries": { "type": ["array", "null"], "minItems": 2, "maxItems": 2, "items": { "type": "string", "minLength": 3, "maxLength": 120 } },
           "sources": {
             "type": "array",
             "minItems": 2,
