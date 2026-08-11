@@ -1,3 +1,17 @@
-import Link from"next/link";import{siteConfig}from"@/config/site";import{localeLabels,locales,type Locale}from"@/i18n/config";import{ThemeToggle}from"@/components/theme-toggle";
-const searchLabel={"tr-TR":"Ara","en-US":"Search","de-DE":"Suchen","fr-FR":"Rechercher"};
-export function SiteHeader({locale,localeHrefs}:{locale:Locale;localeHrefs?:Partial<Record<Locale,string>>}){return <header className="site-header"><div className="brand-group"><Link className="brand" href={`/${locale}`}>{siteConfig.name}</Link><Link className="header-search" href={`/${locale}/search`}>{searchLabel[locale]}</Link></div><div className="header-tools"><nav aria-label="Language and region" className="locale-nav">{locales.map(item=><Link aria-current={item===locale?"page":undefined} className="locale-link" href={localeHrefs?.[item]??`/${item}`} key={item}>{localeLabels[item]}</Link>)}</nav><ThemeToggle locale={locale}/></div></header>}
+import Link from "next/link";
+
+import { ThemeToggle } from "@/components/theme-toggle";
+import { siteConfig } from "@/config/site";
+import type { Locale } from "@/i18n/config";
+
+const searchLabel = { "tr-TR": "Ara", "en-US": "Search", "de-DE": "Suchen", "fr-FR": "Rechercher" };
+
+export function SiteHeader({ locale }: { locale: Locale; localeHrefs?: Partial<Record<Locale, string>> }) {
+  return <header className="site-header">
+    <div className="brand-group">
+      <Link className="brand" href={`/${locale}`}>{siteConfig.name}</Link>
+      <Link className="header-search" href={`/${locale}/search`}>{searchLabel[locale]}</Link>
+    </div>
+    <div className="header-tools"><ThemeToggle locale={locale} /></div>
+  </header>;
+}

@@ -106,9 +106,10 @@ a {
 }
 
 .brand {
-  font-size: 1.05rem;
-  font-weight: 750;
-  letter-spacing: -0.04em;
+  font-size: clamp(1.35rem, 2vw, 1.7rem);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 1;
   text-decoration: none;
 }
 
