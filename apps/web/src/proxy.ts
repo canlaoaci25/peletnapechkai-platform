@@ -2,18 +2,93 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { defaultLocale, hasLocale } from "@/i18n/config";
 
-export function proxy(request: NextRequest) {
+type LocaleDirectory = {
+  defaultLocale: string;
+  locales: Array<{ code: string; languageCode: string; region: string; countries: string[] }>;
+};
+
+const localeCookie = "boecl-locale";
+const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
+
+function clientIp(request: NextRequest) {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const value = forwarded ?? request.headers.get("x-real-ip")?.trim();
+  return value?.replace(/^::ffff:/, "") || null;
+}
+
+async function countryCode(request: NextRequest) {
+  const header = ["cf-ipcountry", "x-vercel-ip-country", "x-country-code"]
+    .map(name => request.headers.get(name)?.trim().toUpperCase())
+    .find(value => value && /^[A-Z]{2}$/.test(value));
+  if (header) return header;
+
+  const ip = clientIp(request);
+  if (!ip) return null;
+
+  try {
+    const response = await fetch(`https://api.country.is/${encodeURIComponent(ip)}`, {
+      cache: "force-cache",
+      signal: AbortSignal.timeout(1200),
+    });
+    if (!response.ok) return null;
+    const result = await response.json() as { country?: string };
+    return result.country && /^[A-Z]{2}$/.test(result.country) ? result.country : null;
+  } catch {
+    return null;
+  }
+}
+
+async function localeDirectory(): Promise<LocaleDirectory | null> {
+  try {
+    const response = await fetch(new URL("/api/v1/locales", apiBaseUrl), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(1200),
+    });
+    return response.ok ? await response.json() as LocaleDirectory : null;
+  } catch {
+    return null;
+  }
+}
+
+function browserLocale(request: NextRequest, directory: LocaleDirectory) {
+  const languages = request.headers.get("accept-language")
+    ?.split(",")
+    .map(part => part.split(";")[0].trim().toLowerCase()) ?? [];
+  return directory.locales.find(locale => languages.some(language =>
+    language === locale.code.toLowerCase() || language.split("-")[0] === locale.languageCode.toLowerCase()
+  ))?.code;
+}
+
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const firstSegment = pathname.split("/").filter(Boolean)[0];
 
   if (firstSegment && hasLocale(firstSegment)) {
-    return NextResponse.next();
+    const response = NextResponse.next();
+    response.cookies.set(localeCookie, firstSegment, { maxAge: 60 * 60 * 24 * 365, sameSite: "lax", secure: true });
+    return response;
   }
 
-  const destination = request.nextUrl.clone();
-  destination.pathname = `/${defaultLocale}${pathname === "/" ? "" : pathname}`;
+  const savedLocale = request.cookies.get(localeCookie)?.value;
+  const directory = await localeDirectory();
+  const enabled = new Set<string>(directory?.locales.map(locale => locale.code).filter(hasLocale) ?? []);
+  let selected = savedLocale && enabled.has(savedLocale) ? savedLocale : null;
 
-  return NextResponse.redirect(destination);
+  if (!selected && directory) {
+    const country = await countryCode(request);
+    selected = directory.locales.find(locale => country && locale.countries.includes(country))?.code
+      ?? browserLocale(request, directory)
+      ?? directory.defaultLocale;
+  }
+
+  const locale = selected && hasLocale(selected) ? selected : defaultLocale;
+
+  const destination = request.nextUrl.clone();
+  destination.pathname = `/${locale}${pathname === "/" ? "" : pathname}`;
+
+  const response = NextResponse.redirect(destination);
+  response.cookies.set(localeCookie, locale, { maxAge: 60 * 60 * 24 * 365, sameSite: "lax", secure: true });
+  return response;
 }
 
 export const config = {

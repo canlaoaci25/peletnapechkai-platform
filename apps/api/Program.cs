@@ -67,7 +67,13 @@ app.MapGet("/api/v1/locales", async (PublishingDbContext database, CancellationT
                 locale.LanguageCode,
                 locale.DisplayName,
                 locale.NativeName,
-                region = locale.Region.Code
+                region = locale.Region.Code,
+                countries = locale.Countries
+                    .Where(link => link.IsEnabled && link.Country.IsEnabled)
+                    .OrderByDescending(link => link.CountryId == locale.RegionId)
+                    .ThenBy(link => link.Country.Code)
+                    .Select(link => link.Country.Code)
+                    .ToArray()
             })
             .ToListAsync(cancellationToken)
     }))
