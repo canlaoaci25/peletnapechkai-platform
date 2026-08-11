@@ -1682,26 +1682,29 @@ button:focus-visible {
   font-size: 0.8rem;
   text-underline-offset: 4px;
 }
-.theme-toggle {
-  display: flex;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 3px;
-}
-.theme-toggle button {
-  padding: 5px 8px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.68rem;
+.theme-lamp {
+  position: fixed;
+  z-index: 80;
+  left: 18px;
+  bottom: 18px;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--foreground);
+  box-shadow: 0 10px 32px rgb(0 0 0 / 18%);
+  backdrop-filter: blur(12px);
   cursor: pointer;
 }
-.theme-toggle button[aria-pressed="true"] {
-  background: var(--foreground);
-  color: var(--background);
-}
+.theme-lamp svg { width: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.theme-lamp .lamp-rays { opacity: .35; transition: opacity .2s ease; }
+.theme-lamp[aria-pressed="true"] { color: var(--accent); }
+.theme-lamp[aria-pressed="true"] .lamp-rays { opacity: 1; }
+.theme-lamp:hover { transform: translateY(-2px); }
 .admin-login-card,
 .admin-panel,
 .compact-form,
@@ -1822,14 +1825,11 @@ button:focus-visible {
   }
 }
 @media (max-width: 720px) {
-  .header-tools {
-    width: 100%;
-    justify-content: space-between;
-  }
   .brand-group {
     width: 100%;
     justify-content: space-between;
   }
+  .theme-lamp { left: 12px; bottom: 12px; width: 44px; height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *,
