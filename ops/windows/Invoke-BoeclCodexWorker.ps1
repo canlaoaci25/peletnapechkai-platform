@@ -9,6 +9,41 @@ New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
 $mutex = [Threading.Mutex]::new($false, 'Global\BOECL-Codex-Automation-Worker')
 if (-not $mutex.WaitOne(0)) { exit 0 }
 
+function Invoke-CodexProcess {
+    param(
+        [Parameter(Mandatory)] [string]$Executable,
+        [Parameter(Mandatory)] [string[]]$Arguments,
+        [Parameter(Mandatory)] [string]$InputText,
+        [Parameter(Mandatory)] [string]$OutputPath,
+        [Parameter(Mandatory)] [string]$ErrorPath,
+        [int]$TimeoutMinutes = 60,
+        [int]$MaximumAttempts = 2
+    )
+
+    $inputPath = "$OutputPath.stdin"
+    try {
+        $InputText | Set-Content -LiteralPath $inputPath -Encoding utf8
+        $argumentLine = ($Arguments | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join ' '
+        for ($attempt = 1; $attempt -le $MaximumAttempts; $attempt++) {
+            Remove-Item -LiteralPath $OutputPath, $ErrorPath -Force -ErrorAction SilentlyContinue
+            $process = Start-Process -FilePath $Executable -ArgumentList $argumentLine -NoNewWindow -PassThru `
+                -RedirectStandardInput $inputPath -RedirectStandardOutput $OutputPath -RedirectStandardError $ErrorPath
+            if ($process.WaitForExit($TimeoutMinutes * 60 * 1000)) {
+                return $process.ExitCode
+            }
+
+            & taskkill.exe /PID $process.Id /T /F | Out-Null
+            "$(Get-Date -Format o) Codex süre sınırını aştı; deneme $attempt/$MaximumAttempts sonlandırıldı." |
+                Add-Content -LiteralPath $ErrorPath -Encoding utf8
+            if ($attempt -lt $MaximumAttempts) { Start-Sleep -Seconds 5 }
+        }
+        throw "Codex $MaximumAttempts denemede de $TimeoutMinutes dakikalık süre sınırını aştı."
+    }
+    finally {
+        Remove-Item -LiteralPath $inputPath -Force -ErrorAction SilentlyContinue
+    }
+}
+
 try {
     $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
     $env:CODEX_HOME = [string]$config.codexHome
@@ -30,6 +65,7 @@ try {
     if ($job.type -in @('ContentTranslation', 'SeoLocalization', 'ReadyContentGeneration')) {
         $batch = 0
         $processed = 0
+        $runId = Get-Date -Format 'yyyyMMdd-HHmmss'
         do {
             $candidateSet = Invoke-RestMethod -Method Get -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/candidates" -Headers $headers
             $candidateKind = [string]$candidateSet.kind
@@ -37,9 +73,9 @@ try {
             $candidateCount = if ($candidateKind -eq 'generation') { [int]$candidateSet.requestedCount } else { $candidates.Count }
             if ($candidateKind -eq 'complete' -or $candidateCount -eq 0) { break }
             $batch++
-            $batchResult = Join-Path $logRoot "$jobId-batch-$batch-result.json"
-            $batchLog = Join-Path $logRoot "$jobId-batch-$batch.jsonl"
-            $batchError = Join-Path $logRoot "$jobId-batch-$batch-stderr.log"
+            $batchResult = Join-Path $logRoot "$jobId-$runId-batch-$batch-result.json"
+            $batchLog = Join-Path $logRoot "$jobId-$runId-batch-$batch.jsonl"
+            $batchError = Join-Path $logRoot "$jobId-$runId-batch-$batch-stderr.log"
             $schemaRelative = if ($candidateKind -eq 'generation') { 'ops\automation\ready-content-output.schema.json' } elseif ($candidateKind -eq 'translation') { 'ops\automation\translation-output.schema.json' } else { 'ops\automation\seo-output.schema.json' }
             $schema = Join-Path ([string]$config.repositoryPath) $schemaRelative
             $candidateJson = $candidateSet | ConvertTo-Json -Depth 8 -Compress
@@ -54,10 +90,7 @@ try {
             if ($candidateKind -eq 'generation') { $codexArguments += '--search' }
             $codexArguments += @('exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--cd', [string]$config.repositoryPath, '--output-schema', $schema, '--output-last-message', $batchResult)
             $codexArguments += '-'
-            $ErrorActionPreference = 'Continue'
-            $instruction | & ([string]$config.codexPath) @codexArguments 2> $batchError | Set-Content -LiteralPath $batchLog -Encoding utf8
-            $codexExitCode = $LASTEXITCODE
-            $ErrorActionPreference = $savedErrorPreference
+            $codexExitCode = Invoke-CodexProcess -Executable ([string]$config.codexPath) -Arguments $codexArguments -InputText $instruction -OutputPath $batchLog -ErrorPath $batchError -TimeoutMinutes 60 -MaximumAttempts 2
             if ($codexExitCode -ne 0) { throw "Codex yapılandırılmış içerik grubunu tamamlayamadı (batch $batch, exit $codexExitCode)." }
             $resultJson = Get-Content -LiteralPath $batchResult -Raw -Encoding UTF8
             $parsedResult = $resultJson | ConvertFrom-Json
@@ -73,10 +106,7 @@ try {
     }
     else {
         $codexArguments = @('exec', '--ephemeral', '--json', '--sandbox', 'danger-full-access', '--cd', [string]$config.repositoryPath, '--output-last-message', $lastMessage, '-')
-        $ErrorActionPreference = 'Continue'
-        [string]$job.prompt | & ([string]$config.codexPath) @codexArguments 2> $stderrLog | Set-Content -LiteralPath $jobLog -Encoding utf8
-        $codexExitCode = $LASTEXITCODE
-        $ErrorActionPreference = $savedErrorPreference
+        $codexExitCode = Invoke-CodexProcess -Executable ([string]$config.codexPath) -Arguments $codexArguments -InputText ([string]$job.prompt) -OutputPath $jobLog -ErrorPath $stderrLog -TimeoutMinutes 90 -MaximumAttempts 2
         if ($codexExitCode -ne 0) {
             $stderrTail = if (Test-Path -LiteralPath $stderrLog) { (Get-Content -LiteralPath $stderrLog -Tail 8) -join ' ' } else { '' }
             throw "Codex exited with code $codexExitCode. $stderrTail"
