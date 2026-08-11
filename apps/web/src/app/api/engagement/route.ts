@@ -1,0 +1,3 @@
+import { NextResponse } from "next/server";
+const apiBaseUrl=process.env.API_INTERNAL_URL??"http://localhost:5267";
+export async function POST(request:Request){try{const body=await request.json() as {locale?:string;slug?:string;kind?:string;seconds?:number};if(!body.locale||!body.slug||!body.kind)return NextResponse.json({message:"Invalid request."},{status:400});const response=await fetch(new URL(`/api/v1/public/${encodeURIComponent(body.locale)}/articles/${encodeURIComponent(body.slug)}/engagement`,apiBaseUrl),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind:body.kind,seconds:body.seconds??0})});return new NextResponse(null,{status:response.status})}catch{return NextResponse.json({message:"Invalid request."},{status:400})}}

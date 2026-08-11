@@ -36,6 +36,8 @@ public sealed class PublishingDbContext(DbContextOptions<PublishingDbContext> op
     public DbSet<EditorialComment> EditorialComments => Set<EditorialComment>();
     public DbSet<ArticleQualityChecklist> ArticleQualityChecklists => Set<ArticleQualityChecklist>();
     public DbSet<AutomationJob> AutomationJobs => Set<AutomationJob>();
+    public DbSet<ArticleEngagement> ArticleEngagements => Set<ArticleEngagement>();
+    public DbSet<HomepagePlacement> HomepagePlacements => Set<HomepagePlacement>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

@@ -23,6 +23,7 @@ public static class AuthEndpoints
             .AllowAnonymous()
             .RequireRateLimiting(IdentityServiceExtensions.LoginRateLimitPolicy)
             .ValidateAntiforgery();
+        group.MapPost("/register", RegisterAsync).AllowAnonymous().RequireRateLimiting(IdentityServiceExtensions.LoginRateLimitPolicy).ValidateAntiforgery();
 
         group.MapPost("/login/2fa", TwoFactorLoginAsync)
             .AllowAnonymous()
@@ -129,6 +130,17 @@ public static class AuthEndpoints
         database.AuditLogs.Add(new AuditLog(user.Id, "identity.login", nameof(ApplicationUser), user.Id, null, DateTimeOffset.UtcNow));
         await database.SaveChangesAsync(cancellationToken);
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> RegisterAsync(RegisterRequest request,UserManager<ApplicationUser> userManager,SignInManager<ApplicationUser> signInManager,PublishingDbContext database,CancellationToken cancellationToken)
+    {
+        var email=request.Email?.Trim();var name=request.DisplayName?.Trim();
+        if(string.IsNullOrWhiteSpace(email)||string.IsNullOrWhiteSpace(name)||name.Length is <2 or >160||string.IsNullOrWhiteSpace(request.Password))return Results.ValidationProblem(new Dictionary<string,string[]>{{"account",["Ad, email and password are required."]}});
+        if(await userManager.FindByEmailAsync(email) is not null)return Results.Conflict(new{message="An account with this email already exists."});
+        var user=new ApplicationUser{Id=Guid.CreateVersion7(),UserName=email,Email=email,DisplayName=name,EmailConfirmed=true,IsActive=true,CreatedAt=DateTimeOffset.UtcNow};
+        var created=await userManager.CreateAsync(user,request.Password);if(!created.Succeeded)return Results.ValidationProblem(created.Errors.GroupBy(x=>x.Code).ToDictionary(x=>x.Key,x=>x.Select(y=>y.Description).ToArray()));
+        var role=await userManager.AddToRoleAsync(user,RoleNames.Member);if(!role.Succeeded){await userManager.DeleteAsync(user);throw new InvalidOperationException("Member role assignment failed.");}
+        await signInManager.SignInAsync(user,false);database.AuditLogs.Add(new AuditLog(user.Id,"identity.member_registered",nameof(ApplicationUser),user.Id,null,DateTimeOffset.UtcNow));await database.SaveChangesAsync(cancellationToken);return Results.Ok(new{user.Id,user.Email,user.DisplayName});
     }
 
     private static async Task<IResult> LogoutAsync(
@@ -312,6 +324,7 @@ public static class AuthEndpoints
     }
 
     private sealed record LoginRequest(string Email, string Password);
+    private sealed record RegisterRequest(string Email,string Password,string DisplayName);
     private sealed record TwoFactorLoginRequest(string? AuthenticatorCode, string? RecoveryCode);
     private sealed record TwoFactorCodeRequest(string Code);
     private sealed record CurrentPasswordRequest(string CurrentPassword);

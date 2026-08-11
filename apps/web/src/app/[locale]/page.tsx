@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/site-header";
 import { siteConfig } from "@/config/site";
 import { hasLocale, localeLabels } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
-import { getPublishedArticles, type PublicArticleSummary } from "@/lib/public-api";
+import { getPublicHomepage, type PublicArticleSummary } from "@/lib/public-api";
 
 export const dynamic = "force-dynamic";
 
@@ -21,13 +21,14 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
   const { locale } = await params;
   if (!hasLocale(locale)) notFound();
 
-  const [dictionary, articles] = await Promise.all([getDictionary(locale), getPublishedArticles(locale, 24)]);
+  const [dictionary, homepage] = await Promise.all([getDictionary(locale), getPublicHomepage(locale)]);
   const copy = dictionary.home;
-  const lead = articles[0];
-  const secondary = articles.slice(1, 5);
-  const trending = articles.slice(0, 6);
-  const picks = articles.slice(5, 9);
-  const latest = articles.slice(9);
+  const lead = homepage.lead;
+  const secondary = homepage.secondary;
+  const trending = homepage.trending;
+  const picks = homepage.editors;
+  const latest = homepage.latest;
+  const articles = [lead,...secondary,...trending,...picks,...latest].filter((item):item is PublicArticleSummary=>item!==null).filter((item,index,all)=>all.findIndex(candidate=>candidate.slug===item.slug)===index);
   const types = [...new Set(articles.map(article => article.type))].slice(0, 3);
   const formatDate = (date: string) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(date));
 

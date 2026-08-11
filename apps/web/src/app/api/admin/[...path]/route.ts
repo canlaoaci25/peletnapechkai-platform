@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 const allowedRoutes = [
-  /^auth\/(csrf|login|login\/2fa|logout|session)$/,
+  /^auth\/(csrf|login|register|login\/2fa|logout|session)$/,
   /^articles(?:\/|$)/,
   /^users(?:\/|$)/,
   /^supporting(?:\/|$)/,
@@ -11,6 +11,7 @@ const allowedRoutes = [
   /^knowledge(?:\/|$)/,
   /^locales(?:\/|$)/,
   /^automation(?:\/|$)/,
+  /^homepage(?:\/|$)/,
 ];
 
 function apiPath(path: string[]) {

@@ -169,6 +169,7 @@ export type LocaleCatalogItem = {
   countryCode: string;
   countryName: string;
 };
+export type HomepageAdminData={mode:"Automatic"|"Hybrid";placements:{section:string;position:number;articleLocalizationId:string}[];articles:{id:string;title:string;type:string;publishedAt:string;views:number;score:number}[]};
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 
@@ -243,3 +244,4 @@ export async function getLocaleCatalog() {
     (await apiGet<LocaleCatalogItem[]>("/api/v1/admin/locales/catalog")) ?? []
   );
 }
+export function getHomepageAdmin(locale:string){return apiGet<HomepageAdminData>(`/api/v1/admin/homepage/${encodeURIComponent(locale)}`)}

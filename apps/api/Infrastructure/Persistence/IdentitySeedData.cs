@@ -11,7 +11,8 @@ public static class IdentitySeedData
         Create("0198F100-0000-7000-A000-000000000003", RoleNames.Editor),
         Create("0198F100-0000-7000-A000-000000000004", RoleNames.Author),
         Create("0198F100-0000-7000-A000-000000000005", RoleNames.Translator),
-        Create("0198F100-0000-7000-A000-000000000006", RoleNames.Seo)
+        Create("0198F100-0000-7000-A000-000000000006", RoleNames.Seo),
+        Create("0198F100-0000-7000-A000-000000000007", RoleNames.Member)
     ];
 
     private static ApplicationRole Create(string id, string name) => new()

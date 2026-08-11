@@ -17,6 +17,7 @@ const text = {
     tags: "Etiketler",
     library: "Medya ve sözlük",
     knowledge: "Bilgi kasası",
+    homepage: "Ana sayfa yönetimi",
     users: "Kullanıcılar",
     languages: "Dil işlemleri",
     languageList: "Dil listesi",
@@ -44,6 +45,7 @@ const text = {
     tags: "Tags",
     library: "Media and vocabulary",
     knowledge: "Knowledge vault",
+    homepage: "Homepage management",
     users: "Users",
     languages: "Language settings",
     languageList: "Language list",
@@ -71,6 +73,7 @@ const text = {
     tags: "Schlagwörter",
     library: "Medien und Vokabular",
     knowledge: "Wissensspeicher",
+    homepage: "Startseitenverwaltung",
     users: "Benutzer",
     languages: "Spracheinstellungen",
     languageList: "Sprachliste",
@@ -98,6 +101,7 @@ const text = {
     tags: "Étiquettes",
     library: "Médias et vocabulaire",
     knowledge: "Base de connaissances",
+    homepage: "Gestion de l’accueil",
     users: "Utilisateurs",
     languages: "Gestion des langues",
     languageList: "Liste des langues",
@@ -343,6 +347,7 @@ export function AdminFrame({
               "◇",
               copy.knowledge,
             )}
+          {editorial && item(`/${locale}/admin/homepage`, pathname.startsWith(`/${locale}/admin/homepage`), "⌂", copy.homepage)}
           {admin && (
             <section
               className="admin-nav-module"

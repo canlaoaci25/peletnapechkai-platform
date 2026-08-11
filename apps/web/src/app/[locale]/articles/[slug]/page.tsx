@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
+import { ArticleEngagement } from "@/components/article-engagement";
 import { siteConfig } from "@/config/site";
 import { commercialCopy } from "@/i18n/commercial-copy";
 import { hasLocale } from "@/i18n/config";
@@ -81,6 +82,7 @@ export default async function ArticlePage({
   return (
     <div className="site-shell">
       <SiteHeader locale={locale} />
+      <ArticleEngagement locale={locale} slug={slug} />
       <main className="article-page">
         <Link className="back-link" href={`/${locale}`}>
           ← {dictionary.navigation.home}

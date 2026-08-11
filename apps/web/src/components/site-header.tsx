@@ -1,16 +1,4 @@
 import Link from "next/link";
-
-import { ThemeToggle } from "@/components/theme-toggle";
-import { siteConfig } from "@/config/site";
-import type { Locale } from "@/i18n/config";
-
-const searchLabel = { "tr-TR": "Ara", "en-US": "Search", "de-DE": "Suchen", "fr-FR": "Rechercher" };
-
-export function SiteHeader({ locale }: { locale: Locale; localeHrefs?: Partial<Record<Locale, string>> }) {
-  return <><header className="site-header">
-    <div className="brand-group">
-      <Link className="brand" href={`/${locale}`}>{siteConfig.name}</Link>
-      <Link className="header-search" href={`/${locale}/search`}>{searchLabel[locale]}</Link>
-    </div>
-  </header><ThemeToggle locale={locale} /></>;
-}
+import { ThemeToggle } from "@/components/theme-toggle";import{siteConfig}from"@/config/site";import type{Locale}from"@/i18n/config";
+const copy={"tr-TR":{menu:"Menü",home:"Ana sayfa",technology:"Teknoloji",ai:"Yapay zekâ",science:"Bilim",search:"Ara",login:"Giriş",register:"Kayıt ol"},"en-US":{menu:"Menu",home:"Home",technology:"Technology",ai:"AI",science:"Science",search:"Search",login:"Sign in",register:"Register"},"de-DE":{menu:"Menü",home:"Startseite",technology:"Technologie",ai:"KI",science:"Wissenschaft",search:"Suchen",login:"Anmelden",register:"Registrieren"},"fr-FR":{menu:"Menu",home:"Accueil",technology:"Technologie",ai:"IA",science:"Science",search:"Rechercher",login:"Connexion",register:"Inscription"}};
+export function SiteHeader({locale}:{locale:Locale;localeHrefs?:Partial<Record<Locale,string>>}){const c=copy[locale],topic=(value:string)=>`/${locale}/search?q=${encodeURIComponent(value)}`;return <><header className="site-header"><Link className="brand" href={`/${locale}`}>{siteConfig.name}</Link><details className="site-menu"><summary>{c.menu}</summary><nav aria-label={c.menu}><Link href={`/${locale}`}>{c.home}</Link><Link href={topic(c.technology)}>{c.technology}</Link><Link href={topic(c.ai)}>{c.ai}</Link><Link href={topic(c.science)}>{c.science}</Link></nav></details><nav className="header-actions" aria-label="Account"><Link className="header-search" href={`/${locale}/search`}>{c.search}</Link><Link href={`/${locale}/account/login`}>{c.login}</Link><Link className="header-register" href={`/${locale}/account/register`}>{c.register}</Link></nav></header><ThemeToggle locale={locale}/></>}

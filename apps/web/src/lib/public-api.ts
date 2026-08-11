@@ -6,6 +6,7 @@ export type PublicArticleSummary = {
 export type PublicArticle = Omit<PublicArticleSummary, "articleGroupId"|"cover"> & { body: string; seoTitle: string | null; seoDescription: string | null; isSponsored:boolean; sponsorName:string|null; hasAffiliateLinks:boolean; cover:{url:string;altText:string;caption:string|null;credit:string|null}|null; categories:{slug:string;name:string}[]; tags:{slug:string;name:string}[]; authors:{slug:string;displayName:string}[]; sources:{name:string;url:string}[]; translations: { locale: string; slug: string }[] };
 export type PublicArchive = { kind:string; slug:string; title:string; description:string|null; articles:PublicArticleSummary[] };
 export type PublicArchiveIndex = { categories:{slug:string;title:string}[]; tags:{slug:string;title:string}[]; authors:{slug:string;title:string}[] };
+export type PublicHomepage = { lead:PublicArticleSummary|null;secondary:PublicArticleSummary[];trending:PublicArticleSummary[];editors:PublicArticleSummary[];latest:PublicArticleSummary[];mode:"Automatic"|"Hybrid" };
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 
@@ -21,6 +22,7 @@ async function publicGet<T>(path: string): Promise<T | null> {
 export async function getPublishedArticles(locale: string, limit = 12) {
   return await publicGet<PublicArticleSummary[]>(`/api/v1/public/${encodeURIComponent(locale)}/articles?limit=${Math.min(Math.max(limit, 1), 50)}`) ?? [];
 }
+export async function getPublicHomepage(locale:string){return await publicGet<PublicHomepage>(`/api/v1/public/${encodeURIComponent(locale)}/homepage`)??{lead:null,secondary:[],trending:[],editors:[],latest:[],mode:"Automatic"}}
 
 export function getPublishedArticle(locale: string, slug: string) {
   return publicGet<PublicArticle>(`/api/v1/public/${encodeURIComponent(locale)}/articles/${encodeURIComponent(slug)}`);
