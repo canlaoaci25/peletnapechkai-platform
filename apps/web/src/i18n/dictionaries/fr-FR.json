@@ -23,6 +23,7 @@
     "principle": "Chaque contenu sera publié avec ses sources, son contexte et la validation d’une équipe éditoriale humaine.",
     "latestTitle": "Dernières publications",
     "noArticles": "Aucun contenu n’a encore été publié dans cette langue.",
-    "readArticle": "Lire l’article"
+    "readArticle": "Lire l’article",
+    "currentTopics": "Sujets actuels", "featured": "À la une", "discover": "Découvrir", "trending": "Tendances", "trendingHint": "Les publications qui attirent l’attention sur BOECL", "curated": "Sélection", "editorsPicks": "Choix de la rédaction", "advertisement": "Publicité", "coverage": "Dossier", "seeAll": "Tout voir", "justIn": "Dernières parutions", "explore": "Explorer les archives", "searchDescription": "Recherchez dans les archives de BOECL un sujet qui vous intéresse."
   }
 }

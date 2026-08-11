@@ -23,6 +23,7 @@
     "principle": "Every story will be published with sources, context, and human editorial review.",
     "latestTitle": "Latest publications",
     "noArticles": "No content has been published in this locale yet.",
-    "readArticle": "Read article"
+    "readArticle": "Read article",
+    "currentTopics": "Current topics", "featured": "Featured", "discover": "Discover", "trending": "Trending now", "trendingHint": "Stories drawing attention on BOECL", "curated": "Curated", "editorsPicks": "Editor's picks", "advertisement": "Advertisement", "coverage": "Coverage", "seeAll": "See all", "justIn": "Just in", "explore": "Explore the archive", "searchDescription": "Search the BOECL archive for a topic that interests you."
   }
 }

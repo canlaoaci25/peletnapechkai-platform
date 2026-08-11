@@ -23,6 +23,7 @@
     "principle": "Her içerik kaynak, bağlam ve insan editör kontrolüyle yayımlanacak.",
     "latestTitle": "Son yayınlar",
     "noArticles": "Bu dilde henüz yayımlanmış içerik yok.",
-    "readArticle": "Makaleyi oku"
+    "readArticle": "Makaleyi oku",
+    "currentTopics": "Güncel konular", "featured": "Öne çıkan", "discover": "Keşfet", "trending": "Şimdi popüler", "trendingHint": "BOECL'de öne çıkan yayınlar", "curated": "Seçki", "editorsPicks": "Editörün seçtikleri", "advertisement": "Reklam", "coverage": "Dosya", "seeAll": "Tümünü gör", "justIn": "Yeni yayınlar", "explore": "Arşivi keşfet", "searchDescription": "İlgilendiğiniz konuyu BOECL arşivinde arayın."
   }
 }
