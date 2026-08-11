@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -283,28 +284,51 @@ public static partial class AutomationWorkerEndpoints
 
     private static async Task<MediaAsset> CreateGeneratedCoverAsync(string title, string category, IConfiguration configuration, DateTimeOffset now, CancellationToken token)
     {
-        const int width = 1200, height = 675;
-        using var surface = SKSurface.Create(new SKImageInfo(width, height));
-        var canvas = surface.Canvas; canvas.Clear(new SKColor(14, 18, 27));
-        using var accent = new SKPaint { Color = new SKColor(255, 118, 81), IsAntialias = true };
-        canvas.DrawRect(0, 0, 28, height, accent); canvas.DrawCircle(1080, 100, 180, accent);
-        using var white = new SKPaint { Color = SKColors.White, IsAntialias = true };
-        using var muted = new SKPaint { Color = new SKColor(175, 186, 204), IsAntialias = true };
-        using var titleFont = new SKFont(SKTypeface.FromFamilyName("Segoe UI", SKFontStyle.Bold), 54);
-        using var smallFont = new SKFont(SKTypeface.FromFamilyName("Segoe UI", SKFontStyle.Bold), 26);
-        canvas.DrawText("BOECL  •  " + category.ToUpperInvariant(), 76, 105, SKTextAlign.Left, smallFont, accent);
-        var words = title.Split(' ', StringSplitOptions.RemoveEmptyEntries); var lines = new List<string>(); var line = "";
-        foreach (var word in words) { var candidate = string.IsNullOrEmpty(line) ? word : line + " " + word; if (titleFont.MeasureText(candidate) > 940 && line.Length > 0) { lines.Add(line); line = word; } else line = candidate; }
-        if (line.Length > 0) lines.Add(line);
-        for (var index = 0; index < Math.Min(lines.Count, 4); index++) canvas.DrawText(lines[index], 76, 225 + index * 72, SKTextAlign.Left, titleFont, white);
-        canvas.DrawText("Araştırılmış • Özgün • Çok dilli yayın", 76, 610, SKTextAlign.Left, smallFont, muted);
-        using var image = surface.Snapshot(); using var data = image.Encode(SKEncodedImageFormat.Webp, 86);
         var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
         var key = Path.Combine(now.ToString("yyyy"), now.ToString("MM"), $"{Guid.CreateVersion7()}-ai-cover.webp");
         var path = Path.GetFullPath(Path.Combine(root, key)); if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Invalid media path.");
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!); await using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true)) { data.SaveTo(stream); await stream.FlushAsync(token); }
+        await WriteTextlessCoverAsync(path, title + " " + category, false, token);
         var length = new FileInfo(path).Length; var normalizedKey = key.Replace('\\', '/');
         var asset = new MediaAsset(normalizedKey, "boecl-ai-cover.webp", "image/webp", length, now); asset.SetImageMetadata(width, height, normalizedKey, length); return asset;
+    }
+
+    private static async Task<IResult> RefreshGeneratedCoversAsync(Guid id, HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
+    {
+        if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
+        var job = await database.AutomationJobs.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id && item.Type == AutomationJobType.ReadyContentGeneration, token);
+        if (job is null) return Results.NotFound();
+        var articles = await database.ArticleLocalizations.AsNoTracking().Include(item => item.Locale).Include(item => item.Categories).Include(item => item.CoverMediaAsset)
+            .Where(item => item.GeneratedByAutomationJobId == id && item.Locale.IsDefault && item.CoverMediaAsset != null).ToListAsync(token);
+        var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
+        var refreshed = 0;
+        foreach (var article in articles.GroupBy(item => item.CoverMediaAssetId).Select(group => group.First()))
+        {
+            var path = Path.GetFullPath(Path.Combine(root, article.CoverMediaAsset!.StorageKey));
+            if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return Results.BadRequest();
+            await WriteTextlessCoverAsync(path, article.Title + " " + string.Join(' ', article.Categories.Select(item => item.Name)), true, token); refreshed++;
+        }
+        return Results.Ok(new { refreshed });
+    }
+
+    private const int width = 1200, height = 675;
+    private static async Task WriteTextlessCoverAsync(string path, string seed, bool overwrite, CancellationToken token)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(seed));
+        var background = new SKColor((byte)(18 + hash[0] % 30), (byte)(22 + hash[1] % 34), (byte)(34 + hash[2] % 44));
+        var accent = new SKColor((byte)(110 + hash[3] % 130), (byte)(80 + hash[4] % 150), (byte)(90 + hash[5] % 145));
+        using var surface = SKSurface.Create(new SKImageInfo(width, height)); var canvas = surface.Canvas; canvas.Clear(background);
+        using var glow = new SKPaint { Color = accent.WithAlpha(150), IsAntialias = true, MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 55) };
+        using var shape = new SKPaint { Color = accent.WithAlpha(180), IsAntialias = true };
+        using var soft = new SKPaint { Color = SKColors.White.WithAlpha(28), IsAntialias = true };
+        canvas.DrawCircle(180 + hash[6] * 3, 80 + hash[7] * 2, 210 + hash[8] % 150, glow);
+        canvas.DrawCircle(900 + hash[9], 420 + hash[10], 150 + hash[11] % 180, shape);
+        canvas.Save(); canvas.RotateDegrees(-12 + hash[12] % 25, 600, 338);
+        for (var index = 0; index < 5; index++) canvas.DrawRoundRect(90 + index * 205, 120 + (hash[13 + index] % 170), 170, 330, 38, 38, soft);
+        canvas.Restore();
+        using var image = surface.Snapshot(); using var data = image.Encode(SKEncodedImageFormat.Webp, 88);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await using var stream = new FileStream(path, overwrite ? FileMode.Create : FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true);
+        data.SaveTo(stream); await stream.FlushAsync(token);
     }
 
     private static string SanitizeBody(string? body)

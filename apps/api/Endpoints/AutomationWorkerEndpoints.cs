@@ -21,6 +21,7 @@ public static partial class AutomationWorkerEndpoints
         group.MapPost("/{id:guid}/translations", SaveTranslationsAsync);
         group.MapPost("/{id:guid}/seo-drafts", SaveSeoDraftsAsync);
         group.MapPost("/{id:guid}/generated-content", SaveGeneratedContentAsync);
+        group.MapPost("/{id:guid}/refresh-covers", RefreshGeneratedCoversAsync);
         group.MapPost("/publish-existing-translations", PublishExistingTranslationsAsync);
         return endpoints;
     }
