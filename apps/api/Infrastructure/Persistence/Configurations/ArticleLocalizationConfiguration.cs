@@ -39,6 +39,7 @@ public sealed class ArticleLocalizationConfiguration : IEntityTypeConfiguration<
         builder.Property(article => article.PublishedAt).HasColumnName("published_at");
         builder.Property(article => article.CreatedAt).HasColumnName("created_at");
         builder.Property(article => article.UpdatedAt).HasColumnName("updated_at").IsConcurrencyToken();
+        builder.Property(article => article.GeneratedByAutomationJobId).HasColumnName("generated_by_automation_job_id");
 
         builder.HasIndex(article => new { article.LocaleId, article.Slug })
             .IsUnique()
@@ -48,6 +49,7 @@ public sealed class ArticleLocalizationConfiguration : IEntityTypeConfiguration<
             .HasDatabaseName("ux_article_localizations_group_locale");
         builder.HasIndex(article => new { article.LocaleId, article.Status, article.PublishedAt })
             .HasDatabaseName("ix_article_localizations_publication");
+        builder.HasIndex(article => article.GeneratedByAutomationJobId).HasDatabaseName("ix_article_localizations_generation_job");
 
         builder.HasOne(article => article.ArticleGroup)
             .WithMany(group => group.Localizations)

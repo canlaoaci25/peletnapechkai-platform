@@ -1,0 +1,9 @@
+"use client";
+
+import { useEffect,useState } from "react";
+
+export type LiveAutomationJob={id:string;type:string;status:string;totalItems:number;completedItems:number;failedItems:number;currentPhase:number;lastMessage:string|null;includeImages?:boolean;autoTranslate?:boolean;autoSeo?:boolean};
+const phases=[{id:1,title:"Araştırma ve konu planı"},{id:2,title:"Türkçe makale üretimi"},{id:3,title:"Kapak görselleri"},{id:4,title:"Otomatik çeviri"},{id:5,title:"Dil bazlı SEO"},{id:6,title:"Son doğrulama ve yayın"}];
+export function AutomationLivePhases({initial}:{initial:LiveAutomationJob}){const[job,setJob]=useState(initial);useEffect(()=>{if(["Completed","Failed","Cancelled"].includes(job.status))return;const timer=window.setInterval(async()=>{const response=await fetch(`/api/admin/automation/${job.id}`,{cache:"no-store"});if(response.ok)setJob(await response.json()as LiveAutomationJob)},3000);return()=>window.clearInterval(timer)},[job.id,job.status]);if(job.type!=="ReadyContentGeneration")return null;
+ const enabled=(id:number)=>{if(id===3)return job.includeImages!==false;if(id===4)return job.autoTranslate!==false;if(id===5)return job.autoSeo!==false;return true};
+ return <section className="admin-panel automation-live-phases" aria-live="polite"><header><div><p className="section-kicker">CANLI FAZ TAKİBİ</p><h2>{job.lastMessage??"İş kuyruğa alındı."}</h2></div><b>{job.completedItems}/{job.totalItems} ana makale</b></header><ol>{phases.filter(phase=>enabled(phase.id)).map(phase=>{const state=job.status==="Completed"||phase.id<job.currentPhase?"done":phase.id===job.currentPhase?"active":"waiting";return <li data-state={state} key={phase.id}><span>{state==="done"?"✓":phase.id}</span><div><strong>{phase.title}</strong><small>{state==="done"?"Tamamlandı":state==="active"?"Çalışıyor; kalan sayı yukarıda canlı güncelleniyor":"Sırada bekliyor"}</small></div></li>})}</ol></section>}

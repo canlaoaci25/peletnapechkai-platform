@@ -20,6 +20,7 @@ public static partial class AutomationWorkerEndpoints
         group.MapGet("/{id:guid}/candidates", GetCandidatesAsync);
         group.MapPost("/{id:guid}/translations", SaveTranslationsAsync);
         group.MapPost("/{id:guid}/seo-drafts", SaveSeoDraftsAsync);
+        group.MapPost("/{id:guid}/generated-content", SaveGeneratedContentAsync);
         group.MapPost("/publish-existing-translations", PublishExistingTranslationsAsync);
         return endpoints;
     }
@@ -31,7 +32,7 @@ public static partial class AutomationWorkerEndpoints
         if (job is null) return Results.NoContent();
         job.Start(job.CurrentPhase + 1, DateTimeOffset.UtcNow);
         await database.SaveChangesAsync(token);
-        return Results.Ok(new { job.Id, type=job.Type.ToString(), job.TargetLocales, job.TotalItems, job.CurrentPhase, prompt=BuildPrompt(job) });
+        return Results.Ok(new { job.Id, type=job.Type.ToString(), job.TargetLocales, job.TotalItems, job.CurrentPhase, job.CategoryId, job.RequestedArticleType, job.IncludeImages, job.AutoTranslate, job.AutoSeo, prompt=BuildPrompt(job) });
     }
 
     private static async Task<IResult> CompleteAsync(Guid id, WorkerResult request, HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
@@ -43,6 +44,7 @@ public static partial class AutomationWorkerEndpoints
         {
             AutomationJobType.ContentTranslation => await AutomationCandidateCounter.CountMissingTranslationsAsync(database, job.TargetLocales, token),
             AutomationJobType.SeoLocalization => await AutomationCandidateCounter.CountSeoCandidatesAsync(database, job.TargetLocales, token),
+            AutomationJobType.ReadyContentGeneration => await AutomationCandidateCounter.CountReadyContentRemainingAsync(database, job, token),
             _ => 0
         };
         if (!AutomationCompletionPolicy.CanComplete(job.Type, remaining))
@@ -91,6 +93,7 @@ public static partial class AutomationWorkerEndpoints
             AutomationJobType.SiteLocalization=>$"Yalnız apps/web/src/i18n, locale yapılandırması ve doğrudan ilgili bileşenleri incele. Hedef diller ({locales}) için eksik arayüz anahtarlarını kaynak Türkçe sözlüğe göre tamamla. Kaynak Türkçe metni, public içeriği ve veritabanını değiştirme. Sonra lint ve tip denetimini çalıştır.",
             AutomationJobType.ContentTranslation=>$"Hedef diller ({locales}) için yalnızca yayımlanmış Türkçe içeriklerin eksik çevirilerini hazırla. Doğrulanmış çeviri teslim API'si yabancı dil makalesini doğrudan yayımlar; ham model çıktısıyla veritabanını değiştirme.",
             AutomationJobType.SeoLocalization=>$"Hedef diller ({locales}) için yayımlanmış çevirilerin eksik SEO alanlarını doğrulanmış SEO teslim API'siyle hazırla. Ham model çıktısıyla veritabanını değiştirme.",
+            AutomationJobType.ReadyContentGeneration=>"Seçilen kategori ve türde güncel popüler kaynakları canlı web aramasıyla araştır. Birbirinden ve BOECL arşivinden farklı, ayrıntılı Türkçe makaleler üret. Yalnız yapılandırılmış aday/teslim API'lerini kullan; kaynak URL'lerini eksiksiz bildir.",
             _=>throw new InvalidOperationException("Unsupported automation job type.")
         };
         return $"""

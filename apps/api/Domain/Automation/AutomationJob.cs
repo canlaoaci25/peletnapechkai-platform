@@ -5,7 +5,8 @@ public enum AutomationJobType
     ContentTranslation,
     SeoLocalization,
     SiteLocalization,
-    SystemReport
+    SystemReport,
+    ReadyContentGeneration
 }
 
 public enum AutomationJobStatus
@@ -51,6 +52,24 @@ public sealed class AutomationJob
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
+    public Guid? CategoryId { get; private set; }
+    public string? RequestedArticleType { get; private set; }
+    public bool IncludeImages { get; private set; }
+    public bool AutoTranslate { get; private set; }
+    public bool AutoSeo { get; private set; }
+
+    public void ConfigureContentGeneration(Guid categoryId, string articleType, bool includeImages, bool autoTranslate, bool autoSeo)
+    {
+        if (Type != AutomationJobType.ReadyContentGeneration || Status != AutomationJobStatus.Queued)
+            throw new InvalidOperationException("Only queued ready-content jobs can be configured.");
+        if (categoryId == Guid.Empty) throw new ArgumentException("Category is required.", nameof(categoryId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(articleType);
+        CategoryId = categoryId;
+        RequestedArticleType = articleType.Trim();
+        IncludeImages = includeImages;
+        AutoTranslate = autoTranslate;
+        AutoSeo = autoSeo;
+    }
 
     public void Pause(DateTimeOffset now)
     {

@@ -24,6 +24,11 @@ public sealed class AutomationJobConfiguration : IEntityTypeConfiguration<Automa
         builder.Property(job => job.CreatedAt).HasColumnName("created_at");
         builder.Property(job => job.UpdatedAt).HasColumnName("updated_at");
         builder.Property(job => job.CompletedAt).HasColumnName("completed_at");
+        builder.Property(job => job.CategoryId).HasColumnName("category_id");
+        builder.Property(job => job.RequestedArticleType).HasColumnName("requested_article_type").HasMaxLength(32);
+        builder.Property(job => job.IncludeImages).HasColumnName("include_images");
+        builder.Property(job => job.AutoTranslate).HasColumnName("auto_translate");
+        builder.Property(job => job.AutoSeo).HasColumnName("auto_seo");
         builder.HasIndex(job => new { job.Status, job.CreatedAt }).HasDatabaseName("ix_automation_jobs_status_created");
     }
 }

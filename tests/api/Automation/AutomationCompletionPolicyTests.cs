@@ -7,6 +7,7 @@ public sealed class AutomationCompletionPolicyTests
     [Theory]
     [InlineData(AutomationJobType.ContentTranslation)]
     [InlineData(AutomationJobType.SeoLocalization)]
+    [InlineData(AutomationJobType.ReadyContentGeneration)]
     public void Data_jobs_cannot_complete_while_candidates_remain(AutomationJobType type)
     {
         Assert.False(AutomationCompletionPolicy.CanComplete(type, 1));

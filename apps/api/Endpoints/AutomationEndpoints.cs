@@ -21,6 +21,7 @@ public static class AutomationEndpoints
         group.MapGet("/{id:guid}", DetailAsync);
         group.MapGet("/scan", ScanAsync);
         group.MapPost("/", CreateAsync).ValidateAntiforgery();
+        group.MapPost("/ready-content", CreateReadyContentAsync).ValidateAntiforgery();
         group.MapPost("/{id:guid}/{action}", ChangeStateAsync).ValidateAntiforgery();
         return endpoints;
     }
@@ -44,6 +45,7 @@ public static class AutomationEndpoints
                 job.CreatedAt,
                 job.UpdatedAt,
                 job.CompletedAt
+                ,job.CategoryId, job.RequestedArticleType, job.IncludeImages, job.AutoTranslate, job.AutoSeo
             })
             .ToListAsync(token));
 
@@ -66,6 +68,7 @@ public static class AutomationEndpoints
                 candidate.CreatedAt,
                 candidate.UpdatedAt,
                 candidate.CompletedAt
+                ,candidate.CategoryId, candidate.RequestedArticleType, candidate.IncludeImages, candidate.AutoTranslate, candidate.AutoSeo
             })
             .SingleOrDefaultAsync(token);
         return job is null ? Results.NotFound() : Results.Ok(job);
@@ -140,6 +143,8 @@ public static class AutomationEndpoints
                 ["type"] = ["Desteklenmeyen toplu iş türü."]
             });
         }
+        if (type == AutomationJobType.ReadyContentGeneration)
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["type"] = ["Hazır içerik işleri özel oluşturma ekranından başlatılmalıdır."] });
 
         var actor = await users.GetUserAsync(principal);
         if (actor is null)
@@ -187,6 +192,33 @@ public static class AutomationEndpoints
         var job = new AutomationJob(type, requestedLocales, totalItems, actor.Id, DateTimeOffset.UtcNow);
         database.AutomationJobs.Add(job);
         await database.SaveChangesAsync(token);
+        return Results.Created($"/api/v1/admin/automation/{job.Id}", new { job.Id });
+    }
+
+    private static async Task<IResult> CreateReadyContentAsync(
+        ReadyContentRequest request,
+        System.Security.Claims.ClaimsPrincipal principal,
+        UserManager<ApplicationUser> users,
+        PublishingDbContext database,
+        IConfiguration configuration,
+        CancellationToken token)
+    {
+        if (!configuration.GetValue<bool>("Automation:RunnerEnabled")) return Results.Conflict(new { message = "Codex worker etkin değil." });
+        if (request.Count is < 1 or > 50 || !Enum.TryParse<ArticleType>(request.ArticleType, true, out var articleType))
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["request"] = ["Geçerli tür ve 1-50 arasında adet gereklidir."] });
+        var actor = await users.GetUserAsync(principal); if (actor is null) return Results.Unauthorized();
+        var category = await database.Categories.AsNoTracking().Include(item => item.Locale)
+            .SingleOrDefaultAsync(item => item.Id == request.CategoryId && item.Locale.IsDefault, token);
+        if (category is null) return Results.ValidationProblem(new Dictionary<string, string[]> { ["categoryId"] = ["Geçerli bir Türkçe kategori gereklidir."] });
+        var duplicate = await database.AutomationJobs.AnyAsync(job => job.Type == AutomationJobType.ReadyContentGeneration &&
+            (job.Status == AutomationJobStatus.Queued || job.Status == AutomationJobStatus.Running || job.Status == AutomationJobStatus.Paused), token);
+        if (duplicate) return Results.Conflict(new { message = "Zaten etkin bir hazır içerik üretim işi var." });
+        var targetLocales = request.AutoTranslate
+            ? await database.Locales.AsNoTracking().Where(locale => locale.IsEnabled && !locale.IsDefault).Select(locale => locale.Code).Order().ToArrayAsync(token)
+            : [];
+        var job = new AutomationJob(AutomationJobType.ReadyContentGeneration, targetLocales, request.Count, actor.Id, DateTimeOffset.UtcNow);
+        job.ConfigureContentGeneration(category.Id, articleType.ToString(), request.IncludeImages, request.AutoTranslate, request.AutoSeo);
+        database.AutomationJobs.Add(job); await database.SaveChangesAsync(token);
         return Results.Created($"/api/v1/admin/automation/{job.Id}", new { job.Id });
     }
 
@@ -248,4 +280,5 @@ public static class AutomationEndpoints
     }
 
     private sealed record CreateRequest(string Type, string[] TargetLocales);
+    private sealed record ReadyContentRequest(Guid CategoryId, string ArticleType, int Count, bool IncludeImages, bool AutoTranslate, bool AutoSeo);
 }

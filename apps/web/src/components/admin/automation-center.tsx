@@ -16,6 +16,7 @@ const cards = [
   { type:"SystemReport", workload:"systemReport", title:"Otomatik sistem raporu", description:"İşleri, hataları ve tamamlanma durumunu ayrıntılı bir raporda toplar." },
 ] as const;
 const jobNames:Record<string,string> = Object.fromEntries(cards.map(card=>[card.type,card.title]));
+jobNames.ReadyContentGeneration="Hazır içerik üretimi";
 const statusNames:Record<string,string> = {Queued:"Kuyrukta",Running:"Çalışıyor",Paused:"Durduruldu",Completed:"Tamamlandı",Failed:"Hatalı",Cancelled:"İptal edildi"};
 
 export function AutomationCenter({locale,initialScan,initialJobs}:{locale:Locale;initialScan:AutomationScan;initialJobs:AutomationJob[]}) {

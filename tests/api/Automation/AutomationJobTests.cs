@@ -99,4 +99,13 @@ public sealed class AutomationJobTests
         Assert.Null(job.CompletedAt);
         Assert.Equal(1, job.CurrentPhase);
     }
+
+    [Fact]
+    public void Ready_content_job_preserves_every_requested_phase_option()
+    {
+        var now=DateTimeOffset.UtcNow;var categoryId=Guid.CreateVersion7();
+        var job=new AutomationJob(AutomationJobType.ReadyContentGeneration,["de-DE","en-US"],12,Guid.CreateVersion7(),now);
+        job.ConfigureContentGeneration(categoryId,"Guide",true,true,true);
+        Assert.Equal(categoryId,job.CategoryId);Assert.Equal("Guide",job.RequestedArticleType);Assert.True(job.IncludeImages);Assert.True(job.AutoTranslate);Assert.True(job.AutoSeo);
+    }
 }

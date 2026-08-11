@@ -27,26 +27,33 @@ try {
     $stderrLog = Join-Path $logRoot "$jobId-stderr.log"
     $lastMessage = Join-Path $logRoot "$jobId-result.txt"
     $savedErrorPreference = $ErrorActionPreference
-    if ($job.type -in @('ContentTranslation', 'SeoLocalization')) {
+    if ($job.type -in @('ContentTranslation', 'SeoLocalization', 'ReadyContentGeneration')) {
         $batch = 0
         $processed = 0
         do {
             $candidateSet = Invoke-RestMethod -Method Get -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/candidates" -Headers $headers
+            $candidateKind = [string]$candidateSet.kind
             $candidates = @($candidateSet.candidates)
-            if ($candidates.Count -eq 0) { break }
+            $candidateCount = if ($candidateKind -eq 'generation') { [int]$candidateSet.requestedCount } else { $candidates.Count }
+            if ($candidateKind -eq 'complete' -or $candidateCount -eq 0) { break }
             $batch++
             $batchResult = Join-Path $logRoot "$jobId-batch-$batch-result.json"
             $batchLog = Join-Path $logRoot "$jobId-batch-$batch.jsonl"
             $batchError = Join-Path $logRoot "$jobId-batch-$batch-stderr.log"
-            $schemaRelative = if ($job.type -eq 'ContentTranslation') { 'ops\automation\translation-output.schema.json' } else { 'ops\automation\seo-output.schema.json' }
+            $schemaRelative = if ($candidateKind -eq 'generation') { 'ops\automation\ready-content-output.schema.json' } elseif ($candidateKind -eq 'translation') { 'ops\automation\translation-output.schema.json' } else { 'ops\automation\seo-output.schema.json' }
             $schema = Join-Path ([string]$config.repositoryPath) $schemaRelative
             $candidateJson = $candidateSet | ConvertTo-Json -Depth 8 -Compress
-            $instruction = if ($job.type -eq 'ContentTranslation') {
-                "Aşağıdaki Türkçe kaynakları belirtilen hedef dile doğal, eksiksiz ve editoryal kalitede çevir. HTML yapısını koru; yeni bilgi ekleme. Slug yalnız küçük ASCII harf, rakam ve tire içersin. Kimlikleri ve locale değerlerini aynen koru. Yalnız şemaya uyan JSON döndür. Çıktılar Draft olarak kaydedilecek ve insan editoryal onayı olmadan yayımlanmayacak.`r`n$candidateJson"
+            $instruction = if ($candidateKind -eq 'generation') {
+                "Canlı web aramasını kullan. Seçilen Türkçe kategori ve içerik türü için güncel, popüler ve güvenilir Türkçe/global yayınları ayrıntılı araştır. İstenen sayıda birbirinden ve existing listesinden belirgin biçimde farklı, en az 2500 karakter gövdeli, özgün Türkçe makale yaz. Kopyalama yapma; en az iki gerçek araştırma kaynağının doğrudan URL'sini her makalede bildir. Başlık/özet/slug tekrar etmesin. autoSeo doğruysa SEO alanlarını doldur, değilse null gönder. includeImages doğruysa özgün ve açıklayıcı imageAltText yaz. Yalnız şemaya uyan JSON döndür.`r`n$candidateJson"
+            } elseif ($candidateKind -eq 'translation') {
+                "Aşağıdaki yayımlanmış Türkçe kaynakları belirtilen hedef dile doğal, eksiksiz ve editoryal kalitede çevir. HTML yapısını koru; yeni bilgi ekleme. Slug yalnız küçük ASCII harf, rakam ve tire içersin. Kimlikleri ve locale değerlerini aynen koru. Yalnız şemaya uyan JSON döndür. Doğrulanan sonuçlar doğrudan yayımlanacak.`r`n$candidateJson"
             } else {
-                "Aşağıdaki hedef dil taslakları için o dilde doğal SEO başlığı ve açıklaması üret. İçerikte olmayan iddia ekleme; articleId değerini aynen koru. Yalnız şemaya uyan JSON döndür. Sonuçlar Draft kalacak ve insan editoryal onayı gerektirecek.`r`n$candidateJson"
+                "Aşağıdaki yayımlanmış içerikler için kendi dilinde doğal SEO başlığı ve açıklaması üret. İçerikte olmayan iddia ekleme; articleId değerini aynen koru. Yalnız şemaya uyan JSON döndür.`r`n$candidateJson"
             }
-            $codexArguments = @('exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--cd', [string]$config.repositoryPath, '--output-schema', $schema, '--output-last-message', $batchResult, '-')
+            $codexArguments = @()
+            if ($candidateKind -eq 'generation') { $codexArguments += '--search' }
+            $codexArguments += @('exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--cd', [string]$config.repositoryPath, '--output-schema', $schema, '--output-last-message', $batchResult)
+            $codexArguments += '-'
             $ErrorActionPreference = 'Continue'
             $instruction | & ([string]$config.codexPath) @codexArguments 2> $batchError | Set-Content -LiteralPath $batchLog -Encoding utf8
             $codexExitCode = $LASTEXITCODE
@@ -54,15 +61,15 @@ try {
             if ($codexExitCode -ne 0) { throw "Codex yapılandırılmış içerik grubunu tamamlayamadı (batch $batch, exit $codexExitCode)." }
             $resultJson = Get-Content -LiteralPath $batchResult -Raw -Encoding UTF8
             $parsedResult = $resultJson | ConvertFrom-Json
-            if (@($parsedResult.items).Count -ne $candidates.Count) { throw "Codex aday sayısını eksik döndürdü (batch $batch)." }
+            if (@($parsedResult.items).Count -ne $candidateCount) { throw "Codex aday sayısını eksik döndürdü (batch $batch)." }
             $payloadBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($resultJson))
-            $submitPath = if ($job.type -eq 'ContentTranslation') { 'translations' } else { 'seo-drafts' }
+            $submitPath = if ($candidateKind -eq 'generation') { 'generated-content' } elseif ($candidateKind -eq 'translation') { 'translations' } else { 'seo-drafts' }
             $submitBody = @{ payloadBase64 = $payloadBase64 } | ConvertTo-Json
             $submitBytes = [Text.Encoding]::UTF8.GetBytes($submitBody)
             Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/$submitPath" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $submitBytes | Out-Null
-            $processed += $candidates.Count
+            $processed += $candidateCount
         } while ($true)
-        "## Yapılandırılmış otomasyon sonucu`r`n`r`n- İş türü: $($job.type)`r`n- Hazırlanan taslak: $processed`r`n- Yayın durumu: Draft`r`n- Editoryal insan onayı: Zorunlu" | Set-Content -LiteralPath $lastMessage -Encoding UTF8
+        "## Yapılandırılmış otomasyon sonucu`r`n`r`n- İş türü: $($job.type)`r`n- İşlenen kayıt: $processed`r`n- Yayın durumu: Doğrulanan içerik ve çeviriler yayımlandı`r`n- Araştırma: Canlı web araması ve kayıtlı kaynak URL'leri" | Set-Content -LiteralPath $lastMessage -Encoding UTF8
     }
     else {
         $codexArguments = @('exec', '--ephemeral', '--json', '--sandbox', 'danger-full-access', '--cd', [string]$config.repositoryPath, '--output-last-message', $lastMessage, '-')

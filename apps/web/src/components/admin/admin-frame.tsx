@@ -23,6 +23,7 @@ const text = {
     languageCreate: "Dil ekle",
     automation: "AI Hazır",
     bulkRunners: "Toplu çalıştırıcılar",
+    readyContent: "Hazır içerik oluştur",
     site: "Siteyi görüntüle",
     workspace: "Yönetim alanı",
     light: "Açık tema",
@@ -49,6 +50,7 @@ const text = {
     languageCreate: "Add language",
     automation: "AI Ready",
     bulkRunners: "Bulk runners",
+    readyContent: "Create ready content",
     site: "View website",
     workspace: "Administration",
     light: "Light theme",
@@ -75,6 +77,7 @@ const text = {
     languageCreate: "Sprache hinzufügen",
     automation: "KI bereit",
     bulkRunners: "Stapelverarbeitung",
+    readyContent: "Fertige Inhalte erstellen",
     site: "Website ansehen",
     workspace: "Verwaltung",
     light: "Helles Design",
@@ -101,6 +104,7 @@ const text = {
     languageCreate: "Ajouter une langue",
     automation: "IA prête",
     bulkRunners: "Traitements groupés",
+    readyContent: "Créer du contenu prêt",
     site: "Voir le site",
     workspace: "Administration",
     light: "Thème clair",
@@ -382,7 +386,8 @@ export function AdminFrame({
                 <span aria-hidden>✦</span><span className="nav-label">{copy.automation}</span><span className="module-chevron" aria-hidden>{automationOpen ? "−" : "+"}</span>
               </button>
               <div className="admin-nav-submenu">
-                {item(`/${locale}/admin/automation`, pathname.startsWith(`/${locale}/admin/automation`), "▶", copy.bulkRunners)}
+                {item(`/${locale}/admin/automation`, exact(`/${locale}/admin/automation`) || Boolean(pathname.match(/\/admin\/automation\/[0-9a-f-]{36}$/i)), "▶", copy.bulkRunners)}
+                {item(`/${locale}/admin/automation/ready-content`, exact(`/${locale}/admin/automation/ready-content`), "+", copy.readyContent)}
               </div>
             </section>
           )}

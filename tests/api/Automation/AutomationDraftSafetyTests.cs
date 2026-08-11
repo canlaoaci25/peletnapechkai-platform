@@ -32,4 +32,13 @@ public sealed class AutomationDraftSafetyTests
         Assert.Throws<InvalidOperationException>(() => article.PublishAutomatedTranslation(now.AddSeconds(1)));
         Assert.Equal(PublicationStatus.Draft, article.Status);
     }
+
+    [Fact]
+    public void Generated_turkish_source_requires_explicit_job_and_publishes()
+    {
+        var now=DateTimeOffset.UtcNow;var region=new Region(Guid.CreateVersion7(),"TR","Türkiye","TRY");var locale=new Locale(Guid.CreateVersion7(),"tr-TR","tr",region,"Turkish","Türkçe",true);
+        var article=new ArticleLocalization(new ArticleGroup(ArticleType.Guide,now),locale,"ozgun-rehber","Özgün ve ayrıntılı rehber başlığı","Yeterince ayrıntılı özet","<p>İçerik</p>",now);var jobId=Guid.CreateVersion7();
+        article.PublishAutomatedSource(jobId,now.AddSeconds(1));
+        Assert.Equal(PublicationStatus.Published,article.Status);Assert.Equal(jobId,article.GeneratedByAutomationJobId);
+    }
 }

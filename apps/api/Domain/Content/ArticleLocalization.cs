@@ -76,6 +76,7 @@ public sealed class ArticleLocalization
     public DateTimeOffset CreatedAt { get; private set; }
 
     public DateTimeOffset UpdatedAt { get; private set; }
+    public Guid? GeneratedByAutomationJobId { get; private set; }
 
     public SeoMetadata? SeoMetadata { get; private set; }
 
@@ -189,6 +190,25 @@ public sealed class ArticleLocalization
         UpdatedAt = publishedAt;
     }
 
+    public void PublishAutomatedSource(Guid jobId, DateTimeOffset publishedAt)
+    {
+        if (!Locale.IsDefault || Status != PublicationStatus.Draft || jobId == Guid.Empty)
+        {
+            throw new InvalidOperationException("Only default-locale draft automation sources can be automatically published.");
+        }
+        GeneratedByAutomationJobId = jobId;
+        Status = PublicationStatus.Published;
+        PublishedAt = publishedAt;
+        ScheduledAt = null;
+        UpdatedAt = publishedAt;
+    }
+
+    public void MarkGeneratedTranslation(Guid jobId)
+    {
+        if (Locale.IsDefault || jobId == Guid.Empty) throw new InvalidOperationException("Only translated content can be linked to a generation job.");
+        GeneratedByAutomationJobId = jobId;
+    }
+
     public void UpdateAutomatedSeo(string seoTitle, string seoDescription, DateTimeOffset updatedAt)
     {
         if (Locale.IsDefault || Status is not (PublicationStatus.Draft or PublicationStatus.Published))
@@ -200,6 +220,14 @@ public sealed class ArticleLocalization
         SeoTitle = seoTitle.Trim();
         SeoDescription = seoDescription.Trim();
         UpdatedAt = updatedAt;
+    }
+
+    public void UpdateGeneratedSeo(Guid jobId, string seoTitle, string seoDescription, DateTimeOffset updatedAt)
+    {
+        if (GeneratedByAutomationJobId != jobId || Status != PublicationStatus.Published)
+            throw new InvalidOperationException("Only published content from the same generation job can receive generated SEO.");
+        ArgumentException.ThrowIfNullOrWhiteSpace(seoTitle); ArgumentException.ThrowIfNullOrWhiteSpace(seoDescription);
+        SeoTitle = seoTitle.Trim(); SeoDescription = seoDescription.Trim(); UpdatedAt = updatedAt;
     }
 
     private void Transition(PublicationStatus expected, PublicationStatus target, DateTimeOffset updatedAt)

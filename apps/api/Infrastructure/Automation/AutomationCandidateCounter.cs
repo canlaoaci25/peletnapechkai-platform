@@ -6,6 +6,21 @@ namespace Peletnapechkai.Api.Infrastructure.Automation;
 
 public static class AutomationCandidateCounter
 {
+    public static async Task<int> CountReadyContentRemainingAsync(PublishingDbContext database, Peletnapechkai.Api.Domain.Automation.AutomationJob job, CancellationToken token)
+    {
+        var sources = await database.ArticleLocalizations.AsNoTracking().Where(article => article.GeneratedByAutomationJobId == job.Id && article.Locale.IsDefault && article.Status == PublicationStatus.Published).ToArrayAsync(token);
+        var remaining = Math.Max(0, job.TotalItems - sources.Length);
+        if (job.AutoTranslate && sources.Length > 0)
+        {
+            var groupIds = sources.Select(article => article.ArticleGroupId).ToArray();
+            var translated = await database.ArticleLocalizations.AsNoTracking().CountAsync(article => article.GeneratedByAutomationJobId == job.Id && groupIds.Contains(article.ArticleGroupId) && !article.Locale.IsDefault && article.Status == PublicationStatus.Published, token);
+            remaining += Math.Max(0, sources.Length * job.TargetLocales.Length - translated);
+        }
+        if (job.AutoSeo)
+            remaining += await database.ArticleLocalizations.AsNoTracking().CountAsync(article => article.GeneratedByAutomationJobId == job.Id && article.Status == PublicationStatus.Published && (article.SeoTitle == null || article.SeoDescription == null), token);
+        return remaining;
+    }
+
     public static async Task<int> CountMissingTranslationsAsync(PublishingDbContext database, string[] targetLocales, CancellationToken token)
     {
         if (targetLocales.Length == 0) return 0;

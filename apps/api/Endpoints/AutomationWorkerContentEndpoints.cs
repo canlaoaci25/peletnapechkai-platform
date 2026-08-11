@@ -8,6 +8,7 @@ using Peletnapechkai.Api.Domain.Automation;
 using Peletnapechkai.Api.Domain.Content;
 using Peletnapechkai.Api.Infrastructure.Automation;
 using Peletnapechkai.Api.Infrastructure.Persistence;
+using SkiaSharp;
 
 namespace Peletnapechkai.Api.Endpoints;
 
@@ -16,9 +17,12 @@ public static partial class AutomationWorkerEndpoints
     private static async Task<IResult> GetCandidatesAsync(Guid id, HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
     {
         if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
-        var job = await database.AutomationJobs.AsNoTracking().SingleOrDefaultAsync(candidate => candidate.Id == id, token);
+        var job = await database.AutomationJobs.SingleOrDefaultAsync(candidate => candidate.Id == id, token);
         if (job is null) return Results.NotFound();
         if (job.Status != AutomationJobStatus.Running) return Results.Conflict(new { message = "İş çalışır durumda değil." });
+
+        if (job.Type == AutomationJobType.ReadyContentGeneration)
+            return await GetReadyContentCandidatesAsync(job, database, token);
 
         if (job.Type == AutomationJobType.ContentTranslation)
         {
@@ -46,19 +50,69 @@ public static partial class AutomationWorkerEndpoints
         return Results.Conflict(new { message = "Bu iş türü yapılandırılmış içerik adayı sağlamaz." });
     }
 
+    private static async Task<IResult> GetReadyContentCandidatesAsync(AutomationJob job, PublishingDbContext database, CancellationToken token)
+    {
+        var sources = await database.ArticleLocalizations.AsNoTracking()
+            .Where(article => article.GeneratedByAutomationJobId == job.Id && article.Locale.IsDefault && article.Status == PublicationStatus.Published)
+            .OrderBy(article => article.Id).Select(article => new { article.Id, article.ArticleGroupId, article.Slug, article.Title, article.Summary, article.Body }).ToListAsync(token);
+        if (sources.Count < job.TotalItems)
+        {
+            var category = await database.Categories.AsNoTracking().Where(item => item.Id == job.CategoryId)
+                .Select(item => new { item.Id, item.Name, item.Slug }).SingleAsync(token);
+            var existing = await database.ArticleLocalizations.AsNoTracking().Where(article => article.Locale.IsDefault && article.Status != PublicationStatus.Archived)
+                .OrderByDescending(article => article.CreatedAt).Take(300).Select(article => new { article.Title, article.Summary, article.Slug }).ToArrayAsync(token);
+            var count = Math.Min(3, job.TotalItems - sources.Count);
+            job.ReportProgress(sources.Count, 0, 2, $"İçerik üretimi: {sources.Count}/{job.TotalItems} tamamlandı, {job.TotalItems - sources.Count} makale kaldı.", DateTimeOffset.UtcNow);
+            await database.SaveChangesAsync(token);
+            return Results.Ok(new { kind = "generation", requestedCount = count, category, articleType = job.RequestedArticleType, includeImages = job.IncludeImages, autoSeo = job.AutoSeo, existing });
+        }
+
+        if (job.AutoTranslate)
+        {
+            var existing = await database.ArticleLocalizations.AsNoTracking().Where(article => article.GeneratedByAutomationJobId == job.Id && !article.Locale.IsDefault && article.Status != PublicationStatus.Archived)
+                .Select(article => new { article.ArticleGroupId, Locale = article.Locale.Code }).ToListAsync(token);
+            var keys = existing.Select(item => $"{item.ArticleGroupId:N}|{item.Locale}").ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var candidates = (from source in sources from locale in job.TargetLocales where !keys.Contains($"{source.ArticleGroupId:N}|{locale}")
+                              select new { sourceArticleId = source.Id, sourceArticleGroupId = source.ArticleGroupId, source.Slug, source.Title, source.Summary, source.Body, locale }).Take(5).ToArray();
+            if (candidates.Length > 0)
+            {
+                var total = sources.Count * job.TargetLocales.Length; var done = existing.Count;
+                job.ReportProgress(sources.Count, 0, 4, $"Çeviri fazı: {done}/{total} tamamlandı, {total - done} çeviri kaldı.", DateTimeOffset.UtcNow);
+                await database.SaveChangesAsync(token); return Results.Ok(new { kind = "translation", candidates });
+            }
+        }
+
+        if (job.AutoSeo)
+        {
+            var candidates = await database.ArticleLocalizations.AsNoTracking()
+                .Where(article => article.GeneratedByAutomationJobId == job.Id && article.Status == PublicationStatus.Published && (article.SeoTitle == null || article.SeoDescription == null))
+                .OrderBy(article => article.Id).Take(10).Select(article => new { article.Id, locale = article.Locale.Code, article.Slug, article.Title, article.Summary, article.Body }).ToArrayAsync(token);
+            if (candidates.Length > 0)
+            {
+                var remaining = await database.ArticleLocalizations.AsNoTracking().CountAsync(article => article.GeneratedByAutomationJobId == job.Id && article.Status == PublicationStatus.Published && (article.SeoTitle == null || article.SeoDescription == null), token);
+                job.ReportProgress(sources.Count, 0, 5, $"SEO fazı: {remaining} makalenin SEO alanları kaldı.", DateTimeOffset.UtcNow);
+                await database.SaveChangesAsync(token); return Results.Ok(new { kind = "seo", candidates });
+            }
+        }
+
+        job.ReportProgress(sources.Count, 0, 6, "Son doğrulama tamamlandı; tüm seçili fazlar eksiksiz.", DateTimeOffset.UtcNow);
+        await database.SaveChangesAsync(token);
+        return Results.Ok(new { kind = "complete", candidates = Array.Empty<object>() });
+    }
+
     private static async Task<IResult> SaveTranslationsAsync(Guid id, EncodedPayload request, HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
     {
         if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
         var job = await database.AutomationJobs.SingleOrDefaultAsync(candidate => candidate.Id == id, token);
         if (job is null) return Results.NotFound();
-        if (job.Type != AutomationJobType.ContentTranslation || job.Status != AutomationJobStatus.Running) return Results.Conflict();
+        if (job.Type is not (AutomationJobType.ContentTranslation or AutomationJobType.ReadyContentGeneration) || job.Status != AutomationJobStatus.Running) return Results.Conflict();
         var payload = DecodePayload<TranslationBatch>(request.PayloadBase64);
         if (payload?.Items is not { Length: > 0 and <= 5 }) return Results.BadRequest(new { message = "Geçersiz çeviri paketi." });
         var now = DateTimeOffset.UtcNow;
         foreach (var item in payload.Items)
         {
             if (!job.TargetLocales.Contains(item.Locale, StringComparer.OrdinalIgnoreCase) || !ValidTranslation(item)) return Results.BadRequest(new { message = "Çeviri alanları geçersiz." });
-            var source = await database.ArticleLocalizations.Include(article => article.ArticleGroup).SingleOrDefaultAsync(article => article.Id == item.SourceArticleId && article.Locale.IsDefault && article.Status == PublicationStatus.Published, token);
+            var source = await database.ArticleLocalizations.Include(article => article.ArticleGroup).Include(article => article.CoverMediaAsset).SingleOrDefaultAsync(article => article.Id == item.SourceArticleId && article.Locale.IsDefault && article.Status == PublicationStatus.Published && (job.Type != AutomationJobType.ReadyContentGeneration || article.GeneratedByAutomationJobId == job.Id), token);
             var locale = await database.Locales.SingleOrDefaultAsync(candidate => candidate.Code == item.Locale && candidate.IsEnabled, token);
             if (source is null || locale is null) return Results.BadRequest(new { message = "Kaynak veya hedef dil bulunamadı." });
             var exists = await database.ArticleLocalizations.AnyAsync(article => article.ArticleGroupId == source.ArticleGroupId && article.LocaleId == locale.Id && article.Status != PublicationStatus.Archived, token);
@@ -67,6 +121,8 @@ public static partial class AutomationWorkerEndpoints
             if (await database.ArticleLocalizations.AnyAsync(article => article.LocaleId == locale.Id && article.Slug == slug, token))
                 slug = $"{slug[..Math.Min(slug.Length, 230)]}-{source.ArticleGroupId.ToString("N")[..8]}";
             var article = new ArticleLocalization(source.ArticleGroup, locale, slug, item.Title, item.Summary, SanitizeBody(item.Body), now);
+            if (job.Type == AutomationJobType.ReadyContentGeneration) article.MarkGeneratedTranslation(job.Id);
+            if (source.CoverMediaAsset is not null) article.UpdateCover(source.CoverMediaAsset, item.Title, null, source.CoverCredit, now);
             article.PublishAutomatedTranslation(now);
             database.ArticleLocalizations.Add(article);
             database.AuditLogs.Add(new AuditLog(job.CreatedByUserId, "automation.translation_published", nameof(ArticleLocalization), article.Id, JsonSerializer.Serialize(new { sourceArticleId = source.Id, item.Locale, jobId = job.Id }), now));
@@ -81,16 +137,17 @@ public static partial class AutomationWorkerEndpoints
         if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
         var job = await database.AutomationJobs.SingleOrDefaultAsync(candidate => candidate.Id == id, token);
         if (job is null) return Results.NotFound();
-        if (job.Type != AutomationJobType.SeoLocalization || job.Status != AutomationJobStatus.Running) return Results.Conflict();
+        if (job.Type is not (AutomationJobType.SeoLocalization or AutomationJobType.ReadyContentGeneration) || job.Status != AutomationJobStatus.Running) return Results.Conflict();
         var payload = DecodePayload<SeoBatch>(request.PayloadBase64);
         if (payload?.Items is not { Length: > 0 and <= 10 }) return Results.BadRequest(new { message = "Geçersiz SEO paketi." });
         var now = DateTimeOffset.UtcNow;
         foreach (var item in payload.Items)
         {
             if (string.IsNullOrWhiteSpace(item.SeoTitle) || item.SeoTitle.Length > 180 || string.IsNullOrWhiteSpace(item.SeoDescription) || item.SeoDescription.Length > 320) return Results.BadRequest(new { message = "SEO alanları geçersiz." });
-            var article = await database.ArticleLocalizations.SingleOrDefaultAsync(candidate => candidate.Id == item.ArticleId && job.TargetLocales.Contains(candidate.Locale.Code), token);
-            if (article is null || article.Status != PublicationStatus.Published || article.Locale.IsDefault) return Results.BadRequest(new { message = "SEO hedef çevirisi bulunamadı." });
-            article.UpdateAutomatedSeo(item.SeoTitle, item.SeoDescription, now);
+            var article = await database.ArticleLocalizations.Include(candidate => candidate.Locale).SingleOrDefaultAsync(candidate => candidate.Id == item.ArticleId && (job.Type == AutomationJobType.ReadyContentGeneration || job.TargetLocales.Contains(candidate.Locale.Code)), token);
+            if (article is null || article.Status != PublicationStatus.Published || (job.Type == AutomationJobType.SeoLocalization && article.Locale.IsDefault) || (job.Type == AutomationJobType.ReadyContentGeneration && article.GeneratedByAutomationJobId != job.Id)) return Results.BadRequest(new { message = "SEO hedef içeriği bulunamadı." });
+            if (job.Type == AutomationJobType.ReadyContentGeneration) article.UpdateGeneratedSeo(job.Id, item.SeoTitle, item.SeoDescription, now);
+            else article.UpdateAutomatedSeo(item.SeoTitle, item.SeoDescription, now);
             database.AuditLogs.Add(new AuditLog(job.CreatedByUserId, "automation.seo_localized", nameof(ArticleLocalization), article.Id, JsonSerializer.Serialize(new { job.Id }), now));
         }
         await database.SaveChangesAsync(token);
@@ -125,8 +182,72 @@ public static partial class AutomationWorkerEndpoints
         return Results.Ok(new { published });
     }
 
+    private static async Task<IResult> SaveGeneratedContentAsync(Guid id, EncodedPayload request, HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
+    {
+        if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
+        var job = await database.AutomationJobs.SingleOrDefaultAsync(candidate => candidate.Id == id, token);
+        if (job is null) return Results.NotFound();
+        if (job.Type != AutomationJobType.ReadyContentGeneration || job.Status != AutomationJobStatus.Running || job.CategoryId is null || !Enum.TryParse<ArticleType>(job.RequestedArticleType, out var articleType)) return Results.Conflict();
+        var payload = DecodePayload<GeneratedContentBatch>(request.PayloadBase64);
+        var alreadyCreated = await database.ArticleLocalizations.CountAsync(article => article.GeneratedByAutomationJobId == job.Id && article.Locale.IsDefault, token);
+        var remaining = job.TotalItems - alreadyCreated;
+        if (payload?.Items is not { Length: > 0 and <= 3 } || payload.Items.Length > remaining) return Results.BadRequest(new { message = "Geçersiz hazır içerik paketi." });
+        var locale = await database.Locales.SingleAsync(item => item.IsDefault && item.IsEnabled, token);
+        var category = await database.Categories.SingleOrDefaultAsync(item => item.Id == job.CategoryId && item.LocaleId == locale.Id, token);
+        if (category is null) return Results.BadRequest(new { message = "Kategori bulunamadı." });
+        var comparisons = await database.ArticleLocalizations.AsNoTracking().Where(article => article.LocaleId == locale.Id && article.Status != PublicationStatus.Archived)
+            .Select(article => article.Title + " " + article.Summary).ToListAsync(token);
+        var now = DateTimeOffset.UtcNow;
+        foreach (var item in payload.Items)
+        {
+            if (!ValidGeneratedContent(item, job.AutoSeo) || comparisons.Any(existing => Similarity(existing, item.Title + " " + item.Summary) >= 0.52))
+                return Results.Conflict(new { message = $"'{item.Title}' mevcut veya aynı paketteki bir içeriğe fazla benziyor." });
+            if (await database.ArticleLocalizations.AnyAsync(article => article.LocaleId == locale.Id && article.Slug == item.Slug, token)) return Results.Conflict(new { message = "Üretilen URL kısa adı zaten kullanılıyor." });
+            var sanitizedBody = SanitizeBody(item.Body);
+            if (Regex.Replace(sanitizedBody, "<[^>]+>", " ").Length < 1800) return Results.BadRequest(new { message = "Makale gövdesi temizleme sonrasında yeterince ayrıntılı değil." });
+            var group = new ArticleGroup(articleType, now);
+            foreach (var sourceItem in item.Sources)
+            {
+                if (!Uri.TryCreate(sourceItem.Url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https")) return Results.BadRequest(new { message = "Kaynak adresi geçersiz." });
+                var canonical = uri.AbsoluteUri;
+                var source = await database.Sources.SingleOrDefaultAsync(candidate => candidate.Url == canonical, token) ?? new Source(sourceItem.Name, uri, now);
+                if (database.Entry(source).State == EntityState.Detached) database.Sources.Add(source);
+                group.Sources.Add(source);
+            }
+            var article = new ArticleLocalization(group, locale, item.Slug, item.Title, item.Summary, sanitizedBody, now);
+            article.Categories.Add(category);
+            if (job.AutoSeo) article.UpdateDraft(article.Slug, article.Title, article.Summary, article.Body, item.SeoTitle, item.SeoDescription, now);
+            if (job.IncludeImages)
+            {
+                var asset = await CreateGeneratedCoverAsync(item.Title, category.Name, configuration, now, token);
+                database.MediaAssets.Add(asset); group.MediaAssets.Add(asset);
+                article.UpdateCover(asset, item.ImageAltText ?? item.Title, null, "BOECL otomatik kapak", now);
+            }
+            article.PublishAutomatedSource(job.Id, now);
+            database.ArticleGroups.Add(group); database.ArticleLocalizations.Add(article);
+            database.AuditLogs.Add(new AuditLog(job.CreatedByUserId, "automation.ready_content_published", nameof(ArticleLocalization), article.Id, JsonSerializer.Serialize(new { jobId = job.Id, categoryId = category.Id, articleType, sourceCount = item.Sources.Length, job.IncludeImages }), now));
+            comparisons.Add(item.Title + " " + item.Summary);
+        }
+        await database.SaveChangesAsync(token);
+        var completed = alreadyCreated + payload.Items.Length;
+        var phase = completed == job.TotalItems && job.IncludeImages ? 3 : 2;
+        job.ReportProgress(completed, 0, phase, $"Türkçe içerik: {completed}/{job.TotalItems} yayımlandı, {job.TotalItems - completed} kaldı.", DateTimeOffset.UtcNow);
+        await database.SaveChangesAsync(token);
+        return Results.Ok(new { completed, remaining = job.TotalItems - completed });
+    }
+
     private static async Task UpdateProgressAsync(AutomationJob job, PublishingDbContext database, CancellationToken token)
     {
+        if (job.Type == AutomationJobType.ReadyContentGeneration)
+        {
+            var generated = await database.ArticleLocalizations.AsNoTracking().CountAsync(article => article.GeneratedByAutomationJobId == job.Id && article.Locale.IsDefault && article.Status == PublicationStatus.Published, token);
+            var translated = await database.ArticleLocalizations.AsNoTracking().CountAsync(article => article.GeneratedByAutomationJobId == job.Id && !article.Locale.IsDefault && article.Status == PublicationStatus.Published, token);
+            var translationTotal = generated * job.TargetLocales.Length;
+            var seoRemaining = job.AutoSeo ? await database.ArticleLocalizations.AsNoTracking().CountAsync(article => article.GeneratedByAutomationJobId == job.Id && article.Status == PublicationStatus.Published && (article.SeoTitle == null || article.SeoDescription == null), token) : 0;
+            var phase = job.AutoTranslate && translated < translationTotal ? 4 : job.AutoSeo && seoRemaining > 0 ? 5 : 6;
+            var message = phase == 4 ? $"Çeviri fazı: {translated}/{translationTotal} tamamlandı, {translationTotal - translated} kaldı." : phase == 5 ? $"SEO fazı: {seoRemaining} makale kaldı." : "Seçili üretim fazları tamamlandı.";
+            job.ReportProgress(generated, 0, phase, message, DateTimeOffset.UtcNow); await database.SaveChangesAsync(token); return;
+        }
         var remaining = job.Type == AutomationJobType.ContentTranslation
             ? await AutomationCandidateCounter.CountMissingTranslationsAsync(database, job.TargetLocales, token)
             : await AutomationCandidateCounter.CountSeoCandidatesAsync(database, job.TargetLocales, token);
@@ -145,6 +266,47 @@ public static partial class AutomationWorkerEndpoints
         item.SourceArticleId != Guid.Empty && item.Slug is { Length: <= 240 } && SlugPattern().IsMatch(item.Slug) &&
         !string.IsNullOrWhiteSpace(item.Title) && item.Title.Length <= 180 && item.Summary?.Length <= 500 && !string.IsNullOrWhiteSpace(item.Body);
 
+    private static bool ValidGeneratedContent(GeneratedContentItem item, bool requireSeo) =>
+        item.Slug is { Length: <= 240 } && SlugPattern().IsMatch(item.Slug) &&
+        item.Title is { Length: >= 20 and <= 180 } && item.Summary is { Length: >= 80 and <= 500 } &&
+        item.Body is { Length: >= 2500 } && item.Sources is { Length: >= 2 and <= 8 } &&
+        item.Sources.Select(source => source.Url).Distinct(StringComparer.OrdinalIgnoreCase).Count() == item.Sources.Length &&
+        (!requireSeo || item.SeoTitle is { Length: > 0 and <= 180 } && item.SeoDescription is { Length: > 0 and <= 320 });
+
+    private static double Similarity(string left, string right)
+    {
+        static HashSet<string> Tokens(string value) => Regex.Replace(value.ToLowerInvariant(), "[^a-z0-9çğıöşü]+", " ")
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(token => token.Length > 2).ToHashSet(StringComparer.Ordinal);
+        var a = Tokens(left); var b = Tokens(right); if (a.Count == 0 || b.Count == 0) return 0;
+        var intersection = a.Intersect(b).Count(); var union = a.Union(b).Count(); return union == 0 ? 0 : (double)intersection / union;
+    }
+
+    private static async Task<MediaAsset> CreateGeneratedCoverAsync(string title, string category, IConfiguration configuration, DateTimeOffset now, CancellationToken token)
+    {
+        const int width = 1200, height = 675;
+        using var surface = SKSurface.Create(new SKImageInfo(width, height));
+        var canvas = surface.Canvas; canvas.Clear(new SKColor(14, 18, 27));
+        using var accent = new SKPaint { Color = new SKColor(255, 118, 81), IsAntialias = true };
+        canvas.DrawRect(0, 0, 28, height, accent); canvas.DrawCircle(1080, 100, 180, accent);
+        using var white = new SKPaint { Color = SKColors.White, IsAntialias = true };
+        using var muted = new SKPaint { Color = new SKColor(175, 186, 204), IsAntialias = true };
+        using var titleFont = new SKFont(SKTypeface.FromFamilyName("Segoe UI", SKFontStyle.Bold), 54);
+        using var smallFont = new SKFont(SKTypeface.FromFamilyName("Segoe UI", SKFontStyle.Bold), 26);
+        canvas.DrawText("BOECL  •  " + category.ToUpperInvariant(), 76, 105, SKTextAlign.Left, smallFont, accent);
+        var words = title.Split(' ', StringSplitOptions.RemoveEmptyEntries); var lines = new List<string>(); var line = "";
+        foreach (var word in words) { var candidate = string.IsNullOrEmpty(line) ? word : line + " " + word; if (titleFont.MeasureText(candidate) > 940 && line.Length > 0) { lines.Add(line); line = word; } else line = candidate; }
+        if (line.Length > 0) lines.Add(line);
+        for (var index = 0; index < Math.Min(lines.Count, 4); index++) canvas.DrawText(lines[index], 76, 225 + index * 72, SKTextAlign.Left, titleFont, white);
+        canvas.DrawText("Araştırılmış • Özgün • Çok dilli yayın", 76, 610, SKTextAlign.Left, smallFont, muted);
+        using var image = surface.Snapshot(); using var data = image.Encode(SKEncodedImageFormat.Webp, 86);
+        var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
+        var key = Path.Combine(now.ToString("yyyy"), now.ToString("MM"), $"{Guid.CreateVersion7()}-ai-cover.webp");
+        var path = Path.GetFullPath(Path.Combine(root, key)); if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Invalid media path.");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!); await using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true)) { data.SaveTo(stream); await stream.FlushAsync(token); }
+        var length = new FileInfo(path).Length; var normalizedKey = key.Replace('\\', '/');
+        var asset = new MediaAsset(normalizedKey, "boecl-ai-cover.webp", "image/webp", length, now); asset.SetImageMetadata(width, height, normalizedKey, length); return asset;
+    }
+
     private static string SanitizeBody(string? body)
     {
         var sanitizer = new HtmlSanitizer();
@@ -160,4 +322,7 @@ public static partial class AutomationWorkerEndpoints
     private sealed record TranslationItem(Guid SourceArticleId, string Locale, string Slug, string Title, string Summary, string Body);
     private sealed record SeoBatch(SeoItem[] Items);
     private sealed record SeoItem(Guid ArticleId, string SeoTitle, string SeoDescription);
+    private sealed record GeneratedContentBatch(GeneratedContentItem[] Items);
+    private sealed record GeneratedContentItem(string Slug, string Title, string Summary, string Body, string? SeoTitle, string? SeoDescription, string? ImageAltText, GeneratedSource[] Sources);
+    private sealed record GeneratedSource(string Name, string Url);
 }
