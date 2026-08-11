@@ -69,7 +69,7 @@ public static class PublicContentEndpoints
             default:
                 return Results.NotFound();
         }
-        var articles = await query.OrderByDescending(article => article.PublishedAt).Take(take).Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = $"/api/media/{article.CoverMediaAssetId}", altText = article.CoverAltText } }).ToListAsync(token);
+        var articles = await query.OrderByDescending(article => article.PublishedAt).Take(take).Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } }).ToListAsync(token);
         return Results.Ok(new { kind, slug, title, description, articles });
     }
 
@@ -85,7 +85,7 @@ public static class PublicContentEndpoints
             .Where(article => EF.Functions.ILike(article.Title, pattern, "\\") || EF.Functions.ILike(article.Summary, pattern, "\\") || EF.Functions.ILike(article.Body, pattern, "\\"))
             .OrderByDescending(article => article.PublishedAt)
             .Take(take)
-            .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = $"/api/media/{article.CoverMediaAssetId}", altText = article.CoverAltText } })
+            .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } })
             .ToListAsync(token);
         return Results.Ok(articles);
     }
@@ -106,7 +106,7 @@ public static class PublicContentEndpoints
                 type = article.ArticleGroup.Type.ToString(),
                 article.PublishedAt,
                 article.UpdatedAt,
-                cover = article.CoverMediaAssetId == null ? null : new { url = $"/api/media/{article.CoverMediaAssetId}", altText = article.CoverAltText }
+                cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText }
             })
             .ToListAsync(token);
         return Results.Ok(articles);
@@ -127,7 +127,7 @@ public static class PublicContentEndpoints
                 item.IsSponsored,
                 item.SponsorName,
                 item.HasAffiliateLinks,
-                cover = item.CoverMediaAssetId == null ? null : new { url = $"/api/media/{item.CoverMediaAssetId}", altText = item.CoverAltText, caption = item.CoverCaption, credit = item.CoverCredit },
+                cover = item.CoverMediaAssetId == null ? null : new { url = "/api/media/" + item.CoverMediaAssetId + "?v=" + item.CoverMediaAsset!.OptimizedByteLength, altText = item.CoverAltText, caption = item.CoverCaption, credit = item.CoverCredit },
                 type = item.ArticleGroup.Type.ToString(),
                 item.PublishedAt,
                 item.UpdatedAt,
