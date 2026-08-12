@@ -11,7 +11,13 @@ const localeCookie = "boecl-locale";
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 
 function clientIp(request: NextRequest) {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  // IIS ARR appends the actual remote client to its forwarding chain. The first
+  // item can be this server's public address, so use the last hop supplied by ARR.
+  const forwardedChain = request.headers.get("x-forwarded-for")
+    ?.split(",")
+    .map(value => value.trim())
+    .filter(Boolean);
+  const forwarded = forwardedChain?.at(-1);
   const value = forwarded ?? request.headers.get("x-real-ip")?.trim();
   return value?.replace(/^::ffff:/, "") || null;
 }
