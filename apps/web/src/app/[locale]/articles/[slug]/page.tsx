@@ -25,6 +25,7 @@ export async function generateMetadata({
       `/${item.locale}/articles/${item.slug}`,
     ]),
   );
+  languages["x-default"] = languages["tr-TR"] ?? `/${locale}/articles/${slug}`;
   const image = article.cover ? absoluteUrl(article.cover.url) : undefined;
   return {
     title: article.seoTitle ?? `${article.title} — ${siteConfig.name}`,
@@ -77,7 +78,16 @@ export default async function ArticlePage({
       url: absoluteUrl(`/${locale}/authors/${author.slug}`),
     })),
     mainEntityOfPage: absoluteUrl(`/${locale}/articles/${slug}`),
-    publisher: { "@type": "Organization", name: siteConfig.name },
+    publisher: { "@type": "Organization", "@id": absoluteUrl("/#organization"), name: siteConfig.name, url: absoluteUrl(`/${locale}`) },
+  };
+  const breadcrumbData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: dictionary.navigation.home, item: absoluteUrl(`/${locale}`) },
+      ...(article.categories[0] ? [{ "@type": "ListItem", position: 2, name: article.categories[0].name, item: absoluteUrl(`/${locale}/categories/${article.categories[0].slug}`) }] : []),
+      { "@type": "ListItem", position: article.categories[0] ? 3 : 2, name: article.title, item: absoluteUrl(`/${locale}/articles/${slug}`) },
+    ],
   };
   return (
     <div className="site-shell">
@@ -192,6 +202,7 @@ export default async function ArticlePage({
             __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
           }}
         />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbData).replace(/</g, "\\u003c") }} />
       </main>
     </div>
   );

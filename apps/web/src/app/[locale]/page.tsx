@@ -8,6 +8,7 @@ import { siteConfig } from "@/config/site";
 import { hasLocale, localeLabels } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getPublicHomepage, type PublicArticleSummary } from "@/lib/public-api";
+import { absoluteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,13 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
   const articles = [lead,...secondary,...trending,...picks,...latest].filter((item):item is PublicArticleSummary=>item!==null).filter((item,index,all)=>all.findIndex(candidate=>candidate.slug===item.slug)===index);
   const types = [...new Set(articles.map(article => article.type))].slice(0, 3);
   const formatDate = (date: string) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(date));
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "Organization", "@id": absoluteUrl("/#organization"), name: siteConfig.name, url: absoluteUrl(`/${locale}`) },
+      { "@type": "WebSite", "@id": absoluteUrl("/#website"), name: siteConfig.name, url: absoluteUrl(`/${locale}`), inLanguage: locale, publisher: { "@id": absoluteUrl("/#organization") }, potentialAction: { "@type": "SearchAction", target: absoluteUrl(`/${locale}/search?q={search_term_string}`), "query-input": "required name=search_term_string" } },
+    ],
+  };
 
   return (
     <div className="site-shell home-shell">
@@ -96,6 +104,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
         <section className="home-search"><div><p className="section-kicker">{copy.explore}</p><h2>{dictionary.search.title}</h2><p>{copy.searchDescription}</p></div><form action={`/${locale}/search`} role="search"><label htmlFor="home-search">{dictionary.search.label}</label><div><input id="home-search" name="q" minLength={2} required /><button>{dictionary.search.submit}</button></div></form></section>
       </main>
       <footer className="site-footer"><span>© {new Date().getUTCFullYear()} {siteConfig.legalName}</span><span>{localeLabels[locale]}</span></footer>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
     </div>
   );
 }

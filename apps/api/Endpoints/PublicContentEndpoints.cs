@@ -92,7 +92,7 @@ public static class PublicContentEndpoints
 
     private static async Task<IResult> ListAsync(string locale, PublishingDbContext database, int? limit, CancellationToken token)
     {
-        var take = Math.Clamp(limit ?? 12, 1, 50);
+        var take = Math.Clamp(limit ?? 12, 1, 1000);
         var articles = await database.ArticleLocalizations.AsNoTracking()
             .Where(article => article.Locale.Code == locale && article.Locale.IsEnabled && article.Status == PublicationStatus.Published)
             .OrderByDescending(article => article.PublishedAt)

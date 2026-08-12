@@ -44,9 +44,10 @@ export async function generateMetadata({
     verification: { google: process.env.GOOGLE_SITE_VERIFICATION, other: process.env.BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION } : undefined },
     alternates: {
       canonical: `/${locale}`,
-      languages: Object.fromEntries(
-        locales.map((supportedLocale) => [supportedLocale, `/${supportedLocale}`]),
-      ),
+      languages: Object.fromEntries([
+        ...locales.map((supportedLocale) => [supportedLocale, `/${supportedLocale}`] as const),
+        ["x-default", "/tr-TR"] as const,
+      ]),
       types: { "application/rss+xml": `/${locale}/feed.xml` },
     },
     openGraph: {

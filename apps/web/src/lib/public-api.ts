@@ -20,7 +20,7 @@ async function publicGet<T>(path: string): Promise<T | null> {
 }
 
 export async function getPublishedArticles(locale: string, limit = 12) {
-  return await publicGet<PublicArticleSummary[]>(`/api/v1/public/${encodeURIComponent(locale)}/articles?limit=${Math.min(Math.max(limit, 1), 50)}`) ?? [];
+  return await publicGet<PublicArticleSummary[]>(`/api/v1/public/${encodeURIComponent(locale)}/articles?limit=${Math.min(Math.max(limit, 1), 1000)}`) ?? [];
 }
 export async function getPublicHomepage(locale:string){return await publicGet<PublicHomepage>(`/api/v1/public/${encodeURIComponent(locale)}/homepage`)??{lead:null,secondary:[],trending:[],editors:[],latest:[],mode:"Automatic"}}
 
