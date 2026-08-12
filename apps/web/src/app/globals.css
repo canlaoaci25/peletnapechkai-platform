@@ -541,6 +541,21 @@ button:focus-visible {
   background: var(--background);
   color: var(--foreground);
 }
+@media (max-width: 560px) {
+  .consent-banner {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+  }
+  .consent-banner div {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .consent-banner button {
+    min-width: 0;
+  }
+}
 .ad-slot {
   min-height: 90px;
   display: grid;
@@ -1571,11 +1586,14 @@ button:focus-visible {
 }
 .article-page {
   width: min(780px, 100%);
+  min-width: 0;
+  max-width: 100%;
   margin: 0 auto;
   padding: clamp(50px, 9vw, 110px) 0;
 }
 .article-page h1 {
   font-size: clamp(2.8rem, 7vw, 6.4rem);
+  overflow-wrap: anywhere;
 }
 .article-page time {
   color: var(--muted);
@@ -1594,6 +1612,11 @@ button:focus-visible {
 @media (max-width: 860px) {
   .article-cards {
     grid-template-columns: 1fr;
+  }
+
+  .article-page h1 {
+    font-size: clamp(2.35rem, 11vw, 4rem);
+    line-height: 0.98;
   }
 }
 .search-callout,

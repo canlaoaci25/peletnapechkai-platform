@@ -64,6 +64,22 @@ export async function proxy(request: NextRequest) {
   const firstSegment = pathname.split("/").filter(Boolean)[0];
 
   if (firstSegment && hasLocale(firstSegment)) {
+    // A browser can reopen a previously visited locale homepage (for example /tr-TR)
+    // instead of requesting /. Keep deep links stable, but let the visitor's current
+    // country select the language on locale homepages where no language picker exists.
+    if (pathname === `/${firstSegment}` || pathname === `/${firstSegment}/`) {
+      const directory = await localeDirectory();
+      const country = directory ? await countryCode(request) : null;
+      const countryLocale = directory?.locales.find(locale => country && locale.countries.includes(country))?.code;
+      if (countryLocale && hasLocale(countryLocale) && countryLocale !== firstSegment) {
+        const destination = request.nextUrl.clone();
+        destination.pathname = `/${countryLocale}`;
+        const redirect = NextResponse.redirect(destination);
+        redirect.cookies.set(localeCookie, countryLocale, { maxAge: 60 * 60 * 24 * 365, sameSite: "lax", secure: true });
+        return redirect;
+      }
+    }
+
     const response = NextResponse.next();
     response.cookies.set(localeCookie, firstSegment, { maxAge: 60 * 60 * 24 * 365, sameSite: "lax", secure: true });
     return response;

@@ -59,6 +59,7 @@ After deployment or a service restart, verify:
 4. `/tr-TR`, `/en-US`, `/de-DE`, and `/fr-FR` return successful pages.
 5. `/tr-TR/admin/login` returns the login page.
 6. `/api/admin/auth/csrf` returns HTTP 200 and a secure antiforgery cookie.
+7. Every stylesheet referenced by a rendered page under `/_next/static/` returns HTTP 200; deploy the standalone server and `.next/static` assets from the same build as one release.
 
 Never copy production credentials, owner bootstrap values, certificates, or private
 keys into this document or the Git repository.
