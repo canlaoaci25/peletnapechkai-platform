@@ -69,14 +69,15 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  const savedLocale = request.cookies.get(localeCookie)?.value;
   const directory = await localeDirectory();
   const enabled = new Set<string>(directory?.locales.map(locale => locale.code).filter(hasLocale) ?? []);
-  let selected = savedLocale && enabled.has(savedLocale) ? savedLocale : null;
+  const savedLocale = request.cookies.get(localeCookie)?.value;
+  let selected: string | null = null;
 
-  if (!selected && directory) {
+  if (directory) {
     const country = await countryCode(request);
     selected = directory.locales.find(locale => country && locale.countries.includes(country))?.code
+      ?? (savedLocale && enabled.has(savedLocale) ? savedLocale : null)
       ?? browserLocale(request, directory)
       ?? directory.defaultLocale;
   }

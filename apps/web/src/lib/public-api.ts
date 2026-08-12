@@ -34,4 +34,5 @@ export async function searchPublishedArticles(locale: string, query: string) {
 }
 
 export function getPublicArchive(locale:string,kind:string,slug:string){return publicGet<PublicArchive>(`/api/v1/public/${encodeURIComponent(locale)}/archives/${encodeURIComponent(kind)}/${encodeURIComponent(slug)}`)}
+export async function getRelatedArticles(locale:string,slug:string){return await publicGet<PublicArticleSummary[]>(`/api/v1/public/${encodeURIComponent(locale)}/articles/${encodeURIComponent(slug)}/related`)??[]}
 export async function getPublicArchiveIndex(locale:string){return await publicGet<PublicArchiveIndex>(`/api/v1/public/${encodeURIComponent(locale)}/archives`)??{categories:[],tags:[],authors:[]}}

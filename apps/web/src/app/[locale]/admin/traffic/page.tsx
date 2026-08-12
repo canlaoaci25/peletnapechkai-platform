@@ -1,0 +1,16 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { hasLocale } from "@/i18n/config";
+import { getAdminSession, getTrafficDashboard } from "@/lib/admin-api";
+
+export default async function TrafficPage({params}:PageProps<"/[locale]/admin/traffic">){
+  const {locale}=await params;if(!hasLocale(locale))redirect("/tr-TR/admin/login");
+  const session=await getAdminSession();if(!session)redirect(`/${locale}/admin/login`);if(!session.roles.some(role=>["Owner","Admin"].includes(role)))redirect(`/${locale}/admin`);
+  const data=await getTrafficDashboard(locale);if(!data)return <main className="admin-shell"><p>Trafik verisi alınamadı.</p></main>;
+  return <main className="admin-shell admin-dashboard-shell"><header className="admin-command-header"><div><p className="section-kicker">BÜYÜME MERKEZİ</p><h1>Trafik ve içerik fırsatları</h1><p>Gerçek BOECL okuma sinyalleri, konu kümeleri ve iyileştirme öncelikleri.</p></div></header>
+    <section className="overview-kpis"><article><span>Yayındaki içerik</span><strong>{data.published}</strong><small>{locale}</small></article><article><span>Toplam görüntülenme</span><strong>{data.totalViews}</strong><small>BOECL dahili ölçümü</small></article><article><span>Anlamlı okuma</span><strong>{(data.totalEngagedSeconds/3600).toFixed(1)} sa</strong><small>30 saniye eşiğini geçen süre</small></article><article><span>İçerik başına okuma</span><strong>{data.averageEngagedSeconds} sn</strong><small>Yayın portföyü ortalaması</small></article></section>
+    <section className="admin-panel"><p className="section-kicker">ÖLÇÜM DURUMU</p><h2>Bağlantılar</h2><div className="traffic-integrations"><span>BOECL ölçümü <strong>Aktif</strong></span><span>GA4 <strong>{data.measurement.ga4?"Aktif":"Kimlik bekliyor"}</strong></span><span>Clarity <strong>{data.measurement.clarity?"Aktif":"Kimlik bekliyor"}</strong></span><span>Search Console <strong>{data.measurement.searchConsole?"Aktif":"API yetkisi bekliyor"}</strong></span></div></section>
+    <div className="traffic-grid"><section className="admin-panel"><p className="section-kicker">KONU KÜMELERİ</p><h2>En güçlü alanlar</h2><div className="traffic-table">{data.clusters.map(x=><div key={x.name}><strong>{x.name}</strong><span>{x.articles} içerik</span><span>{x.views} görüntülenme</span><span>{Math.round(x.engagedSeconds/60)} dk</span></div>)}</div></section><section className="admin-panel"><p className="section-kicker">EN ÇOK OKUNANLAR</p><h2>İç bağlantı merkezleri</h2><div className="traffic-list">{data.top.map((x,index)=><article key={x.slug}><b>{index+1}</b><span><Link href={`/${locale}/articles/${x.slug}`} target="_blank"><strong>{x.title}</strong></Link><small>{x.views} görüntülenme · {Math.round(x.engagedSeconds/60)} dk</small></span></article>)}</div></section></div>
+    <section className="admin-panel"><p className="section-kicker">İYİLEŞTİRME KUYRUĞU</p><h2>Düşük keşifli içerikler</h2><div className="traffic-opportunities">{data.opportunities.map(x=><article key={x.id}><div><strong>{x.title}</strong><p>{x.reason}</p></div><span>{x.views} görüntülenme</span><Link href={`/${locale}/admin/articles/${x.id}`}>Düzenle →</Link></article>)}</div></section>
+  </main>;
+}

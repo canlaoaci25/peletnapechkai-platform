@@ -19,6 +19,7 @@ const text = {
     knowledge: "Bilgi kasası",
     homepage: "Ana sayfa yönetimi",
     development: "Codex canlı takip",
+    traffic: "Trafik ve büyüme",
     users: "Kullanıcılar",
     languages: "Dil işlemleri",
     languageList: "Dil listesi",
@@ -48,6 +49,7 @@ const text = {
     knowledge: "Knowledge vault",
     homepage: "Homepage management",
     development: "Codex live progress",
+    traffic: "Traffic and growth",
     users: "Users",
     languages: "Language settings",
     languageList: "Language list",
@@ -77,6 +79,7 @@ const text = {
     knowledge: "Wissensspeicher",
     homepage: "Startseitenverwaltung",
     development: "Codex-Livefortschritt",
+    traffic: "Traffic und Wachstum",
     users: "Benutzer",
     languages: "Spracheinstellungen",
     languageList: "Sprachliste",
@@ -106,6 +109,7 @@ const text = {
     knowledge: "Base de connaissances",
     homepage: "Gestion de l’accueil",
     development: "Suivi Codex en direct",
+    traffic: "Trafic et croissance",
     users: "Utilisateurs",
     languages: "Gestion des langues",
     languageList: "Liste des langues",
@@ -408,6 +412,7 @@ export function AdminFrame({
               copy.users,
             )}
           {admin && item(`/${locale}/admin/development`, pathname.startsWith(`/${locale}/admin/development`), "●", copy.development)}
+          {admin && item(`/${locale}/admin/traffic`, pathname.startsWith(`/${locale}/admin/traffic`), "↗", copy.traffic)}
         </nav>
         <div className="admin-sidebar-bottom">
           <Link

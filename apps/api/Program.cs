@@ -54,6 +54,7 @@ app.MapPublicContentEndpoints();
 app.MapHomepageEndpoints();
 app.MapDevelopmentStatusEndpoints();
 app.MapMemberAccountEndpoints();
+app.MapTrafficGrowthEndpoints();
 
 app.MapGet("/api/v1/locales", async (PublishingDbContext database, CancellationToken cancellationToken) =>
     Results.Ok(new

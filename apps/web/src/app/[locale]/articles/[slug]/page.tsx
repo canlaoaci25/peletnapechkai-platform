@@ -8,7 +8,7 @@ import { siteConfig } from "@/config/site";
 import { commercialCopy } from "@/i18n/commercial-copy";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
-import { getPublishedArticle } from "@/lib/public-api";
+import { getPublishedArticle, getRelatedArticles } from "@/lib/public-api";
 import { absoluteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
@@ -49,9 +49,10 @@ export default async function ArticlePage({
 }: PageProps<"/[locale]/articles/[slug]">) {
   const { locale, slug } = await params;
   if (!hasLocale(locale)) notFound();
-  const [article, dictionary] = await Promise.all([
+  const [article, dictionary, related] = await Promise.all([
     getPublishedArticle(locale, slug),
     getDictionary(locale),
+    getRelatedArticles(locale, slug),
   ]);
   if (!article) notFound();
   const isHtml = article.body.trimStart().startsWith("<"),
@@ -195,6 +196,7 @@ export default async function ArticlePage({
               </ul>
             </aside>
           )}
+          {related.length > 0 && <aside className="related-articles" aria-labelledby="related-title"><h2 id="related-title">{{"tr-TR":"İlgili içerikler","en-US":"Related stories","de-DE":"Ähnliche Artikel","fr-FR":"Articles associés"}[locale]}</h2><div>{related.map(item=><article key={item.slug}><p className="section-kicker">{item.type}</p><h3><Link href={`/${locale}/articles/${item.slug}`}>{item.title}</Link></h3><p>{item.summary}</p></article>)}</div></aside>}
         </article>
         <script
           type="application/ld+json"
