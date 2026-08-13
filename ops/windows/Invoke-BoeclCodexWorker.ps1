@@ -28,6 +28,10 @@ function Invoke-CodexProcess {
             Remove-Item -LiteralPath $OutputPath, $ErrorPath -Force -ErrorAction SilentlyContinue
             $process = Start-Process -FilePath $Executable -ArgumentList $argumentLine -NoNewWindow -PassThru `
                 -RedirectStandardInput $inputPath -RedirectStandardOutput $OutputPath -RedirectStandardError $ErrorPath
+            # Materialize the native process handle before waiting. Windows PowerShell
+            # can otherwise lose the handle and expose a null ExitCode for long-running
+            # redirected processes even though they completed successfully.
+            $null = $process.Handle
             if ($process.WaitForExit($TimeoutMinutes * 60 * 1000)) {
                 # Start-Process with redirected streams may report HasExited before the
                 # asynchronous stream readers and native process handle are finalized.
@@ -106,15 +110,20 @@ try {
             $codexArguments += '-'
             $recovered = $false
             if ($candidateKind -eq 'generation') {
-                $previousResult = Get-ChildItem -LiteralPath $logRoot -Filter "$jobId-*-batch-$batch-result.json" -File -ErrorAction SilentlyContinue |
-                    Where-Object { $_.FullName -ne $batchResult } | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
-                if ($previousResult) {
+                $existingSlugs = @($candidateSet.existing | ForEach-Object { [string]$_.slug })
+                $previousResults = Get-ChildItem -LiteralPath $logRoot -Filter "$jobId-*-batch-*-result.json" -File -ErrorAction SilentlyContinue |
+                    Where-Object { $_.FullName -ne $batchResult } | Sort-Object LastWriteTimeUtc -Descending
+                foreach ($previousResult in $previousResults) {
                     try {
                         $previousJson = Get-Content -LiteralPath $previousResult.FullName -Raw -Encoding UTF8
                         $previousPayload = $previousJson | ConvertFrom-Json
-                        if (@($previousPayload.items).Count -eq $candidateCount) {
+                        $previousItems = @($previousPayload.items)
+                        $previousSlugs = @($previousItems | ForEach-Object { [string]$_.slug })
+                        if ($previousItems.Count -eq $candidateCount -and
+                            @($previousSlugs | Where-Object { $existingSlugs -contains $_ }).Count -eq 0) {
                             Set-Content -LiteralPath $batchResult -Value $previousJson -Encoding UTF8
                             $recovered = $true
+                            break
                         }
                     }
                     catch {
