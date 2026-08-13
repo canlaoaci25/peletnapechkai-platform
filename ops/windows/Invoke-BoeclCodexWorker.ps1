@@ -29,7 +29,16 @@ function Invoke-CodexProcess {
             $process = Start-Process -FilePath $Executable -ArgumentList $argumentLine -NoNewWindow -PassThru `
                 -RedirectStandardInput $inputPath -RedirectStandardOutput $OutputPath -RedirectStandardError $ErrorPath
             if ($process.WaitForExit($TimeoutMinutes * 60 * 1000)) {
-                return $process.ExitCode
+                # Start-Process with redirected streams may report HasExited before the
+                # asynchronous stream readers and native process handle are finalized.
+                # A parameterless second wait is required before ExitCode is reliable.
+                $process.WaitForExit()
+                $process.Refresh()
+                $exitCode = $process.ExitCode
+                if ($null -eq $exitCode) {
+                    throw "Codex süreci tamamlandı ancak çıkış kodu alınamadı; sonuç teslim edilmedi."
+                }
+                return [int]$exitCode
             }
 
             & taskkill.exe /PID $process.Id /T /F | Out-Null
@@ -95,7 +104,25 @@ try {
             if ($candidateKind -eq 'generation') { $codexArguments += '--search' }
             $codexArguments += @('exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--cd', [string]$config.repositoryPath, '--output-schema', $schema, '--output-last-message', $batchResult)
             $codexArguments += '-'
-            $codexExitCode = Invoke-CodexProcess -Executable ([string]$config.codexPath) -Arguments $codexArguments -InputText $instruction -OutputPath $batchLog -ErrorPath $batchError -TimeoutMinutes 60 -MaximumAttempts 2
+            $recovered = $false
+            if ($candidateKind -eq 'generation') {
+                $previousResult = Get-ChildItem -LiteralPath $logRoot -Filter "$jobId-*-batch-$batch-result.json" -File -ErrorAction SilentlyContinue |
+                    Where-Object { $_.FullName -ne $batchResult } | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+                if ($previousResult) {
+                    try {
+                        $previousJson = Get-Content -LiteralPath $previousResult.FullName -Raw -Encoding UTF8
+                        $previousPayload = $previousJson | ConvertFrom-Json
+                        if (@($previousPayload.items).Count -eq $candidateCount) {
+                            Set-Content -LiteralPath $batchResult -Value $previousJson -Encoding UTF8
+                            $recovered = $true
+                        }
+                    }
+                    catch {
+                        $recovered = $false
+                    }
+                }
+            }
+            $codexExitCode = if ($recovered) { 0 } else { Invoke-CodexProcess -Executable ([string]$config.codexPath) -Arguments $codexArguments -InputText $instruction -OutputPath $batchLog -ErrorPath $batchError -TimeoutMinutes 60 -MaximumAttempts 2 }
             if ($codexExitCode -ne 0) { throw "Codex yapılandırılmış içerik grubunu tamamlayamadı (batch $batch, exit $codexExitCode)." }
             $resultJson = Get-Content -LiteralPath $batchResult -Raw -Encoding UTF8
             $parsedResult = $resultJson | ConvertFrom-Json
