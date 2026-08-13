@@ -66,3 +66,8 @@ keys into this document or the Git repository.
 
 Changes must pass the isolated staging environment described in
 [`staging.md`](staging.md) before production promotion.
+
+Build and promote the web application with `ops/windows/Deploy-NextWebRelease.ps1`.
+It stages standalone, static, and public assets as one release, stops the matching
+service only for the directory swap, retains the previous directory for rollback, and
+requires both health and public-experience checks before accepting the release.
