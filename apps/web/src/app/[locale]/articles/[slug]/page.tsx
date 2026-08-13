@@ -11,6 +11,29 @@ import { getDictionary } from "@/i18n/get-dictionary";
 import { getPublishedArticle, getRelatedArticles } from "@/lib/public-api";
 import { absoluteUrl } from "@/lib/site-url";
 
+function markdownBodyToHtml(body: string) {
+  if (body.trimStart().startsWith("<")) return body;
+  const escape = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  const output: string[] = [];
+  let list: "ul" | "ol" | null = null;
+  const closeList = () => { if (list) output.push(`</${list}>`); list = null; };
+  for (const raw of body.replaceAll("\r\n", "\n").split("\n")) {
+    const line = raw.trim();
+    if (!line) { closeList(); continue; }
+    if (line.startsWith("<figure") || line.startsWith("<img")) { closeList(); output.push(line); continue; }
+    const heading = line.match(/^(#{2,4})\s+(.+)$/);
+    if (heading) { closeList(); const level = heading[1].length; output.push(`<h${level}>${escape(heading[2])}</h${level}>`); continue; }
+    const bullet = line.match(/^[-*]\s+(.+)$/), numbered = line.match(/^\d+[.)]\s+(.+)$/);
+    if (bullet || numbered) {
+      const wanted = bullet ? "ul" : "ol";
+      if (list !== wanted) { closeList(); list = wanted; output.push(`<${wanted}>`); }
+      output.push(`<li>${escape((bullet ?? numbered)![1])}</li>`); continue;
+    }
+    closeList(); output.push(`<p>${escape(line)}</p>`);
+  }
+  closeList(); return output.join("");
+}
+
 export const dynamic = "force-dynamic";
 export async function generateMetadata({
   params,
@@ -56,7 +79,6 @@ export default async function ArticlePage({
   ]);
   if (!article) notFound();
   const isHtml = article.body.trimStart().startsWith("<"),
-    paragraphs = isHtml ? [] : article.body.split(/\r?\n\s*\r?\n/).filter(Boolean),
     commercial = commercialCopy[locale];
   const sourceTitle = {
     "tr-TR": "Kaynaklar",
@@ -167,7 +189,7 @@ export default async function ArticlePage({
             </figure>
           )}
           <div className="article-body">
-            {isHtml ? <div className="rich-article-body" dangerouslySetInnerHTML={{ __html: article.body }} /> : paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+            {isHtml ? <div className="rich-article-body" dangerouslySetInnerHTML={{ __html: article.body }} /> : <div className="rich-article-body" dangerouslySetInnerHTML={{ __html: markdownBodyToHtml(article.body) }} />}
           </div>
           {article.tags.length > 0 && (
             <footer className="article-taxonomy">

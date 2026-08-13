@@ -296,7 +296,7 @@ public static partial class AutomationWorkerEndpoints
         var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
         var key = Path.Combine(now.ToString("yyyy"), now.ToString("MM"), $"{Guid.CreateVersion7()}-ai-cover.webp");
         var path = Path.GetFullPath(Path.Combine(root, key)); if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Invalid media path.");
-        var attribution = await WriteTextlessCoverAsync(path, title + " " + category, false, configuration, false, token);
+        var attribution = await WriteTextlessCoverAsync(path, title + " " + category, false, configuration, true, token);
         var length = new FileInfo(path).Length; var normalizedKey = key.Replace('\\', '/');
         var asset = new MediaAsset(normalizedKey, "boecl-ai-cover.webp", "image/webp", length, now); asset.SetImageMetadata(width, height, normalizedKey, length); return new GeneratedCover(asset, attribution.Credit, attribution.SourceUrl);
     }
@@ -306,7 +306,7 @@ public static partial class AutomationWorkerEndpoints
         var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
         var key = Path.Combine(now.ToString("yyyy"), now.ToString("MM"), $"{Guid.CreateVersion7()}-inline-{index + 1}.webp");
         var path = Path.GetFullPath(Path.Combine(root, key)); if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Invalid media path.");
-        await WriteTextlessCoverAsync(path, query + " " + category + " inline " + index, false, configuration, false, token);
+        await WriteTextlessCoverAsync(path, query + " " + category, false, configuration, true, token);
         var length = new FileInfo(path).Length; var normalizedKey = key.Replace('\\', '/');
         var asset = new MediaAsset(normalizedKey, $"boecl-inline-{index + 1}.webp", "image/webp", length, now); asset.SetImageMetadata(width, height, normalizedKey, length); return asset;
     }
@@ -362,7 +362,9 @@ public static partial class AutomationWorkerEndpoints
                 var photos = document.RootElement.GetProperty("photos");
                 if (photos.GetArrayLength() > 0)
                 {
-                    var photo = photos[RandomNumberGenerator.GetInt32(photos.GetArrayLength())];
+                    // Pexels orders results by relevance. Random selection among the first
+                    // page made visually unrelated photos much more likely.
+                    var photo = photos[0];
                     var source = photo.GetProperty("src");
                     var imageUrl = source.TryGetProperty("large2x", out var large2x) ? large2x.GetString() : source.GetProperty("large").GetString();
                     if (Uri.TryCreate(imageUrl, UriKind.Absolute, out var imageUri))
@@ -416,11 +418,56 @@ public static partial class AutomationWorkerEndpoints
 
     private static string SanitizeBody(string? body)
     {
+        body ??= "";
+        if (!body.TrimStart().StartsWith('<')) body = MarkdownToHtml(body);
         var sanitizer = new HtmlSanitizer();
         sanitizer.AllowedTags.Clear(); foreach (var tag in new[] { "p","br","h2","h3","h4","strong","em","u","s","blockquote","ul","ol","li","pre","code","a","img","figure","figcaption","hr","table","thead","tbody","tfoot","tr","th","td","video","audio","source" }) sanitizer.AllowedTags.Add(tag);
         sanitizer.AllowedAttributes.Clear(); foreach (var attribute in new[] { "href","target","rel","src","alt","title","width","height","colspan","rowspan","controls","poster","preload" }) sanitizer.AllowedAttributes.Add(attribute);
         sanitizer.AllowedSchemes.Clear(); foreach (var scheme in new[] { "http", "https" }) sanitizer.AllowedSchemes.Add(scheme);
-        return sanitizer.Sanitize(body ?? "");
+        return sanitizer.Sanitize(body);
+    }
+
+    private static string MarkdownToHtml(string markdown)
+    {
+        var html = new StringBuilder();
+        var paragraph = new List<string>();
+        var listType = "";
+        void FlushParagraph()
+        {
+            if (paragraph.Count == 0) return;
+            html.Append("<p>").Append(string.Join(" ", paragraph.Select(System.Net.WebUtility.HtmlEncode))).Append("</p>");
+            paragraph.Clear();
+        }
+        void CloseList()
+        {
+            if (listType.Length == 0) return;
+            html.Append("</").Append(listType).Append('>');
+            listType = "";
+        }
+
+        foreach (var raw in markdown.Replace("\r\n", "\n").Split('\n'))
+        {
+            var line = raw.Trim();
+            if (line.Length == 0) { FlushParagraph(); CloseList(); continue; }
+            var heading = Regex.Match(line, "^(#{2,4})\\s+(.+)$");
+            if (heading.Success)
+            {
+                FlushParagraph(); CloseList(); var level = heading.Groups[1].Value.Length;
+                html.Append("<h").Append(level).Append('>').Append(System.Net.WebUtility.HtmlEncode(heading.Groups[2].Value)).Append("</h").Append(level).Append('>');
+                continue;
+            }
+            var bullet = Regex.Match(line, "^[-*]\\s+(.+)$");
+            var numbered = Regex.Match(line, "^\\d+[.)]\\s+(.+)$");
+            if (bullet.Success || numbered.Success)
+            {
+                FlushParagraph(); var requested = bullet.Success ? "ul" : "ol";
+                if (listType != requested) { CloseList(); listType = requested; html.Append('<').Append(listType).Append('>'); }
+                html.Append("<li>").Append(System.Net.WebUtility.HtmlEncode((bullet.Success ? bullet : numbered).Groups[1].Value)).Append("</li>");
+                continue;
+            }
+            CloseList(); paragraph.Add(line);
+        }
+        FlushParagraph(); CloseList(); return html.ToString();
     }
 
     [GeneratedRegex("^[a-z0-9]+(?:-[a-z0-9]+)*$", RegexOptions.CultureInvariant)] private static partial Regex SlugPattern();
