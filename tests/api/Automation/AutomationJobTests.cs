@@ -5,6 +5,30 @@ namespace Peletnapechkai.Api.Tests.Automation;
 public sealed class AutomationJobTests
 {
     [Fact]
+    public void Ready_content_job_can_be_marked_as_automatically_scheduled()
+    {
+        var job = new AutomationJob(AutomationJobType.ReadyContentGeneration, ["de-DE"], 1, Guid.CreateVersion7(), DateTimeOffset.UtcNow);
+        job.ConfigureContentGeneration(Guid.CreateVersion7(), "Guide", true, true, true);
+        job.MarkAutomaticallyScheduled();
+        Assert.True(job.IsAutomaticallyScheduled);
+        Assert.True(job.IncludeImages);
+        Assert.True(job.AutoTranslate);
+        Assert.True(job.AutoSeo);
+    }
+
+    [Fact]
+    public void Automatic_schedule_uses_three_minute_interval()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var schedule = new AutomaticContentSchedule(Guid.CreateVersion7(), now);
+        schedule.SetEnabled(true, Guid.CreateVersion7(), now);
+        schedule.MarkEnqueued(Guid.CreateVersion7(), now);
+        Assert.True(schedule.IsEnabled);
+        Assert.Equal(3, schedule.IntervalMinutes);
+        Assert.Equal(now.AddMinutes(3), schedule.NextRunAt);
+    }
+
+    [Fact]
     public void Job_preserves_unique_target_locales_and_checkpoint_progress()
     {
         var createdAt = DateTimeOffset.UtcNow;

@@ -4,6 +4,7 @@ using Peletnapechkai.Api.Infrastructure.Identity;
 using Peletnapechkai.Api.Localization;
 using Peletnapechkai.Api.Infrastructure.Persistence;
 using Peletnapechkai.Api.Infrastructure.Publishing;
+using Peletnapechkai.Api.Infrastructure.Automation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,7 @@ builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddApplicationIdentity(builder.Environment, builder.Configuration);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHostedService<ScheduledPublishingWorker>();
+builder.Services.AddHostedService<AutomaticContentWorker>();
 
 var app = builder.Build();
 

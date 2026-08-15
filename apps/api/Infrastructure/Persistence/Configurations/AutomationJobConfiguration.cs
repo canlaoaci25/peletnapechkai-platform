@@ -29,6 +29,7 @@ public sealed class AutomationJobConfiguration : IEntityTypeConfiguration<Automa
         builder.Property(job => job.IncludeImages).HasColumnName("include_images");
         builder.Property(job => job.AutoTranslate).HasColumnName("auto_translate");
         builder.Property(job => job.AutoSeo).HasColumnName("auto_seo");
+        builder.Property(job => job.IsAutomaticallyScheduled).HasColumnName("is_automatically_scheduled");
         builder.HasIndex(job => new { job.Status, job.CreatedAt }).HasDatabaseName("ix_automation_jobs_status_created");
     }
 }

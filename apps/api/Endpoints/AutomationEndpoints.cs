@@ -22,6 +22,8 @@ public static class AutomationEndpoints
         group.MapGet("/scan", ScanAsync);
         group.MapPost("/", CreateAsync).ValidateAntiforgery();
         group.MapPost("/ready-content", CreateReadyContentAsync).ValidateAntiforgery();
+        group.MapGet("/automatic-content", GetAutomaticContentAsync);
+        group.MapPut("/automatic-content", UpdateAutomaticContentAsync).ValidateAntiforgery();
         group.MapPost("/{id:guid}/{action}", ChangeStateAsync).ValidateAntiforgery();
         return endpoints;
     }
@@ -46,6 +48,8 @@ public static class AutomationEndpoints
                 job.UpdatedAt,
                 job.CompletedAt
                 ,job.CategoryId, job.RequestedArticleType, job.IncludeImages, job.AutoTranslate, job.AutoSeo,
+                job.IsAutomaticallyScheduled,
+                categoryName = database.Categories.Where(category => category.Id == job.CategoryId).Select(category => category.Name).FirstOrDefault(),
                 turkishPublished = database.ArticleLocalizations.Count(article => article.GeneratedByAutomationJobId == job.Id && article.Locale.IsDefault && article.Status == PublicationStatus.Published),
                 translationPublished = database.ArticleLocalizations.Count(article => article.GeneratedByAutomationJobId == job.Id && !article.Locale.IsDefault && article.Status == PublicationStatus.Published),
                 seoComplete = database.ArticleLocalizations.Count(article => article.GeneratedByAutomationJobId == job.Id && article.Status == PublicationStatus.Published && article.SeoTitle != null && article.SeoDescription != null),
@@ -202,6 +206,28 @@ public static class AutomationEndpoints
         return Results.Created($"/api/v1/admin/automation/{job.Id}", new { job.Id });
     }
 
+    private static async Task<IResult> GetAutomaticContentAsync(PublishingDbContext database, CancellationToken token)
+    {
+        var schedule = await database.AutomaticContentSchedules.AsNoTracking().SingleOrDefaultAsync(token);
+        return Results.Ok(new { isEnabled = schedule?.IsEnabled ?? false, intervalMinutes = schedule?.IntervalMinutes ?? 3,
+            schedule?.NextRunAt, schedule?.LastEnqueuedAt, schedule?.LastJobId });
+    }
+
+    private static async Task<IResult> UpdateAutomaticContentAsync(AutomaticContentRequest request,
+        System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users,
+        PublishingDbContext database, IConfiguration configuration, CancellationToken token)
+    {
+        if (request.IsEnabled && !configuration.GetValue<bool>("Automation:RunnerEnabled"))
+            return Results.Conflict(new { message = "Codex worker etkin değil." });
+        var actor = await users.GetUserAsync(principal); if (actor is null) return Results.Unauthorized();
+        var now = DateTimeOffset.UtcNow;
+        var schedule = await database.AutomaticContentSchedules.SingleOrDefaultAsync(token);
+        if (schedule is null) { schedule = new AutomaticContentSchedule(actor.Id, now); database.AutomaticContentSchedules.Add(schedule); }
+        schedule.SetEnabled(request.IsEnabled, actor.Id, now);
+        await database.SaveChangesAsync(token);
+        return Results.Ok(new { schedule.IsEnabled, schedule.IntervalMinutes, schedule.NextRunAt, schedule.LastEnqueuedAt, schedule.LastJobId });
+    }
+
     private static async Task<IResult> CreateReadyContentAsync(
         ReadyContentRequest request,
         System.Security.Claims.ClaimsPrincipal principal,
@@ -293,4 +319,5 @@ public static class AutomationEndpoints
 
     private sealed record CreateRequest(string Type, string[] TargetLocales);
     private sealed record ReadyContentRequest(Guid CategoryId, string ArticleType, int Count, bool IncludeImages, bool AutoTranslate, bool AutoSeo);
+    private sealed record AutomaticContentRequest(bool IsEnabled);
 }

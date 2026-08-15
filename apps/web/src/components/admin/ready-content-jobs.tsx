@@ -10,23 +10,30 @@ export type ReadyContentJob = {
   createdAt:string; updatedAt:string; includeImages?:boolean; autoTranslate?:boolean; autoSeo?:boolean;
   turkishPublished?:number;translationPublished?:number;seoComplete?:number;latestContentAt?:string|null;
   recentArticles?:{title:string;slug:string;locale:string}[];
+  isAutomaticallyScheduled?:boolean;categoryName?:string|null;requestedArticleType?:string|null;
 };
+
+type AutomaticSetting={isEnabled:boolean;intervalMinutes:number;nextRunAt:string|null;lastEnqueuedAt:string|null;lastJobId:string|null};
 
 const statusNames:Record<string,string>={Queued:"Kuyrukta",Running:"Çalışıyor",Paused:"Durduruldu",Completed:"Tamamlandı",Failed:"Hatalı",Cancelled:"İptal edildi"};
 const phaseNames:Record<number,string>={1:"Araştırma ve konu planı",2:"Türkçe makale üretimi",3:"Kapak görselleri",4:"Otomatik çeviri",5:"Dil bazlı SEO",6:"Son doğrulama ve yayın"};
 const activeStatuses=new Set(["Queued","Running","Paused"]);
 
 export function ReadyContentJobs({locale,initialJobs}:{locale:Locale;initialJobs:ReadyContentJob[]}){
-  const[jobs,setJobs]=useState(initialJobs),[refreshFailed,setRefreshFailed]=useState(false),[now,setNow]=useState(0);
-  async function refresh(){try{const response=await fetch("/api/admin/automation/",{cache:"no-store"});if(!response.ok)throw new Error();const all=await response.json() as ReadyContentJob[];setJobs(all.filter(job=>job.type==="ReadyContentGeneration"));setRefreshFailed(false)}catch{setRefreshFailed(true)}}
+  const[jobs,setJobs]=useState(initialJobs),[refreshFailed,setRefreshFailed]=useState(false),[now,setNow]=useState(0),[automatic,setAutomatic]=useState<AutomaticSetting|null>(null),[saving,setSaving]=useState(false);
+  async function refresh(){try{const[response,settingResponse]=await Promise.all([fetch("/api/admin/automation/",{cache:"no-store"}),fetch("/api/admin/automation/automatic-content",{cache:"no-store"})]);if(!response.ok||!settingResponse.ok)throw new Error();const all=await response.json() as ReadyContentJob[];setJobs(all.filter(job=>job.type==="ReadyContentGeneration"));setAutomatic(await settingResponse.json() as AutomaticSetting);setRefreshFailed(false)}catch{setRefreshFailed(true)}}
+  async function toggleAutomatic(){if(!automatic||saving)return;setSaving(true);try{const csrfResponse=await fetch("/api/admin/auth/csrf",{cache:"no-store"});const{token}=await csrfResponse.json()as{token:string};const response=await fetch("/api/admin/automation/automatic-content",{method:"PUT",headers:{"content-type":"application/json","x-csrf-token":token},body:JSON.stringify({isEnabled:!automatic.isEnabled})});if(!response.ok)throw new Error();setAutomatic(await response.json() as AutomaticSetting)}finally{setSaving(false)}}
   useEffect(()=>{const timer=window.setInterval(()=>{setNow(Date.now());void refresh()},1000);return()=>window.clearInterval(timer)},[]);
   const active=useMemo(()=>jobs.filter(job=>activeStatuses.has(job.status)),[jobs]);
   const recent=useMemo(()=>jobs.filter(job=>!activeStatuses.has(job.status)).slice(0,5),[jobs]);
+  const automaticJobs=useMemo(()=>jobs.filter(job=>job.isAutomaticallyScheduled).slice(0,20),[jobs]);
   return <section className="admin-panel ready-content-jobs" aria-live="polite">
+    <div className="ready-content-auto-control"><div><p className="section-kicker">OTOMATİK ÜRETİM</p><h2>Her 3 dakikada bir içerik</h2><p>Rastgele Türkçe kategori ve tür; yazısız görseller, SEO, tüm etkin dillere çeviri ve çeviri SEO’su otomatik tamamlanır. Önceki iş sürüyorsa yenisi kuyruklanmaz.</p></div><button type="button" disabled={!automatic||saving} onClick={()=>void toggleAutomatic()}>{saving?"Kaydediliyor…":automatic?.isEnabled?"Otomatiği kapat":"Otomatiği aç"}</button></div>
     <header><div><p className="section-kicker">CANLI TAKİP</p><h2>Devam eden işler</h2><p>Durum, faz ve kalan makale sayısı üç saniyede bir güncellenir.</p></div><button type="button" onClick={()=>void refresh()}>Şimdi yenile</button></header>
     {refreshFailed&&<p className="ready-content-refresh-error">Canlı bilgi geçici olarak alınamadı; mevcut bilgiler gösteriliyor.</p>}
     {active.length===0?<div className="ready-content-empty"><strong>Devam eden iş yok.</strong><span>Yeni iş başlattığınızda ilerlemesi burada görünecek.</span></div>:<div className="ready-content-job-list">{active.map(job=><JobCard key={job.id} job={job} locale={locale} now={now}/>)}</div>}
     {recent.length>0&&<div className="ready-content-recent"><h3>Son tamamlanan işler</h3><div className="ready-content-job-list">{recent.map(job=><JobCard key={job.id} job={job} locale={locale} compact/>)}</div></div>}
+    {automaticJobs.length>0&&<div className="ready-content-recent"><h3>Otomatik üretim raporu</h3><div className="ready-content-job-list">{automaticJobs.map(job=><article className="ready-content-job" key={job.id}><header><div><strong>{job.categoryName??"Kategori"} · {job.requestedArticleType??"İçerik"}</strong><small>{statusNames[job.status]??job.status}</small></div></header>{job.recentArticles?.map(article=><Link key={article.slug} href={`/${article.locale}/articles/${article.slug}`} target="_blank">{article.title} ↗</Link>)}<footer><small>{new Intl.DateTimeFormat("tr-TR",{dateStyle:"short",timeStyle:"short"}).format(new Date(job.createdAt))}</small><Link href={`/${locale}/admin/automation/${job.id}`}>Raporu aç</Link></footer></article>)}</div></div>}
   </section>
 }
 

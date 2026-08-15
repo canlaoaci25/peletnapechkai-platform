@@ -58,6 +58,7 @@ public sealed class AutomationJob
     public bool IncludeImages { get; private set; }
     public bool AutoTranslate { get; private set; }
     public bool AutoSeo { get; private set; }
+    public bool IsAutomaticallyScheduled { get; private set; }
 
     public void ConfigureContentGeneration(Guid categoryId, string articleType, bool includeImages, bool autoTranslate, bool autoSeo)
     {
@@ -70,6 +71,13 @@ public sealed class AutomationJob
         IncludeImages = includeImages;
         AutoTranslate = autoTranslate;
         AutoSeo = autoSeo;
+    }
+
+    public void MarkAutomaticallyScheduled()
+    {
+        if (Type != AutomationJobType.ReadyContentGeneration || Status != AutomationJobStatus.Queued)
+            throw new InvalidOperationException("Only queued ready-content jobs can be marked automatic.");
+        IsAutomaticallyScheduled = true;
     }
 
     public void Pause(DateTimeOffset now)
