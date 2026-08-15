@@ -45,7 +45,12 @@ public static class AutomationEndpoints
                 job.CreatedAt,
                 job.UpdatedAt,
                 job.CompletedAt
-                ,job.CategoryId, job.RequestedArticleType, job.IncludeImages, job.AutoTranslate, job.AutoSeo
+                ,job.CategoryId, job.RequestedArticleType, job.IncludeImages, job.AutoTranslate, job.AutoSeo,
+                turkishPublished = database.ArticleLocalizations.Count(article => article.GeneratedByAutomationJobId == job.Id && article.Locale.IsDefault && article.Status == PublicationStatus.Published),
+                translationPublished = database.ArticleLocalizations.Count(article => article.GeneratedByAutomationJobId == job.Id && !article.Locale.IsDefault && article.Status == PublicationStatus.Published),
+                seoComplete = database.ArticleLocalizations.Count(article => article.GeneratedByAutomationJobId == job.Id && article.Status == PublicationStatus.Published && article.SeoTitle != null && article.SeoDescription != null),
+                latestContentAt = database.ArticleLocalizations.Where(article => article.GeneratedByAutomationJobId == job.Id).Max(article => (DateTimeOffset?)article.CreatedAt),
+                recentArticles = database.ArticleLocalizations.Where(article => article.GeneratedByAutomationJobId == job.Id && article.Locale.IsDefault).OrderByDescending(article => article.CreatedAt).Take(3).Select(article => new { article.Title, article.Slug, locale = article.Locale.Code }).ToArray()
             })
             .ToListAsync(token));
 

@@ -126,6 +126,14 @@ public sealed class AutomationJob
         UpdatedAt = now;
     }
 
+    public void Heartbeat(string message, DateTimeOffset now)
+    {
+        if (Status != AutomationJobStatus.Running) throw new InvalidOperationException("Only running jobs can report a heartbeat.");
+        ArgumentException.ThrowIfNullOrWhiteSpace(message);
+        LastMessage = message.Trim()[..Math.Min(message.Trim().Length, 500)];
+        UpdatedAt = now;
+    }
+
     public void Complete(string? message, string? reportText, DateTimeOffset now)
     {
         if (Status != AutomationJobStatus.Running) throw new InvalidOperationException("Only running jobs can complete.");

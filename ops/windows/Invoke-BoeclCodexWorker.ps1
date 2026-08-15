@@ -57,6 +57,13 @@ function Invoke-CodexProcess {
     }
 }
 
+function Send-WorkerHeartbeat {
+    param([string]$ApiUrl, [hashtable]$Headers, [string]$JobId, [string]$Message)
+    $payload = @{ message = $Message } | ConvertTo-Json
+    Invoke-RestMethod -Method Post -Uri "$ApiUrl/api/v1/internal/automation-worker/$JobId/heartbeat" -Headers $Headers `
+        -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($payload)) | Out-Null
+}
+
 try {
     $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
     $env:CODEX_HOME = [string]$config.codexHome
@@ -80,6 +87,7 @@ try {
     $stderrLog = Join-Path $logRoot "$jobId-stderr.log"
     $lastMessage = Join-Path $logRoot "$jobId-result.txt"
     $savedErrorPreference = $ErrorActionPreference
+    Send-WorkerHeartbeat -ApiUrl ([string]$config.apiUrl) -Headers $headers -JobId $jobId -Message "Worker işi aldı; aday kapsamı hazırlanıyor."
     if ($job.type -in @('ContentTranslation', 'SeoLocalization', 'ReadyContentGeneration', 'CategoryLocalization')) {
         $batch = 0
         $processed = 0
@@ -91,6 +99,8 @@ try {
             $candidateCount = if ($candidateKind -eq 'generation') { [int]$candidateSet.requestedCount } else { $candidates.Count }
             if ($candidateKind -eq 'complete' -or $candidateCount -eq 0) { break }
             $batch++
+            $operationName = if ($candidateKind -eq 'generation') { 'araştırma ve Türkçe makale üretimi' } elseif ($candidateKind -eq 'translation') { 'içerik çevirisi' } elseif ($candidateKind -eq 'category') { 'kategori çevirisi' } else { 'SEO yerelleştirmesi' }
+            Send-WorkerHeartbeat -ApiUrl ([string]$config.apiUrl) -Headers $headers -JobId $jobId -Message "Paket $batch: $candidateCount kayıt için $operationName Codex tarafından işleniyor."
             $batchResult = Join-Path $logRoot "$jobId-$runId-batch-$batch-result.json"
             $batchLog = Join-Path $logRoot "$jobId-$runId-batch-$batch.jsonl"
             $batchError = Join-Path $logRoot "$jobId-$runId-batch-$batch-stderr.log"
@@ -135,6 +145,7 @@ try {
             }
             $codexExitCode = if ($recovered) { 0 } else { Invoke-CodexProcess -Executable ([string]$config.codexPath) -Arguments $codexArguments -InputText $instruction -OutputPath $batchLog -ErrorPath $batchError -TimeoutMinutes 60 -MaximumAttempts 2 }
             if ($codexExitCode -ne 0) { throw "Codex yapılandırılmış içerik grubunu tamamlayamadı (batch $batch, exit $codexExitCode)." }
+            Send-WorkerHeartbeat -ApiUrl ([string]$config.apiUrl) -Headers $headers -JobId $jobId -Message "Paket $batch: Codex çıktısı tamamlandı; şema ve API doğrulamasına gönderiliyor."
             $resultJson = Get-Content -LiteralPath $batchResult -Raw -Encoding UTF8
             $parsedResult = $resultJson | ConvertFrom-Json
             if (@($parsedResult.items).Count -ne $candidateCount) { throw "Codex aday sayısını eksik döndürdü (batch $batch)." }
@@ -144,6 +155,7 @@ try {
             $submitBytes = [Text.Encoding]::UTF8.GetBytes($submitBody)
             Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/$submitPath" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $submitBytes | Out-Null
             $processed += $candidateCount
+            Send-WorkerHeartbeat -ApiUrl ([string]$config.apiUrl) -Headers $headers -JobId $jobId -Message "Paket $batch teslim edildi; yeni adaylar ve kalan iş hesaplanıyor."
         } while ($true)
         "## Yapılandırılmış otomasyon sonucu`r`n`r`n- İş türü: $($job.type)`r`n- İşlenen kayıt: $processed`r`n- Yayın durumu: Doğrulanan içerik ve çeviriler yayımlandı`r`n- Araştırma: Canlı web araması ve kayıtlı kaynak URL'leri" | Set-Content -LiteralPath $lastMessage -Encoding UTF8
     }
@@ -169,6 +181,7 @@ try {
     )
     $qualityResults = [Collections.Generic.List[string]]::new()
     foreach ($check in $checks) {
+        Send-WorkerHeartbeat -ApiUrl ([string]$config.apiUrl) -Headers $headers -JobId $jobId -Message "Kalite kapısı çalışıyor: $($check.Name)."
         "[$(Get-Date -Format o)] START $($check.Name)" | Add-Content -LiteralPath $qualityLog -Encoding UTF8
         $ErrorActionPreference = 'Continue'
         $checkArguments = $check.Arguments

@@ -17,6 +17,7 @@ public static partial class AutomationWorkerEndpoints
         group.MapPost("/{id:guid}/fail", FailAsync);
         group.MapPost("/{id:guid}/retry", RetryAsync);
         group.MapPost("/{id:guid}/report", SaveReportAsync);
+        group.MapPost("/{id:guid}/heartbeat", HeartbeatAsync);
         group.MapGet("/{id:guid}/candidates", GetCandidatesAsync);
         group.MapPost("/{id:guid}/translations", SaveTranslationsAsync);
         group.MapPost("/{id:guid}/category-translations", SaveCategoryTranslationsAsync);
@@ -82,6 +83,16 @@ public static partial class AutomationWorkerEndpoints
         if(!IsAuthorized(context,configuration))return Results.Unauthorized();var job=await database.AutomationJobs.SingleOrDefaultAsync(candidate=>candidate.Id==id,token);if(job is null)return Results.NotFound();var report=ReadReport(request);if(report is null)return Results.BadRequest(new{message="Rapor metni gereklidir."});job.SetReport(report,DateTimeOffset.UtcNow);await database.SaveChangesAsync(token);return Results.Ok();
     }
 
+    private static async Task<IResult> HeartbeatAsync(Guid id, HeartbeatRequest request, HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
+    {
+        if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
+        var job = await database.AutomationJobs.SingleOrDefaultAsync(candidate => candidate.Id == id, token);
+        if (job is null) return Results.NotFound();
+        try { job.Heartbeat(request.Message, DateTimeOffset.UtcNow); }
+        catch (InvalidOperationException exception) { return Results.Conflict(new { message = exception.Message }); }
+        await database.SaveChangesAsync(token); return Results.Ok(new { job.UpdatedAt });
+    }
+
     private static bool IsAuthorized(HttpContext context,IConfiguration configuration)
     {
         var expected=configuration["Automation:WorkerToken"];var supplied=context.Request.Headers["X-BOECL-Worker-Token"].ToString();if(string.IsNullOrWhiteSpace(expected)||string.IsNullOrWhiteSpace(supplied))return false;return CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expected),Encoding.UTF8.GetBytes(supplied));
@@ -119,4 +130,5 @@ public static partial class AutomationWorkerEndpoints
         return TrimReport(request.Report);
     }
     private sealed record WorkerResult(string? Message,string? Report,string? ReportBase64);
+    private sealed record HeartbeatRequest(string Message);
 }
