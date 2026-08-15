@@ -155,7 +155,10 @@ public static partial class AutomationWorkerEndpoints
             var source = await database.Categories.AsNoTracking().SingleOrDefaultAsync(category => category.Id == item.SourceCategoryId && category.Locale.IsDefault, token);
             var locale = await database.Locales.SingleOrDefaultAsync(candidate => candidate.Code == item.Locale && candidate.IsEnabled && !candidate.IsDefault, token);
             if (source is null || locale is null) return Results.BadRequest(new { message = "Kaynak kategori veya hedef dil bulunamadı." });
-            var alreadyLogged = await database.AuditLogs.AnyAsync(log => log.Action == "automation.category_localized" && log.EntityId == source.Id && log.DetailsJson != null && log.DetailsJson.Contains($"\"locale\":\"{item.Locale}\""), token);
+            var priorDetails = await database.AuditLogs.AsNoTracking()
+                .Where(log => log.Action == "automation.category_localized" && log.EntityId == source.Id)
+                .Select(log => log.DetailsJson).ToArrayAsync(token);
+            var alreadyLogged = priorDetails.Any(details => string.Equals(CategoryLocale(details), item.Locale, StringComparison.OrdinalIgnoreCase));
             if (alreadyLogged) continue;
             var slug = item.Slug;
             if (await database.Categories.AnyAsync(category => category.LocaleId == locale.Id && category.Slug == slug, token)) slug = $"{slug[..Math.Min(slug.Length, 150)]}-{source.Id.ToString("N")[..8]}";
