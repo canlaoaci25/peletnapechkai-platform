@@ -94,6 +94,7 @@ public static class AutomationEndpoints
         var targetLocales = activeLocales.Where(locale => !locale.Equals(defaultLocale, StringComparison.OrdinalIgnoreCase)).ToArray();
         var missingTranslations = await AutomationCandidateCounter.CountMissingTranslationsAsync(database, targetLocales, token);
         var seoCandidates = await AutomationCandidateCounter.CountSeoCandidatesAsync(database, targetLocales, token);
+        var categoryCandidates = await AutomationCandidateCounter.CountMissingCategoryTranslationsAsync(database, targetLocales, token);
         var seoTargetLocales = await AutomationCandidateCounter.GetSeoCandidateLocalesAsync(database, targetLocales, token);
         var completedSiteLocaleSets = await database.AutomationJobs
             .AsNoTracking()
@@ -116,6 +117,7 @@ public static class AutomationEndpoints
             workloads = new
             {
                 contentTranslation = new { count = missingTranslations, targetLocales, blockedReason = missingTranslations == 0 ? "Çevrilecek eksik içerik bulunmuyor." : null },
+                categoryLocalization = new { count = categoryCandidates, targetLocales, blockedReason = categoryCandidates == 0 ? "Eksik kategori çevirisi bulunmuyor." : null },
                 seoLocalization = new { count = seoCandidates, targetLocales = seoTargetLocales, blockedReason = seoCandidates == 0 && missingTranslations > 0 ? "Önce hedef dillerde içerik çeviri taslakları oluşturulmalıdır." : seoCandidates == 0 ? "SEO yerelleştirmesi bekleyen hedef dil kaydı bulunmuyor." : null },
                 siteLocalization = new { count = pendingSiteLocales, targetLocales = targetLocales.Where(locale => !completedSiteLocales.Contains(locale)).ToArray(), blockedReason = pendingSiteLocales == 0 ? "Eksik site dili bulunmuyor." : null },
                 systemReport = new { count = 0, targetLocales = Array.Empty<string>(), blockedReason = (string?)null }
@@ -241,6 +243,11 @@ public static class AutomationEndpoints
         if (type == AutomationJobType.SeoLocalization)
         {
             return await AutomationCandidateCounter.CountSeoCandidatesAsync(database, targetLocales, token);
+        }
+
+        if (type == AutomationJobType.CategoryLocalization)
+        {
+            return await AutomationCandidateCounter.CountMissingCategoryTranslationsAsync(database, targetLocales, token);
         }
 
         return await AutomationCandidateCounter.CountMissingTranslationsAsync(database, targetLocales, token);

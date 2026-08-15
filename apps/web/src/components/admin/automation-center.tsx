@@ -6,10 +6,11 @@ import Swal from "sweetalert2";
 import type { Locale } from "@/i18n/config";
 
 type AutomationWorkload = { count:number;targetLocales:string[];blockedReason:string|null };
-export type AutomationScan = { activeLocales:string[]; publishedArticles:number; missingTranslations:number; seoCandidates:number; siteLanguageCandidates:number; reportCandidates:number; runnerEnabled:boolean;workloads:{contentTranslation:AutomationWorkload;seoLocalization:AutomationWorkload;siteLocalization:AutomationWorkload;systemReport:AutomationWorkload} };
+export type AutomationScan = { activeLocales:string[]; publishedArticles:number; missingTranslations:number; seoCandidates:number; siteLanguageCandidates:number; reportCandidates:number; runnerEnabled:boolean;workloads:{contentTranslation:AutomationWorkload;categoryLocalization:AutomationWorkload;seoLocalization:AutomationWorkload;siteLocalization:AutomationWorkload;systemReport:AutomationWorkload} };
 export type AutomationJob = { id:string; type:string; status:string; targetLocales:string[]; totalItems:number; completedItems:number; failedItems:number; currentPhase:number; lastMessage:string|null; createdAt:string; updatedAt:string; completedAt:string|null };
 
 const cards = [
+  { type:"CategoryLocalization", workload:"categoryLocalization", title:"Otomatik kategori çevirisi", description:"Yeni Türkçe kategorileri etkin yabancı dillere çevirir ve kalıcı olarak eşleştirir." },
   { type:"ContentTranslation", workload:"contentTranslation", title:"Otomatik içerik çevirisi", description:"Yayındaki içeriklerin eksik dil sürümlerini kalıcı fazlara böler." },
   { type:"SeoLocalization", workload:"seoLocalization", title:"Otomatik SEO yerelleştirmesi", description:"Hedef dilde mevcut taslakların eksik SEO alanlarını insan onayına hazırlar." },
   { type:"SiteLocalization", workload:"siteLocalization", title:"Otomatik site dili", description:"Arayüzdeki eksik yerelleştirme anahtarlarını hedef dillere hazırlar." },

@@ -80,7 +80,7 @@ try {
     $stderrLog = Join-Path $logRoot "$jobId-stderr.log"
     $lastMessage = Join-Path $logRoot "$jobId-result.txt"
     $savedErrorPreference = $ErrorActionPreference
-    if ($job.type -in @('ContentTranslation', 'SeoLocalization', 'ReadyContentGeneration')) {
+    if ($job.type -in @('ContentTranslation', 'SeoLocalization', 'ReadyContentGeneration', 'CategoryLocalization')) {
         $batch = 0
         $processed = 0
         $runId = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -94,13 +94,15 @@ try {
             $batchResult = Join-Path $logRoot "$jobId-$runId-batch-$batch-result.json"
             $batchLog = Join-Path $logRoot "$jobId-$runId-batch-$batch.jsonl"
             $batchError = Join-Path $logRoot "$jobId-$runId-batch-$batch-stderr.log"
-            $schemaRelative = if ($candidateKind -eq 'generation') { 'ops\automation\ready-content-output.schema.json' } elseif ($candidateKind -eq 'translation') { 'ops\automation\translation-output.schema.json' } else { 'ops\automation\seo-output.schema.json' }
+            $schemaRelative = if ($candidateKind -eq 'generation') { 'ops\automation\ready-content-output.schema.json' } elseif ($candidateKind -eq 'translation') { 'ops\automation\translation-output.schema.json' } elseif ($candidateKind -eq 'category') { 'ops\automation\category-translation-output.schema.json' } else { 'ops\automation\seo-output.schema.json' }
             $schema = Join-Path ([string]$config.repositoryPath) $schemaRelative
             $candidateJson = $candidateSet | ConvertTo-Json -Depth 8 -Compress
             $instruction = if ($candidateKind -eq 'generation') {
                 "Canlı web aramasını kullan. Seçilen Türkçe kategori ve içerik türü için güncel, popüler ve güvenilir Türkçe/global yayınları ayrıntılı araştır. İstenen sayıda birbirinden ve existing listesinden belirgin biçimde farklı, en az 2500 karakter gövdeli, özgün Türkçe makale yaz. Kopyalama yapma; en az iki gerçek araştırma kaynağının doğrudan URL'sini her makalede bildir. Başlık/özet/slug tekrar etmesin. autoSeo doğruysa SEO alanlarını doldur, değilse null gönder. includeImages doğruysa kapak için özgün Türkçe imageAltText ve kısa İngilizce imageSearchQuery; gövde için birbirinden farklı tam iki Türkçe inlineImageAltTexts ve iki kısa İngilizce inlineImageQueries üret. Tüm sorgular no text, no letters, no numbers, no symbols, no logo, no watermark şartını taşısın. includeImages yanlışsa tüm görsel alanlarını null gönder. Yalnız şemaya uyan JSON döndür.`r`n$candidateJson"
             } elseif ($candidateKind -eq 'translation') {
                 "Aşağıdaki yayımlanmış Türkçe kaynakları belirtilen hedef dile doğal, eksiksiz ve editoryal kalitede çevir. HTML yapısını koru; yeni bilgi ekleme. Slug yalnız küçük ASCII harf, rakam ve tire içersin. Kimlikleri ve locale değerlerini aynen koru. Yalnız şemaya uyan JSON döndür. Doğrulanan sonuçlar doğrudan yayımlanacak.`r`n$candidateJson"
+            } elseif ($candidateKind -eq 'category') {
+                "Aşağıdaki Türkçe kategorileri belirtilen hedef dile doğal biçimde çevir. sourceCategoryId ve locale değerlerini aynen koru. Adı hedef dilde kısa ve anlaşılır yaz; slug yalnız küçük ASCII harf, rakam ve tire içersin. Yalnız şemaya uyan JSON döndür.`r`n$candidateJson"
             } else {
                 "Aşağıdaki yayımlanmış içerikler için kendi dilinde doğal SEO başlığı ve açıklaması üret. İçerikte olmayan iddia ekleme; articleId değerini aynen koru. Yalnız şemaya uyan JSON döndür.`r`n$candidateJson"
             }
@@ -137,7 +139,7 @@ try {
             $parsedResult = $resultJson | ConvertFrom-Json
             if (@($parsedResult.items).Count -ne $candidateCount) { throw "Codex aday sayısını eksik döndürdü (batch $batch)." }
             $payloadBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($resultJson))
-            $submitPath = if ($candidateKind -eq 'generation') { 'generated-content' } elseif ($candidateKind -eq 'translation') { 'translations' } else { 'seo-drafts' }
+            $submitPath = if ($candidateKind -eq 'generation') { 'generated-content' } elseif ($candidateKind -eq 'translation') { 'translations' } elseif ($candidateKind -eq 'category') { 'category-translations' } else { 'seo-drafts' }
             $submitBody = @{ payloadBase64 = $payloadBase64 } | ConvertTo-Json
             $submitBytes = [Text.Encoding]::UTF8.GetBytes($submitBody)
             Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/$submitPath" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $submitBytes | Out-Null

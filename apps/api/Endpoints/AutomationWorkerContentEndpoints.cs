@@ -25,6 +25,15 @@ public static partial class AutomationWorkerEndpoints
         if (job.Type == AutomationJobType.ReadyContentGeneration)
             return await GetReadyContentCandidatesAsync(job, database, token);
 
+        if (job.Type == AutomationJobType.CategoryLocalization)
+        {
+            var sources = await database.Categories.AsNoTracking().Where(item => item.Locale.IsDefault).OrderBy(item => item.Id).Select(item => new { item.Id, item.Slug, item.Name, item.Description }).ToArrayAsync(token);
+            var logs = await database.AuditLogs.AsNoTracking().Where(log => log.Action == "automation.category_localized" && sources.Select(item => item.Id).Contains(log.EntityId)).Select(log => new { log.EntityId, log.DetailsJson }).ToArrayAsync(token);
+            var completed = logs.Select(log => (log.EntityId, Locale: CategoryLocale(log.DetailsJson))).Where(item => item.Locale is not null).ToHashSet();
+            var candidates = (from source in sources from locale in job.TargetLocales where !completed.Contains((source.Id, locale)) select new { sourceCategoryId = source.Id, source.Slug, source.Name, source.Description, locale }).Take(10).ToArray();
+            return Results.Ok(new { kind = "category", candidates });
+        }
+
         if (job.Type == AutomationJobType.ContentTranslation)
         {
             var sources = await database.ArticleLocalizations.AsNoTracking()
@@ -131,6 +140,39 @@ public static partial class AutomationWorkerEndpoints
         await database.SaveChangesAsync(token);
         await UpdateProgressAsync(job, database, token);
         return Results.Ok();
+    }
+
+    private static async Task<IResult> SaveCategoryTranslationsAsync(Guid id, EncodedPayload request, HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
+    {
+        if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
+        var job = await database.AutomationJobs.SingleOrDefaultAsync(candidate => candidate.Id == id, token);
+        if (job?.Type != AutomationJobType.CategoryLocalization || job.Status != AutomationJobStatus.Running) return Results.Conflict();
+        var payload = DecodePayload<CategoryTranslationBatch>(request.PayloadBase64);
+        if (payload?.Items is not { Length: > 0 and <= 10 }) return Results.BadRequest(new { message = "Geçersiz kategori çeviri paketi." });
+        foreach (var item in payload.Items)
+        {
+            if (!job.TargetLocales.Contains(item.Locale, StringComparer.OrdinalIgnoreCase) || item.SourceCategoryId == Guid.Empty || !SlugPattern().IsMatch(item.Slug) || string.IsNullOrWhiteSpace(item.Name) || item.Name.Length > 160) return Results.BadRequest(new { message = "Kategori çeviri alanları geçersiz." });
+            var source = await database.Categories.AsNoTracking().SingleOrDefaultAsync(category => category.Id == item.SourceCategoryId && category.Locale.IsDefault, token);
+            var locale = await database.Locales.SingleOrDefaultAsync(candidate => candidate.Code == item.Locale && candidate.IsEnabled && !candidate.IsDefault, token);
+            if (source is null || locale is null) return Results.BadRequest(new { message = "Kaynak kategori veya hedef dil bulunamadı." });
+            var alreadyLogged = await database.AuditLogs.AnyAsync(log => log.Action == "automation.category_localized" && log.EntityId == source.Id && log.DetailsJson != null && log.DetailsJson.Contains($"\"locale\":\"{item.Locale}\""), token);
+            if (alreadyLogged) continue;
+            var slug = item.Slug;
+            if (await database.Categories.AnyAsync(category => category.LocaleId == locale.Id && category.Slug == slug, token)) slug = $"{slug[..Math.Min(slug.Length, 150)]}-{source.Id.ToString("N")[..8]}";
+            var translated = new Category(locale, slug, item.Name, DateTimeOffset.UtcNow);
+            database.Categories.Add(translated);
+            database.AuditLogs.Add(new AuditLog(job.CreatedByUserId, "automation.category_localized", nameof(Category), source.Id, JsonSerializer.Serialize(new { locale = item.Locale, translatedCategoryId = translated.Id }), DateTimeOffset.UtcNow));
+        }
+        await database.SaveChangesAsync(token);
+        var remaining = await AutomationCandidateCounter.CountMissingCategoryTranslationsAsync(database, job.TargetLocales, token);
+        job.ReportProgress(Math.Max(0, job.TotalItems - remaining), 0, job.CurrentPhase, $"Kategori çevirisi: {remaining} kayıt kaldı.", DateTimeOffset.UtcNow);
+        await database.SaveChangesAsync(token); return Results.Ok();
+    }
+
+    private static string? CategoryLocale(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try { return JsonDocument.Parse(json).RootElement.GetProperty("locale").GetString(); } catch { return null; }
     }
 
     private static async Task<IResult> SaveSeoDraftsAsync(Guid id, EncodedPayload request, HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
@@ -474,6 +516,8 @@ public static partial class AutomationWorkerEndpoints
     private sealed record EncodedPayload(string? PayloadBase64);
     private sealed record TranslationBatch(TranslationItem[] Items);
     private sealed record TranslationItem(Guid SourceArticleId, string Locale, string Slug, string Title, string Summary, string Body);
+    private sealed record CategoryTranslationBatch(CategoryTranslationItem[] Items);
+    private sealed record CategoryTranslationItem(Guid SourceCategoryId, string Locale, string Slug, string Name);
     private sealed record SeoBatch(SeoItem[] Items);
     private sealed record SeoItem(Guid ArticleId, string SeoTitle, string SeoDescription);
     private sealed record GeneratedContentBatch(GeneratedContentItem[] Items);

@@ -19,6 +19,7 @@ public static partial class AutomationWorkerEndpoints
         group.MapPost("/{id:guid}/report", SaveReportAsync);
         group.MapGet("/{id:guid}/candidates", GetCandidatesAsync);
         group.MapPost("/{id:guid}/translations", SaveTranslationsAsync);
+        group.MapPost("/{id:guid}/category-translations", SaveCategoryTranslationsAsync);
         group.MapPost("/{id:guid}/seo-drafts", SaveSeoDraftsAsync);
         group.MapPost("/{id:guid}/generated-content", SaveGeneratedContentAsync);
         group.MapPost("/{id:guid}/refresh-covers", RefreshGeneratedCoversAsync);
@@ -46,6 +47,7 @@ public static partial class AutomationWorkerEndpoints
             AutomationJobType.ContentTranslation => await AutomationCandidateCounter.CountMissingTranslationsAsync(database, job.TargetLocales, token),
             AutomationJobType.SeoLocalization => await AutomationCandidateCounter.CountSeoCandidatesAsync(database, job.TargetLocales, token),
             AutomationJobType.ReadyContentGeneration => await AutomationCandidateCounter.CountReadyContentRemainingAsync(database, job, token),
+            AutomationJobType.CategoryLocalization => await AutomationCandidateCounter.CountMissingCategoryTranslationsAsync(database, job.TargetLocales, token),
             _ => 0
         };
         if (!AutomationCompletionPolicy.CanComplete(job.Type, remaining))
@@ -95,6 +97,7 @@ public static partial class AutomationWorkerEndpoints
             AutomationJobType.ContentTranslation=>$"Hedef diller ({locales}) için yalnızca yayımlanmış Türkçe içeriklerin eksik çevirilerini hazırla. Doğrulanmış çeviri teslim API'si yabancı dil makalesini doğrudan yayımlar; ham model çıktısıyla veritabanını değiştirme.",
             AutomationJobType.SeoLocalization=>$"Hedef diller ({locales}) için yayımlanmış çevirilerin eksik SEO alanlarını doğrulanmış SEO teslim API'siyle hazırla. Ham model çıktısıyla veritabanını değiştirme.",
             AutomationJobType.ReadyContentGeneration=>"Seçilen kategori ve türde güncel popüler kaynakları canlı web aramasıyla araştır. Birbirinden ve BOECL arşivinden farklı, ayrıntılı Türkçe makaleler üret. Yalnız yapılandırılmış aday/teslim API'lerini kullan; kaynak URL'lerini eksiksiz bildir.",
+            AutomationJobType.CategoryLocalization=>$"Hedef diller ({locales}) için eksik Türkçe kategori adlarını ve slug değerlerini doğal biçimde yerelleştir. Yalnız yapılandırılmış aday/teslim API'sini kullan.",
             _=>throw new InvalidOperationException("Unsupported automation job type.")
         };
         return $"""
