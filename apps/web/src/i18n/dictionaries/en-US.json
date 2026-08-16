@@ -12,6 +12,7 @@
     "mobile": "Mobile"
   },
   "accessibility": { "skipToContent": "Skip to main content" },
+  "article": { "onThisPage": "In this article" },
   "search": { "title": "Search BOECL", "label": "Search terms", "submit": "Search", "results": "{count} results", "empty": "No published content matched your search." },
   "home": {
     "eyebrow": "A new multilingual publishing platform",

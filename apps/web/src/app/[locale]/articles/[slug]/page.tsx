@@ -10,6 +10,7 @@ import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getPublishedArticle, getRelatedArticles } from "@/lib/public-api";
 import { buildArticleStructuredData, getPublicSource } from "@/lib/article-structured-data";
+import { buildArticleOutline } from "@/lib/article-outline";
 import { absoluteUrl } from "@/lib/site-url";
 
 function markdownBodyToHtml(body: string) {
@@ -82,6 +83,7 @@ export default async function ArticlePage({
   if (!article) notFound();
   const isHtml = article.body.trimStart().startsWith("<"),
     commercial = commercialCopy[locale];
+  const { bodyHtml, outline } = buildArticleOutline(isHtml ? article.body : markdownBodyToHtml(article.body));
   const sourceTitle = {
     "tr-TR": "Kaynaklar",
     "en-US": "Sources",
@@ -201,8 +203,20 @@ export default async function ArticlePage({
               )}
             </figure>
           )}
+          {outline.length >= 2 && (
+            <nav className="article-outline" aria-labelledby="article-outline-title">
+              <h2 id="article-outline-title">{dictionary.article.onThisPage}</h2>
+              <ol>
+                {outline.map((item) => (
+                  <li key={item.id} data-level={item.level}>
+                    <a href={`#${item.id}`}>{item.label}</a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          )}
           <div className="article-body">
-            {isHtml ? <div className="rich-article-body" dangerouslySetInnerHTML={{ __html: article.body }} /> : <div className="rich-article-body" dangerouslySetInnerHTML={{ __html: markdownBodyToHtml(article.body) }} />}
+            <div className="rich-article-body" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
           </div>
           {article.tags.length > 0 && (
             <footer className="article-taxonomy">

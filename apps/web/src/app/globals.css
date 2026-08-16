@@ -1876,6 +1876,41 @@ select:focus-visible {
   font-size: 0.78rem;
   line-height: 1.5;
 }
+.article-outline {
+  margin: 32px 0 8px;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.article-outline h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+.article-outline ol {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.article-outline li[data-level="3"] { padding-left: 18px; }
+.article-outline a {
+  display: block;
+  padding: 8px 0;
+  color: var(--muted);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-underline-offset: 4px;
+}
+.article-outline a:hover { color: var(--foreground); }
+.rich-article-body h2[id],
+.rich-article-body h3[id] { scroll-margin-top: 24px; }
+.rich-article-body h2[id]:focus,
+.rich-article-body h3[id]:focus { outline: 2px solid var(--accent); outline-offset: 5px; }
+@media (max-width: 520px) {
+  .article-outline { margin-inline: -6px; padding: 18px; }
+  .article-outline a { min-height: 44px; }
+}
 .article-taxonomy a {
   padding: 5px 9px;
   border: 1px solid var(--line);
