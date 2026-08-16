@@ -7,7 +7,7 @@ using Peletnapechkai.Api.Domain.Content;
 using Peletnapechkai.Api.Domain.Identity;
 using Peletnapechkai.Api.Infrastructure.Identity;
 using Peletnapechkai.Api.Infrastructure.Persistence;
-using Ganss.Xss;
+using Peletnapechkai.Api.Infrastructure.Publishing;
 
 namespace Peletnapechkai.Api.Endpoints;
 
@@ -78,7 +78,7 @@ public static partial class EditorialEndpoints
         if (locale is null || actor is null) return Results.BadRequest();
         var now = DateTimeOffset.UtcNow;
         var articleGroup = new ArticleGroup(type, now);
-        var body=SanitizeBody(request.Body);var article = new ArticleLocalization(articleGroup, locale, request.Slug, request.Title, request.Summary ?? string.Empty, body, now);
+        var body=ArticleBodyHtmlSanitizer.Sanitize(request.Body);var article = new ArticleLocalization(articleGroup, locale, request.Slug, request.Title, request.Summary ?? string.Empty, body, now);
         article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, body, request.SeoTitle, request.SeoDescription, now);
         var categoryIds=request.CategoryIds??[];if(categoryIds.Length==0)return Validation("categoryIds","A category is required.");var categories=await database.Categories.Where(x=>categoryIds.Contains(x.Id)&&x.LocaleId==locale.Id).ToListAsync(token);if(categories.Count!=categoryIds.Distinct().Count())return Validation("categoryIds","A valid category is required.");foreach(var category in categories)article.Categories.Add(category);
         article.UpdateCommercialDisclosure(request.IsSponsored, request.SponsorName, request.HasAffiliateLinks, now);
@@ -103,7 +103,7 @@ public static partial class EditorialEndpoints
         if(categoryIds.Length==0)return Validation("categoryIds","A category is required.");
         var categories=await database.Categories.Where(x=>categoryIds.Contains(x.Id)&&x.LocaleId==article.LocaleId).ToListAsync(token);
         if(categories.Count!=categoryIds.Distinct().Count())return Validation("categoryIds","A valid category is required.");
-        var body=SanitizeBody(request.Body);
+        var body=ArticleBodyHtmlSanitizer.Sanitize(request.Body);
         article.UpdateDraft(request.Slug, request.Title, request.Summary ?? string.Empty, body, request.SeoTitle, request.SeoDescription, now);
         article.Categories.Clear();foreach(var category in categories)article.Categories.Add(category);
         await AttachInlineMediaAsync(article.ArticleGroup, body, database, token);
@@ -196,7 +196,6 @@ public static partial class EditorialEndpoints
         if(assets.Count!=ids.Length)throw new InvalidOperationException("One or more inline media assets are invalid.");
         foreach(var asset in assets.Where(asset=>group.MediaAssets.All(existing=>existing.Id!=asset.Id)))group.MediaAssets.Add(asset);
     }
-    private static string SanitizeBody(string? body){var sanitizer=new HtmlSanitizer();sanitizer.AllowedTags.Clear();foreach(var tag in new[]{"p","br","h2","h3","h4","strong","em","u","s","blockquote","ul","ol","li","pre","code","a","img","figure","figcaption","hr","table","thead","tbody","tfoot","tr","th","td","video","audio","source"})sanitizer.AllowedTags.Add(tag);sanitizer.AllowedAttributes.Clear();foreach(var attribute in new[]{"href","target","rel","src","alt","title","width","height","colspan","rowspan","controls","poster","preload"})sanitizer.AllowedAttributes.Add(attribute);sanitizer.AllowedSchemes.Clear();foreach(var scheme in new[]{"http","https"})sanitizer.AllowedSchemes.Add(scheme);return sanitizer.Sanitize(body??string.Empty);}
     private sealed record CreateArticleRequest(string Type, string Locale, string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks, Guid[]? CategoryIds);
     private sealed record UpdateArticleRequest(string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks, Guid[]? CategoryIds, DateTimeOffset ExpectedUpdatedAt);
     private sealed record ScheduleRequest(DateTimeOffset ScheduledAt);

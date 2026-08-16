@@ -2,13 +2,13 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Ganss.Xss;
 using Microsoft.EntityFrameworkCore;
 using Peletnapechkai.Api.Domain.Auditing;
 using Peletnapechkai.Api.Domain.Automation;
 using Peletnapechkai.Api.Domain.Content;
 using Peletnapechkai.Api.Infrastructure.Automation;
 using Peletnapechkai.Api.Infrastructure.Persistence;
+using Peletnapechkai.Api.Infrastructure.Publishing;
 using SkiaSharp;
 
 namespace Peletnapechkai.Api.Endpoints;
@@ -363,7 +363,7 @@ public static partial class AutomationWorkerEndpoints
 
     private static string InsertInlineImages(string body, IReadOnlyList<MediaAsset> assets, IReadOnlyList<string> altTexts)
     {
-        var figures = assets.Select((asset, index) => $"<figure class=\"article-inline-image\"><img src=\"/api/media/{asset.Id}?v={asset.OptimizedByteLength}\" alt=\"{System.Net.WebUtility.HtmlEncode(altTexts[index])}\" width=\"1200\" height=\"675\" loading=\"lazy\"></figure>").ToArray();
+        var figures = assets.Select((asset, index) => $"<figure class=\"article-inline-image\"><img src=\"/api/media/{asset.Id}?v={asset.OptimizedByteLength}\" alt=\"{System.Net.WebUtility.HtmlEncode(altTexts[index])}\" width=\"1200\" height=\"675\" loading=\"lazy\" decoding=\"async\"></figure>").ToArray();
         var next = 0;
         var result = Regex.Replace(body, "</h2>", match => next < figures.Length ? match.Value + figures[next++] : match.Value, RegexOptions.IgnoreCase);
         while (next < figures.Length) result += figures[next++];
@@ -493,11 +493,7 @@ public static partial class AutomationWorkerEndpoints
     {
         body ??= "";
         if (!body.TrimStart().StartsWith('<')) body = MarkdownToHtml(body);
-        var sanitizer = new HtmlSanitizer();
-        sanitizer.AllowedTags.Clear(); foreach (var tag in new[] { "p","br","h2","h3","h4","strong","em","u","s","blockquote","ul","ol","li","pre","code","a","img","figure","figcaption","hr","table","thead","tbody","tfoot","tr","th","td","video","audio","source" }) sanitizer.AllowedTags.Add(tag);
-        sanitizer.AllowedAttributes.Clear(); foreach (var attribute in new[] { "href","target","rel","src","alt","title","width","height","colspan","rowspan","controls","poster","preload" }) sanitizer.AllowedAttributes.Add(attribute);
-        sanitizer.AllowedSchemes.Clear(); foreach (var scheme in new[] { "http", "https" }) sanitizer.AllowedSchemes.Add(scheme);
-        return sanitizer.Sanitize(body);
+        return ArticleBodyHtmlSanitizer.Sanitize(body);
     }
 
     private static string MarkdownToHtml(string markdown)
