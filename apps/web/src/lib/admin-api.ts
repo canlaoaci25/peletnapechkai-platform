@@ -94,6 +94,7 @@ export type SystemStatus = {
     certificateDaysRemaining: number | null;
     failures: string[];
   };
+  deployments: { environment: "Staging" | "Production"; component: "Web" | "Api"; status: string; commit: string; message: string; startedAt: string; updatedAt: string; durationSeconds: number }[];
 };
 export type EditorialCommandCenter = {
   checkedAt: string;

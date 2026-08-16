@@ -35,6 +35,8 @@ export function AdminOverview({
   const health = status?.productionHealth;
   const healthState = !health?.available ? "unavailable" : health.stale ? "stale" : health.healthy ? "healthy" : "failed";
   const healthLabel = {healthy:"Tüm kapılar açık",failed:"Müdahale gerekiyor",stale:"Kontrol bayat",unavailable:"Sağlık verisi yok"}[healthState];
+  const deployText={"tr-TR":{title:"SÜRÜM KURTARMA MERKEZİ",empty:"Henüz doğrulanmış dağıtım kaydı yok."},"en-US":{title:"RELEASE RECOVERY CENTER",empty:"No verified deployment record yet."},"de-DE":{title:"RELEASE-WIEDERHERSTELLUNG",empty:"Noch keine verifizierte Bereitstellung."},"fr-FR":{title:"CENTRE DE REPRISE DES VERSIONS",empty:"Aucun déploiement vérifié."}}[locale]??{title:"SÜRÜM KURTARMA MERKEZİ",empty:"Henüz doğrulanmış dağıtım kaydı yok."};
+  const deployStatus:Record<string,string>={Started:"Hazırlanıyor",Verifying:"Kapılar çalışıyor",Succeeded:"Yayında",RolledBack:"Geri alındı",RollbackFailed:"Kurtarma başarısız",Failed:"Başarısız"};
   return (
     <div className="overview-grid">
       <section
@@ -139,6 +141,7 @@ export function AdminOverview({
           </time>
         </section>
       )}
+      {status && <section className="admin-panel overview-releases"><header><div><p className="section-kicker">{deployText.title}</p><h2>Web + API</h2></div><span>{status.deployments.length}/4</span></header>{status.deployments.length===0?<p className="muted">{deployText.empty}</p>:<div className="release-grid">{status.deployments.map(item=><article className={item.status==="Succeeded"?"release-safe":item.status==="RolledBack"?"release-recovered":"release-risk"} key={`${item.environment}-${item.component}`}><header><strong>{item.environment} · {item.component}</strong><span>{deployStatus[item.status]??item.status}</span></header><p><code>{item.commit||"—"}</code> · {item.durationSeconds}s</p>{item.message&&<small>{item.message}</small>}<time dateTime={item.updatedAt}>{new Intl.DateTimeFormat(locale,{dateStyle:"medium",timeStyle:"short"}).format(new Date(item.updatedAt))}</time></article>)}</div>}</section>}
       <section className="admin-panel overview-recent">
         <header>
           <div>

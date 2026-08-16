@@ -5,6 +5,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'DeploymentJournal.ps1')
+$deploymentId = [guid]::NewGuid().ToString('N')
+$deploymentStartedAt = [datetimeoffset]::UtcNow
+$commit = (& git.exe -C (Join-Path $PSScriptRoot '..\..') rev-parse --short=12 HEAD 2>$null)
+Write-BoeclDeploymentJournal -Environment $Environment -Component Web -Status Started -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'Release artifacts are being staged.'
 $settings = if ($Environment -eq 'Production') {
     @{ Service='PeletnapechkaiWeb'; Root='C:\inetpub\peletnapechkai'; Health='Test-ProductionHealth.ps1'; BaseUrl='https://peletnapechkai.com' }
 } else {
@@ -48,6 +53,7 @@ try {
     Move-Item -LiteralPath $release -Destination $active
     Start-Service -Name $settings.Service
     $serviceStopped = $false
+    Write-BoeclDeploymentJournal -Environment $Environment -Component Web -Status Verifying -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'Release swapped; health and public experience gates are running.'
     $healthy = $false
     for ($attempt = 1; $attempt -le 6; $attempt++) {
         Start-Sleep -Seconds 5
@@ -57,12 +63,24 @@ try {
     if (-not $healthy) { throw "$Environment health check failed after startup retries." }
     & (Join-Path $PSScriptRoot 'Test-PublicExperience.ps1') -BaseUrl $settings.BaseUrl | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "$Environment public experience check failed." }
+    Write-BoeclDeploymentJournal -Environment $Environment -Component Web -Status Succeeded -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'Health and public experience gates passed.'
     [pscustomobject]@{ Environment=$Environment; Active=$active; Rollback=$rollback; Healthy=$true }
 }
 catch {
+    $failureMessage = $_.Exception.Message
     if (-not $serviceStopped) { Stop-Service -Name $settings.Service -Force -ErrorAction SilentlyContinue }
     if (Test-Path -LiteralPath $active) { Move-Item -LiteralPath $active -Destination ($release + '-failed') }
     if (Test-Path -LiteralPath $rollback) { Move-Item -LiteralPath $rollback -Destination $active }
     Start-Service -Name $settings.Service -ErrorAction SilentlyContinue
+    $rollbackHealthy = $false
+    try {
+        for ($attempt = 1; $attempt -le 3; $attempt++) {
+            Start-Sleep -Seconds 3
+            & (Join-Path $PSScriptRoot $settings.Health) | Out-Null
+            if ($LASTEXITCODE -eq 0) { $rollbackHealthy = $true; break }
+        }
+    } catch { $rollbackHealthy = $false }
+    $recoveryStatus = if ($rollbackHealthy) { 'RolledBack' } else { 'RollbackFailed' }
+    Write-BoeclDeploymentJournal -Environment $Environment -Component Web -Status $recoveryStatus -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message $failureMessage
     throw
 }

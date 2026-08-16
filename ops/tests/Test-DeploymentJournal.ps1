@@ -1,0 +1,5 @@
+[CmdletBinding()] param()
+$ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot '..\windows\DeploymentJournal.ps1')
+$root=Join-Path ([IO.Path]::GetTempPath()) ("boecl-journal-{0}" -f [guid]::NewGuid().ToString('N'))
+try {$started=[datetimeoffset]::UtcNow.AddSeconds(-5);Write-BoeclDeploymentJournal -Environment Staging -Component Web -Status RolledBack -DeploymentId 'test-release' -Commit 'abc123' -Message "token=must-not-leak`nhealth failed" -StartedAt $started -JournalRoot $root;$snapshot=Get-Content -Raw -LiteralPath (Join-Path $root 'latest-staging-web.json')|ConvertFrom-Json;if($snapshot.Status-ne'RolledBack'-or$snapshot.Commit-ne'abc123'){throw 'Deployment snapshot fields were not persisted.'};if($snapshot.Message-match'must-not-leak'-or$snapshot.Message-match"`n"){throw 'Deployment message was not sanitized.'};if($snapshot.DurationSeconds-lt 4){throw 'Deployment duration was not recorded.'};Write-Host 'Deployment journal regression tests passed.'}finally{Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue}

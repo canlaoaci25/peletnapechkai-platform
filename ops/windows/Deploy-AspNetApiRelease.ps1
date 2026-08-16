@@ -5,6 +5,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'DeploymentJournal.ps1')
+$deploymentId = [guid]::NewGuid().ToString('N')
+$deploymentStartedAt = [datetimeoffset]::UtcNow
+$commit = (& git.exe -C $RepositoryPath rev-parse --short=12 HEAD 2>$null)
+Write-BoeclDeploymentJournal -Environment $Environment -Component Api -Status Started -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'API release is being published and staged.'
 Import-Module WebAdministration
 $settings = if ($Environment -eq 'Production') {
     @{ Pool='PeletnapechkaiApiPool'; Root='C:\inetpub\peletnapechkai'; Health='Test-ProductionHealth.ps1' }
@@ -40,12 +45,15 @@ try {
     Move-Item -LiteralPath $release -Destination $active
     $swapped = $true
     Start-WebAppPool $settings.Pool
+    Write-BoeclDeploymentJournal -Environment $Environment -Component Api -Status Verifying -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'Release swapped; API health gate is running.'
     Start-Sleep -Seconds 5
     & (Join-Path $PSScriptRoot $settings.Health) | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "$Environment API health check failed." }
+    Write-BoeclDeploymentJournal -Environment $Environment -Component Api -Status Succeeded -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'API health gate passed.'
     [pscustomobject]@{ Environment=$Environment; Active=$active; Rollback=$rollback; Healthy=$true }
 }
 catch {
+    $failureMessage = $_.Exception.Message
     Stop-WebAppPool $settings.Pool -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
     if ($swapped -and (Test-Path -LiteralPath $rollback)) {
@@ -54,6 +62,13 @@ catch {
         Move-Item -LiteralPath $rollback -Destination $active
     }
     Start-WebAppPool $settings.Pool -ErrorAction SilentlyContinue
+    $rollbackHealthy = $false
+    try {
+        Start-Sleep -Seconds 3
+        & (Join-Path $PSScriptRoot $settings.Health) | Out-Null
+        $rollbackHealthy = $LASTEXITCODE -eq 0
+    } catch { $rollbackHealthy = $false }
+    $recoveryStatus = if ($rollbackHealthy) { 'RolledBack' } else { 'RollbackFailed' }
+    Write-BoeclDeploymentJournal -Environment $Environment -Component Api -Status $recoveryStatus -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message $failureMessage
     throw
 }
-

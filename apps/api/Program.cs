@@ -15,6 +15,7 @@ builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddApplicationIdentity(builder.Environment, builder.Configuration);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ProductionHealthSnapshotReader>();
+builder.Services.AddSingleton<DeploymentSnapshotReader>();
 builder.Services.AddHostedService<ScheduledPublishingWorker>();
 builder.Services.AddHostedService<AutomaticContentWorker>();
 

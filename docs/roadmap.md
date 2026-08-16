@@ -2,6 +2,10 @@
 
 ## Execution status
 
+Cycle 24 launches the Release Recovery Center: web and API deployment scripts now persist
+sanitized, atomic staging/production checkpoints, verify automatic rollback health, and
+surface the latest commit, gate state, duration, and recovery outcome in the admin home.
+
 Cycle 23 launches the Visual Quality Desk: administrators can now see a real, risk-ranked
 inventory of every published article cover, including topic/alt relevance, text or logo
 risk, crop safety, optimization, rights metadata, and body-visual debt. The next visual

@@ -1334,6 +1334,9 @@ select:focus-visible {
 .overview-system.health-failed,.overview-system.health-stale,.overview-system.health-unavailable {border-color:#d8a25d}
 .health-failed .health-dot {background:#ee6a5b}.health-stale .health-dot,.health-unavailable .health-dot {background:#e0a64b}
 .health-failures {display:grid;gap:7px;margin:16px 0 0;padding:12px 12px 12px 28px;border-radius:10px;background:color-mix(in srgb,#ee6a5b 9%,transparent);font-size:.72rem}
+.overview-releases{grid-column:1/-1}.overview-releases>header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}.overview-releases>header>span{font-weight:800;color:var(--admin-muted)}
+.release-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.release-grid article{display:grid;gap:7px;min-width:0;padding:14px;border:1px solid var(--admin-border);border-radius:12px;background:var(--admin-surface-raised)}.release-grid article>header{display:flex;justify-content:space-between;gap:8px}.release-grid article>header span{font-size:.68rem;font-weight:800}.release-grid p,.release-grid small,.release-grid time{margin:0;font-size:.7rem;color:var(--admin-muted)}.release-grid code{color:var(--admin-text)}.release-grid .release-safe{border-left:3px solid #3da779}.release-grid .release-recovered{border-left:3px solid #d89a45}.release-grid .release-risk{border-left:3px solid #d65f59}
+@media(max-width:900px){.release-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.release-grid{grid-template-columns:1fr}.release-grid article>header{align-items:center}}
 .health-dot {
   display: inline-block;
   width: 8px;
