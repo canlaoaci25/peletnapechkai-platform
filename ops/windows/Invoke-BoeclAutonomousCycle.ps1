@@ -10,6 +10,7 @@ $logRoot = Join-Path $StateRoot 'Logs'
 if (-not (Test-Path -LiteralPath $statePath)) { exit 0 }
 $state = Get-Content -Raw -LiteralPath $statePath -Encoding UTF8 | ConvertFrom-Json
 if (-not $state.enabled) { exit 0 }
+function Set-StateValue([string]$Name, $Value) { $state | Add-Member -NotePropertyName $Name -NotePropertyValue $Value -Force }
 New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
 $mutex = [Threading.Mutex]::new($false, 'Global\BOECL-Autonomous-Improvement')
 if (-not $mutex.WaitOne(0)) { exit 0 }
@@ -27,12 +28,12 @@ try {
     $output = Join-Path $logRoot "$stamp-cycle-$cycle-result.txt"
     $events = Join-Path $logRoot "$stamp-cycle-$cycle.jsonl"
     $errors = Join-Path $logRoot "$stamp-cycle-$cycle-stderr.log"
-    $state.currentCycle = $cycle
-    $state.currentFocus = $focus
-    $state.currentStatus = 'Running'
-    $state.currentStartedAt = [DateTimeOffset]::UtcNow.ToString('o')
-    $state.currentEventLog = $events
-    $state.currentResultLog = $output
+    Set-StateValue 'currentCycle' $cycle
+    Set-StateValue 'currentFocus' $focus
+    Set-StateValue 'currentStatus' 'Running'
+    Set-StateValue 'currentStartedAt' ([DateTimeOffset]::UtcNow.ToString('o'))
+    Set-StateValue 'currentEventLog' $events
+    Set-StateValue 'currentResultLog' $output
     $state.updatedAt = $state.currentStartedAt
     $state | ConvertTo-Json | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
     Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
@@ -70,7 +71,7 @@ Repo AGENTS.md kurallarını eksiksiz uygula. Sistemi incele, yalnız kanıtlana
     $state.cycle = $cycle
     $state.lastRunAt = [DateTimeOffset]::UtcNow.ToString('o')
     $state.lastResult = 'Completed'
-    $state.currentStatus = 'Completed'
+    Set-StateValue 'currentStatus' 'Completed'
     $state.updatedAt = $state.lastRunAt
     $state | ConvertTo-Json | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
     Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
@@ -78,7 +79,7 @@ Repo AGENTS.md kurallarını eksiksiz uygula. Sistemi incele, yalnız kanıtlana
 catch {
     $state.lastRunAt = [DateTimeOffset]::UtcNow.ToString('o')
     $state.lastResult = "Failed: $($_.Exception.Message)"
-    $state.currentStatus = 'Failed'
+    Set-StateValue 'currentStatus' 'Failed'
     $state.updatedAt = $state.lastRunAt
     $state | ConvertTo-Json | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
     Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
