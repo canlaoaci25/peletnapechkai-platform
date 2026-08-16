@@ -21,6 +21,12 @@ try {
     if (-not (Test-Path -LiteralPath (Join-Path $repository 'AGENTS.md'))) { throw 'Yetkili BOECL deposu doğrulanamadı.' }
     if (@(& git.exe -C $repository status --porcelain).Count -gt 0) { throw 'Çalışma ağacı temiz değil; kullanıcı değişikliklerini korumak için çevrim atlandı.' }
     $baselineCommit = (& git.exe -C $repository rev-parse HEAD).Trim()
+    $masterInstructionsPath = 'C:\Users\Administrator\Desktop\New Text Document.txt'
+    if (-not (Test-Path -LiteralPath $masterInstructionsPath -PathType Leaf)) { throw 'Kullanici master otonom talimat dosyasi bulunamadi.' }
+    $masterInstructionsInfo = Get-Item -LiteralPath $masterInstructionsPath
+    if ($masterInstructionsInfo.Length -le 0 -or $masterInstructionsInfo.Length -gt 100KB) { throw 'Kullanici master otonom talimat dosyasi gecersiz boyutta.' }
+    $masterInstructions = Get-Content -Raw -LiteralPath $masterInstructionsPath -Encoding UTF8
+    $masterAuditMode = -not ($state.PSObject.Properties.Name -contains 'masterAuditCompleted' -and [bool]$state.masterAuditCompleted)
 
     $focuses = @(
         'ana sayfa, global navigasyon ve gorunur tasarim donusumu',
@@ -52,6 +58,15 @@ try {
     Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
     $prompt = @"
 BOECL tam yetkili otonom geliştirme çevrimi $cycle. Bu çevrimin odağı: $focus.
+
+Asagidaki CODEX MASTER INSTRUCTIONS metni kullanici tarafindan kalici ana talimat olarak verilmistir. Tamamini bu cevrimde uygula; cevrim odagi bu ana kurallari daraltmaz:
+
+----- KULLANICI MASTER TALIMATLARI BASLANGICI -----
+$masterInstructions
+----- KULLANICI MASTER TALIMATLARI SONU -----
+
+Bu master talimatlar icin ilk calistirma denetimi gerekli mi: $masterAuditMode. Deger True ise once tam analiz ve oncelikli ilk 20 gelistirme raporunu depo altinda kalici dokuman olarak olustur, sonra ayni cevrimde kanitlanan en kritik guvenli isi uygula. Deger False ise daha onceki denetimi ve backlog'u okuyarak siradaki faza devam et; ilk analiz adimini gereksiz yere tekrarlama.
+
 Repo AGENTS.md kurallarını eksiksiz uygula. Sistemi incele, kanıtlanabilir en yüksek değerli ürün fazını seç, uygula ve regresyon testlerini ekle. Türkçe içerik, SEO, etkin dillere çeviri, taxonomy, yazısız konuya özel kapak ve gövde görselleri, API, admin, mobil, güvenlik ve operasyon bütünlüğünü birlikte geliştir. Kullanıcı veya başka süreç değişikliklerini silme. Sırları okuma veya raporlama. Veritabanı şemasını, indeksleri, ilişkileri ve uygulama verisini geliştirebilirsin; bunu yedek, migration, transaction, doğrulanan servis/API ve audit iziyle güvenli ve tekrarlanabilir yap. Kalite kapıları geçmezse commit/push/deploy yapma. Geçerse anlamlı commit oluştur ve origin/main dalına push et. Geri döndürülemez hesap, DNS, ödeme veya kimlik işlemi yapma. Sonuçta yapılanları, testleri, commit'i ve kalan riski Türkçe raporla.
 Bu bir bakim botu degil, BOECL'in tamamini gelistiren tam yetkili urun, tasarim, yazilim, veri, editor, SEO ve yerellestirme ekibidir. Nihai hedef; Onedio, BBC, CNN, The Verge, Wired, Vox ve benzeri global yayinlarin kesif, hiz, guven, gorsel hiyerarsi, kategori mimarisi, uyelik ve cok dilli erisim guclerini arastirip BOECL kimligiyle daha iyi bir global icerik platformu kurmaktir. Tasarim veya metin kopyalama; prensipleri arastir, olc ve ozgun uygula. Her cevrim tek bir urun fazini uctan uca tamamlamali ve kullanici sayfayi actiginda gozle gorulur bir fark olusturmalidir. Sadece CSS ayrintisi, lazy-loading, aria, test, refactor, dokuman veya altyapi degisikligi tek basina cevrim basarisi olamaz; bunlar gorunur fazin destekleyici parcalari olabilir.
 
@@ -128,6 +143,7 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
     $state.cycle = $cycle
     $state.lastRunAt = [DateTimeOffset]::UtcNow.ToString('o')
     $state.lastResult = 'Completed'
+    $state | Add-Member -NotePropertyName 'masterAuditCompleted' -NotePropertyValue $true -Force
     Set-StateValue 'currentStatus' 'Completed'
     $state.updatedAt = $state.lastRunAt
     $state | ConvertTo-Json | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
