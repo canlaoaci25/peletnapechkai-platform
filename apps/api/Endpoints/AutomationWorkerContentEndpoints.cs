@@ -234,7 +234,7 @@ public static partial class AutomationWorkerEndpoints
         if (job is null) return Results.NotFound();
         if (job.Type != AutomationJobType.ReadyContentGeneration || job.Status != AutomationJobStatus.Running || job.CategoryId is null || !Enum.TryParse<ArticleType>(job.RequestedArticleType, out var articleType)) return Results.Conflict();
         var payload = DecodePayload<GeneratedContentBatch>(request.PayloadBase64);
-        var alreadyCreated = await database.ArticleLocalizations.CountAsync(article => article.GeneratedByAutomationJobId == job.Id && article.Locale.IsDefault, token);
+        var alreadyCreated = await database.ArticleLocalizations.CountAsync(article => article.GeneratedByAutomationJobId == job.Id && article.Locale.IsDefault && article.Status != PublicationStatus.Archived, token);
         var remaining = job.TotalItems - alreadyCreated;
         if (payload?.Items is not { Length: 1 } || payload.Items.Length > remaining) return Results.BadRequest(new { message = "Her aşamada tam olarak bir hazır içerik gereklidir." });
         var locale = await database.Locales.SingleAsync(item => item.IsDefault && item.IsEnabled, token);

@@ -18,6 +18,7 @@ public static partial class AutomationWorkerEndpoints
         group.MapPost("/{id:guid}/retry", RetryAsync);
         group.MapPost("/{id:guid}/report", SaveReportAsync);
         group.MapPost("/{id:guid}/heartbeat", HeartbeatAsync);
+        group.MapGet("/{id:guid}/control", ControlAsync);
         group.MapGet("/{id:guid}/candidates", GetCandidatesAsync);
         group.MapPost("/{id:guid}/translations", SaveTranslationsAsync);
         group.MapPost("/{id:guid}/category-translations", SaveCategoryTranslationsAsync);
@@ -91,6 +92,14 @@ public static partial class AutomationWorkerEndpoints
         try { job.Heartbeat(request.Message, DateTimeOffset.UtcNow); }
         catch (InvalidOperationException exception) { return Results.Conflict(new { message = exception.Message }); }
         await database.SaveChangesAsync(token); return Results.Ok(new { job.UpdatedAt });
+    }
+
+    private static async Task<IResult> ControlAsync(Guid id, HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
+    {
+        if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
+        var status = await database.AutomationJobs.AsNoTracking().Where(candidate => candidate.Id == id)
+            .Select(candidate => (AutomationJobStatus?)candidate.Status).SingleOrDefaultAsync(token);
+        return status is null ? Results.NotFound() : Results.Ok(new { status = status.Value.ToString(), shouldContinue = status == AutomationJobStatus.Running });
     }
 
     private static bool IsAuthorized(HttpContext context,IConfiguration configuration)

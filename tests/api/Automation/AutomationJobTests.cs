@@ -125,6 +125,22 @@ public sealed class AutomationJobTests
     }
 
     [Fact]
+    public void Retry_clears_failure_count_without_losing_checkpoint_phase()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var job = new AutomationJob(AutomationJobType.ContentTranslation, ["de-DE"], 5, Guid.CreateVersion7(), now);
+        job.Start(1, now);
+        job.ReportProgress(2, 1, 3, "Bir kayıt başarısız.", now);
+        job.Fail("Geçici hata", now);
+
+        job.Retry(now.AddMinutes(1));
+
+        Assert.Equal(0, job.FailedItems);
+        Assert.Equal(2, job.CompletedItems);
+        Assert.Equal(3, job.CurrentPhase);
+    }
+
+    [Fact]
     public void Ready_content_job_preserves_every_requested_phase_option()
     {
         var now=DateTimeOffset.UtcNow;var categoryId=Guid.CreateVersion7();

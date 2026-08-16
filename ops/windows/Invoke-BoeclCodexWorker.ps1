@@ -16,6 +16,7 @@ function Invoke-CodexProcess {
         [Parameter(Mandatory)] [string]$InputText,
         [Parameter(Mandatory)] [string]$OutputPath,
         [Parameter(Mandatory)] [string]$ErrorPath,
+        [scriptblock]$ShouldContinue,
         [int]$TimeoutMinutes = 60,
         [int]$MaximumAttempts = 2
     )
@@ -32,7 +33,16 @@ function Invoke-CodexProcess {
             # can otherwise lose the handle and expose a null ExitCode for long-running
             # redirected processes even though they completed successfully.
             $null = $process.Handle
-            if ($process.WaitForExit($TimeoutMinutes * 60 * 1000)) {
+            $deadline = [DateTimeOffset]::UtcNow.AddMinutes($TimeoutMinutes)
+            $completed = $false
+            while ([DateTimeOffset]::UtcNow -lt $deadline) {
+                if ($process.WaitForExit(5000)) { $completed = $true; break }
+                if ($ShouldContinue -and -not (& $ShouldContinue)) {
+                    & taskkill.exe /PID $process.Id /T /F | Out-Null
+                    return 1223
+                }
+            }
+            if ($completed) {
                 # Start-Process with redirected streams may report HasExited before the
                 # asynchronous stream readers and native process handle are finalized.
                 # A parameterless second wait is required before ExitCode is reliable.
@@ -83,6 +93,13 @@ try {
     if (-not $job.id) { exit 0 }
 
     $jobId = [string]$job.id
+    $controlCheck = {
+        try {
+            $control = Invoke-RestMethod -Method Get -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/control" -Headers $headers
+            return [bool]$control.shouldContinue
+        }
+        catch { return $true }
+    }
     $jobLog = Join-Path $logRoot "$jobId.jsonl"
     $stderrLog = Join-Path $logRoot "$jobId-stderr.log"
     $lastMessage = Join-Path $logRoot "$jobId-result.txt"
@@ -143,7 +160,8 @@ try {
                     }
                 }
             }
-            $codexExitCode = if ($recovered) { 0 } else { Invoke-CodexProcess -Executable ([string]$config.codexPath) -Arguments $codexArguments -InputText $instruction -OutputPath $batchLog -ErrorPath $batchError -TimeoutMinutes 60 -MaximumAttempts 2 }
+            $codexExitCode = if ($recovered) { 0 } else { Invoke-CodexProcess -Executable ([string]$config.codexPath) -Arguments $codexArguments -InputText $instruction -OutputPath $batchLog -ErrorPath $batchError -ShouldContinue $controlCheck -TimeoutMinutes 60 -MaximumAttempts 2 }
+            if ($codexExitCode -eq 1223) { exit 0 }
             if ($codexExitCode -ne 0) { throw "Codex yapılandırılmış içerik grubunu tamamlayamadı (batch $batch, exit $codexExitCode)." }
             Send-WorkerHeartbeat -ApiUrl ([string]$config.apiUrl) -Headers $headers -JobId $jobId -Message "Paket ${batch}: Codex çıktısı tamamlandı; şema ve API doğrulamasına gönderiliyor."
             $resultJson = Get-Content -LiteralPath $batchResult -Raw -Encoding UTF8
@@ -161,7 +179,8 @@ try {
     }
     else {
         $codexArguments = @('exec', '--ephemeral', '--json', '--sandbox', 'danger-full-access', '--cd', [string]$config.repositoryPath, '--output-last-message', $lastMessage, '-')
-        $codexExitCode = Invoke-CodexProcess -Executable ([string]$config.codexPath) -Arguments $codexArguments -InputText ([string]$job.prompt) -OutputPath $jobLog -ErrorPath $stderrLog -TimeoutMinutes 90 -MaximumAttempts 2
+        $codexExitCode = Invoke-CodexProcess -Executable ([string]$config.codexPath) -Arguments $codexArguments -InputText ([string]$job.prompt) -OutputPath $jobLog -ErrorPath $stderrLog -ShouldContinue $controlCheck -TimeoutMinutes 90 -MaximumAttempts 2
+        if ($codexExitCode -eq 1223) { exit 0 }
         if ($codexExitCode -ne 0) {
             $stderrTail = if (Test-Path -LiteralPath $stderrLog) { (Get-Content -LiteralPath $stderrLog -Tail 8) -join ' ' } else { '' }
             throw "Codex exited with code $codexExitCode. $stderrTail"
@@ -181,6 +200,7 @@ try {
     )
     $qualityResults = [Collections.Generic.List[string]]::new()
     foreach ($check in $checks) {
+        if (-not (& $controlCheck)) { exit 0 }
         Send-WorkerHeartbeat -ApiUrl ([string]$config.apiUrl) -Headers $headers -JobId $jobId -Message "Kalite kapısı çalışıyor: $($check.Name)."
         "[$(Get-Date -Format o)] START $($check.Name)" | Add-Content -LiteralPath $qualityLog -Encoding UTF8
         $ErrorActionPreference = 'Continue'

@@ -100,6 +100,7 @@ public sealed class AutomationJob
     {
         if (Status != AutomationJobStatus.Failed) throw new InvalidOperationException("Only failed jobs can be retried.");
         Status = AutomationJobStatus.Queued;
+        FailedItems = 0;
         CompletedAt = null;
         LastMessage = "Hatalı iş yeniden denenmek üzere kuyruğa alındı.";
         UpdatedAt = now;
