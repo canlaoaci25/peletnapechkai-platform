@@ -13,9 +13,9 @@ import { absoluteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 
-function ArticleImage({ article, sizes, priority = false }: { article: PublicArticleSummary; sizes: string; priority?: boolean }) {
+function ArticleImage({ article, sizes, preload = false }: { article: PublicArticleSummary; sizes: string; preload?: boolean }) {
   return article.cover ? (
-    <Image src={article.cover.url} alt={article.cover.altText} fill priority={priority} sizes={sizes} />
+    <Image src={article.cover.url} alt={article.cover.altText} fill preload={preload} sizes={sizes} />
   ) : <span className="home-image-fallback" aria-hidden="true">BOECL</span>;
 }
 
@@ -55,7 +55,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
         {lead ? (
           <section className="headline-grid" aria-labelledby="headline-title">
             <article className="lead-story">
-              <Link className="lead-image" href={`/${locale}/articles/${lead.slug}`}><ArticleImage article={lead} sizes={homeImageSizes.lead} priority /></Link>
+              <Link className="lead-image" href={`/${locale}/articles/${lead.slug}`}><ArticleImage article={lead} sizes={homeImageSizes.lead} preload /></Link>
               <div className="lead-copy">
                 <p className="section-kicker">{copy.featured}</p>
                 <h1 id="headline-title"><Link href={`/${locale}/articles/${lead.slug}`}>{lead.title}</Link></h1>

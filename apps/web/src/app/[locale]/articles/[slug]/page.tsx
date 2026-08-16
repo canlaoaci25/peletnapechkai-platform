@@ -183,7 +183,7 @@ export default async function ArticlePage({
                 width={1200}
                 height={675}
                 sizes="(max-width: 820px) calc(100vw - 40px), 780px"
-                priority
+                preload
               />
               {(article.cover.caption || article.cover.credit) && (
                 <figcaption>

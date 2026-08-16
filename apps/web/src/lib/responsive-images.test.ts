@@ -17,4 +17,19 @@ test("yayın görselleri Next.js optimizasyon hattını kullanır", () => {
 
   assert.doesNotMatch(homePage, /\bunoptimized\b/);
   assert.doesNotMatch(articlePage, /\bunoptimized\b/);
+  assert.doesNotMatch(homePage, /\bpriority\b/);
+  assert.doesNotMatch(articlePage, /\bpriority\b/);
+  assert.match(homePage, /preload=\{preload\}/);
+  assert.match(articlePage, /\bpreload\b/);
+});
+
+test("genel yayın kabuğu yerelleştirilmiş navigasyon ve ekran altı render sözleşmesini korur", () => {
+  const header = readFileSync(fileURLToPath(new URL("../components/site-header.tsx", import.meta.url)), "utf8");
+  const styles = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
+
+  for (const label of ["Hesap", "Account", "Konto", "Compte"]) assert.match(header, new RegExp(`account:\"${label}\"`));
+  assert.match(header, /aria-label=\{c\.account\}/);
+  assert.doesNotMatch(header, /aria-label=\"Account\"/);
+  assert.match(styles, /\.picks-section,[\s\S]*content-visibility:\s*auto/);
+  assert.match(styles, /contain-intrinsic-block-size:\s*auto 700px/);
 });
