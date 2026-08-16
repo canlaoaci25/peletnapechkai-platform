@@ -27,13 +27,32 @@ try {
     $output = Join-Path $logRoot "$stamp-cycle-$cycle-result.txt"
     $events = Join-Path $logRoot "$stamp-cycle-$cycle.jsonl"
     $errors = Join-Path $logRoot "$stamp-cycle-$cycle-stderr.log"
+    $state.currentCycle = $cycle
+    $state.currentFocus = $focus
+    $state.currentStatus = 'Running'
+    $state.currentStartedAt = [DateTimeOffset]::UtcNow.ToString('o')
+    $state.currentEventLog = $events
+    $state.currentResultLog = $output
+    $state.updatedAt = $state.currentStartedAt
+    $state | ConvertTo-Json | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
+    Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
     $prompt = @"
 BOECL tam yetkili otonom geliştirme çevrimi $cycle. Bu çevrimin odağı: $focus.
 Repo AGENTS.md kurallarını eksiksiz uygula. Sistemi incele, yalnız kanıtlanabilir en yüksek değerli ve sınırlı bir iyileştirme paketi seç, uygula ve regresyon testlerini ekle. Türkçe içerik, SEO, etkin dillere çeviri, taxonomy, yazısız konuya özel kapak ve gövde görselleri, API, admin, mobil, güvenlik ve operasyon bütünlüğünü birlikte koru. Kullanıcı veya başka süreç değişikliklerini silme. Sırları okuma veya raporlama. Veritabanına doğrudan içerik yazma; doğrulanan API/migration yollarını kullan. Kalite kapıları geçmezse commit/push/deploy yapma. Geçerse anlamlı commit oluştur ve origin/main dalına push et. Geri döndürülemez hesap, DNS, ödeme veya kimlik işlemi yapma. Sonuçta yapılanları, testleri, commit'i ve kalan riski Türkçe raporla.
 "@
     $env:CODEX_HOME = [string]$config.codexHome
-    $prompt | & ([string]$config.codexPath) --search exec --ephemeral --json --sandbox danger-full-access --cd $repository --output-last-message $output - 1> $events 2> $errors
-    if ($LASTEXITCODE -ne 0) { throw "Codex çevrimi başarısız oldu (exit $LASTEXITCODE)." }
+    $inputPath = Join-Path $logRoot "$stamp-cycle-$cycle.stdin"
+    $prompt | Set-Content -LiteralPath $inputPath -Encoding UTF8
+    $arguments = @('--search','exec','--ephemeral','--json','--sandbox','danger-full-access','--cd',$repository,'--output-last-message',$output,'-')
+    $argumentLine = ($arguments | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join ' '
+    $process = Start-Process -FilePath ([string]$config.codexPath) -ArgumentList $argumentLine -NoNewWindow -PassThru `
+        -RedirectStandardInput $inputPath -RedirectStandardOutput $events -RedirectStandardError $errors
+    $null = $process.Handle
+    $process.WaitForExit()
+    $process.Refresh()
+    $exitCode = $process.ExitCode
+    Remove-Item -LiteralPath $inputPath -Force -ErrorAction SilentlyContinue
+    if ($exitCode -ne 0) { throw "Codex çevrimi başarısız oldu (exit $exitCode)." }
 
     $checks = @(
         @{ Command='npm.cmd'; Arguments=@('run','check:locales') },
@@ -51,6 +70,7 @@ Repo AGENTS.md kurallarını eksiksiz uygula. Sistemi incele, yalnız kanıtlana
     $state.cycle = $cycle
     $state.lastRunAt = [DateTimeOffset]::UtcNow.ToString('o')
     $state.lastResult = 'Completed'
+    $state.currentStatus = 'Completed'
     $state.updatedAt = $state.lastRunAt
     $state | ConvertTo-Json | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
     Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
@@ -58,6 +78,7 @@ Repo AGENTS.md kurallarını eksiksiz uygula. Sistemi incele, yalnız kanıtlana
 catch {
     $state.lastRunAt = [DateTimeOffset]::UtcNow.ToString('o')
     $state.lastResult = "Failed: $($_.Exception.Message)"
+    $state.currentStatus = 'Failed'
     $state.updatedAt = $state.lastRunAt
     $state | ConvertTo-Json | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
     Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
