@@ -329,8 +329,8 @@ public static partial class AutomationWorkerEndpoints
     private static bool ValidGeneratedContent(GeneratedContentItem item, bool requireSeo) =>
         item.Slug is { Length: <= 240 } && SlugPattern().IsMatch(item.Slug) &&
         item.Title is { Length: >= 20 and <= 180 } && item.Summary is { Length: >= 80 and <= 500 } &&
-        item.Body is { Length: >= 2500 } && item.Sources is { Length: >= 2 and <= 8 } &&
-        item.Sources.Select(source => source.Url).Distinct(StringComparer.OrdinalIgnoreCase).Count() == item.Sources.Length &&
+        item.Body is { Length: >= 2500 } && item.Sources is not null &&
+        GeneratedSourceQualityPolicy.IsValid(item.Sources.Select(source => ((string?)source.Name, (string?)source.Url))) &&
         (!requireSeo || item.SeoTitle is { Length: > 0 and <= 180 } && item.SeoDescription is { Length: > 0 and <= 320 });
 
     private static double Similarity(string left, string right)

@@ -13,9 +13,10 @@ phase plus real remaining counts. Candidate counts are recalculated from
 Generation uses Codex live web search and a strict JSON schema. Every article must carry
 two to eight absolute research-source URLs, a detailed Turkish body, and unique metadata.
 The API sanitizes HTML and rejects invalid fields, duplicate slugs, duplicate source URLs,
-and title/summary token similarity at or above 0.52 against recent BOECL content and the
-same batch. Source URLs are stored as article-group relationships; researched prose must
-be original rather than copied.
+single-domain source sets, local/private-network source addresses, and title/summary token
+similarity at or above 0.52 against recent BOECL content and the same batch. Source URLs
+are stored as article-group relationships; researched prose must be original rather than
+copied.
 
 Validated Turkish articles are published directly. If selected, a branded 1200×675 WebP
 cover is generated locally and attached through the existing media model. Translations
