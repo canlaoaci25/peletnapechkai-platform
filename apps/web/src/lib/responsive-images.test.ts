@@ -27,9 +27,15 @@ test("genel yayın kabuğu yerelleştirilmiş navigasyon ve ekran altı render s
   const header = readFileSync(fileURLToPath(new URL("../components/site-header.tsx", import.meta.url)), "utf8");
   const styles = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
 
-  for (const label of ["Hesap", "Account", "Konto", "Compte"]) assert.match(header, new RegExp(`account:\"${label}\"`));
-  assert.match(header, /aria-label=\{c\.account\}/);
+  for (const locale of ["tr-TR", "en-US", "de-DE", "fr-FR"]) {
+    const dictionary = readFileSync(fileURLToPath(new URL(`../i18n/dictionaries/${locale}.json`, import.meta.url)), "utf8");
+    assert.match(dictionary, /"account":\s*".+"/);
+    assert.match(dictionary, /"sections":\s*".+"/);
+  }
+  assert.match(header, /aria-label=\{copy\.account\}/);
   assert.doesNotMatch(header, /aria-label=\"Account\"/);
+  assert.match(header, /getPublicArchiveIndex\(locale\)/);
+  assert.match(header, /categories\/\$\{category\.slug\}/);
   assert.match(styles, /\.picks-section,[\s\S]*content-visibility:\s*auto/);
   assert.match(styles, /contain-intrinsic-block-size:\s*auto 700px/);
 });

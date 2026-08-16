@@ -9,7 +9,13 @@
     "ai": "Artificial intelligence",
     "science": "Science",
     "software": "Software",
-    "mobile": "Mobile"
+    "mobile": "Mobile",
+    "menu": "All sections",
+    "sections": "Sections",
+    "search": "Search",
+    "account": "Account",
+    "language": "Language",
+    "latest": "Latest"
   },
   "accessibility": { "skipToContent": "Skip to main content" },
   "article": { "onThisPage": "In this article" },

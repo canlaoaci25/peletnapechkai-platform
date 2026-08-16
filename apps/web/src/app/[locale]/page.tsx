@@ -7,7 +7,7 @@ import { SiteHeader } from "@/components/site-header";
 import { siteConfig } from "@/config/site";
 import { hasLocale, localeLabels } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
-import { getPublicHomepage, type PublicArticleSummary } from "@/lib/public-api";
+import { getPublicArchiveIndex, getPublicHomepage, type PublicArticleSummary } from "@/lib/public-api";
 import { homeImageSizes } from "@/lib/responsive-images";
 import { absoluteUrl } from "@/lib/site-url";
 
@@ -27,7 +27,11 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
   const { locale } = await params;
   if (!hasLocale(locale)) notFound();
 
-  const [dictionary, homepage] = await Promise.all([getDictionary(locale), getPublicHomepage(locale)]);
+  const [dictionary, homepage, archives] = await Promise.all([
+    getDictionary(locale),
+    getPublicHomepage(locale),
+    getPublicArchiveIndex(locale),
+  ]);
   const copy = dictionary.home;
   const lead = homepage.lead;
   const secondary = homepage.secondary;
@@ -51,8 +55,8 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
       <main id="main-content">
         <nav className="topic-strip" aria-label={copy.currentTopics}>
           <strong>{copy.currentTopics}</strong>
-          {[dictionary.navigation.technology, dictionary.navigation.ai, dictionary.navigation.science, dictionary.navigation.software, dictionary.navigation.mobile].map(topic => (
-            <Link key={topic} href={`/${locale}/search?q=${encodeURIComponent(topic)}`}>{topic}</Link>
+          {archives.categories.map(category => (
+            <Link key={category.slug} href={`/${locale}/categories/${category.slug}`}>{category.title}</Link>
           ))}
         </nav>
 

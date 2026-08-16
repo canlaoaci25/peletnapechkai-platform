@@ -9,7 +9,13 @@
     "ai": "Yapay zekâ",
     "science": "Bilim",
     "software": "Yazılım",
-    "mobile": "Mobil"
+    "mobile": "Mobil",
+    "menu": "Tüm bölümler",
+    "sections": "Bölümler",
+    "search": "Ara",
+    "account": "Hesap",
+    "language": "Dil",
+    "latest": "Son yayınlar"
   },
   "accessibility": { "skipToContent": "Ana içeriğe geç" },
   "article": { "onThisPage": "Bu yazıda" },

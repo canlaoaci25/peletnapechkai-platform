@@ -9,7 +9,13 @@
     "ai": "Künstliche Intelligenz",
     "science": "Wissenschaft",
     "software": "Software",
-    "mobile": "Mobil"
+    "mobile": "Mobil",
+    "menu": "Alle Bereiche",
+    "sections": "Bereiche",
+    "search": "Suchen",
+    "account": "Konto",
+    "language": "Sprache",
+    "latest": "Neueste"
   },
   "accessibility": { "skipToContent": "Zum Hauptinhalt springen" },
   "article": { "onThisPage": "In diesem Artikel" },

@@ -9,7 +9,13 @@
     "ai": "Intelligence artificielle",
     "science": "Science",
     "software": "Logiciels",
-    "mobile": "Mobile"
+    "mobile": "Mobile",
+    "menu": "Toutes les rubriques",
+    "sections": "Rubriques",
+    "search": "Rechercher",
+    "account": "Compte",
+    "language": "Langue",
+    "latest": "Dernières parutions"
   },
   "accessibility": { "skipToContent": "Aller au contenu principal" },
   "article": { "onThisPage": "Dans cet article" },
