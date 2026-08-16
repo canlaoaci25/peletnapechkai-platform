@@ -5,6 +5,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $logRoot = 'C:\ProgramData\Peletnapechkai\Logs\AutomationWorker'
+. (Join-Path $PSScriptRoot 'BoeclAutomationRecovery.ps1')
 New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
 $mutex = [Threading.Mutex]::new($false, 'Global\BOECL-Codex-Automation-Worker')
 if (-not $mutex.WaitOne(0)) { exit 0 }
@@ -124,6 +125,7 @@ try {
             $schemaRelative = if ($candidateKind -eq 'generation') { 'ops\automation\ready-content-output.schema.json' } elseif ($candidateKind -eq 'translation') { 'ops\automation\translation-output.schema.json' } elseif ($candidateKind -eq 'category') { 'ops\automation\category-translation-output.schema.json' } else { 'ops\automation\seo-output.schema.json' }
             $schema = Join-Path ([string]$config.repositoryPath) $schemaRelative
             $candidateJson = $candidateSet | ConvertTo-Json -Depth 8 -Compress
+            $requestFingerprint = Get-BoeclRequestFingerprint -RequestJson $candidateJson
             $instruction = if ($candidateKind -eq 'generation') {
                 "Canlı web aramasını kullan. Seçilen Türkçe kategori ve içerik türü için güncel, popüler ve güvenilir Türkçe/global yayınları ayrıntılı araştır. İstenen sayıda birbirinden ve existing listesinden belirgin biçimde farklı, en az 2500 karakter gövdeli, özgün Türkçe makale yaz. Kopyalama yapma; en az iki gerçek araştırma kaynağının doğrudan URL'sini her makalede bildir. Başlık/özet/slug tekrar etmesin. autoSeo doğruysa SEO alanlarını doldur, değilse null gönder. includeImages doğruysa kapak için özgün Türkçe imageAltText ve kısa İngilizce imageSearchQuery; gövde için birbirinden farklı tam iki Türkçe inlineImageAltTexts ve iki kısa İngilizce inlineImageQueries üret. Tüm sorgular no text, no letters, no numbers, no symbols, no logo, no watermark şartını taşısın. includeImages yanlışsa tüm görsel alanlarını null gönder. Yalnız şemaya uyan JSON döndür.`r`n$candidateJson"
             } elseif ($candidateKind -eq 'translation') {
@@ -140,11 +142,10 @@ try {
             $recovered = $false
             if ($candidateKind -eq 'generation') {
                 $existingSlugs = @($candidateSet.existing | ForEach-Object { [string]$_.slug })
-                $previousResults = Get-ChildItem -LiteralPath $logRoot -Filter "$jobId-*-batch-*-result.json" -File -ErrorAction SilentlyContinue |
-                    Where-Object { $_.FullName -ne $batchResult } | Sort-Object LastWriteTimeUtc -Descending
-                foreach ($previousResult in $previousResults) {
+                $previousResultPath = Find-BoeclRecoveredResult -LogRoot $logRoot -JobId $jobId -CurrentResultPath $batchResult -RequestFingerprint $requestFingerprint
+                if ($previousResultPath) {
                     try {
-                        $previousJson = Get-Content -LiteralPath $previousResult.FullName -Raw -Encoding UTF8
+                        $previousJson = Get-Content -LiteralPath $previousResultPath -Raw -Encoding UTF8
                         $previousPayload = $previousJson | ConvertFrom-Json
                         $previousItems = @($previousPayload.items)
                         $previousSlugs = @($previousItems | ForEach-Object { [string]$_.slug })
@@ -152,13 +153,15 @@ try {
                             @($previousSlugs | Where-Object { $existingSlugs -contains $_ }).Count -eq 0) {
                             Set-Content -LiteralPath $batchResult -Value $previousJson -Encoding UTF8
                             $recovered = $true
-                            break
                         }
                     }
                     catch {
                         $recovered = $false
                     }
                 }
+            }
+            if (-not $recovered) {
+                Save-BoeclRecoveryMetadata -ResultPath $batchResult -RequestFingerprint $requestFingerprint
             }
             $codexExitCode = if ($recovered) { 0 } else { Invoke-CodexProcess -Executable ([string]$config.codexPath) -Arguments $codexArguments -InputText $instruction -OutputPath $batchLog -ErrorPath $batchError -ShouldContinue $controlCheck -TimeoutMinutes 60 -MaximumAttempts 2 }
             if ($codexExitCode -eq 1223) { exit 0 }

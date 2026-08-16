@@ -18,9 +18,11 @@ if (-not (Test-Path -LiteralPath $CodexPath -PathType Leaf)) {
 }
 $secretRoot = 'C:\ProgramData\Peletnapechkai\Secrets'
 $scriptPath = Join-Path $InstallRoot 'Invoke-BoeclCodexWorker.ps1'
+$recoveryScriptPath = Join-Path $InstallRoot 'BoeclAutomationRecovery.ps1'
 $configPath = Join-Path $secretRoot 'automation-worker.json'
 New-Item -ItemType Directory -Path $InstallRoot, $secretRoot -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Invoke-BoeclCodexWorker.ps1') -Destination $scriptPath -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'BoeclAutomationRecovery.ps1') -Destination $recoveryScriptPath -Force
 
 @{
     workerToken = $WorkerToken
@@ -44,6 +46,9 @@ Register-ScheduledTask -TaskName 'BOECL Codex Automation Worker' -Action $action
 $installedAction = (Get-ScheduledTask -TaskName 'BOECL Codex Automation Worker').Actions[0]
 if ([IO.Path]::GetFullPath([string]$installedAction.WorkingDirectory).TrimEnd('\') -ne $resolvedRepositoryPath) {
     throw "Worker kurulum doğrulaması başarısız: zamanlanmış görev yanlış çalışma klasöründe."
+}
+if ((Get-FileHash -LiteralPath $recoveryScriptPath).Hash -ne (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'BoeclAutomationRecovery.ps1')).Hash) {
+    throw 'Worker kurulum doğrulaması başarısız: kurulu kurtarma betiği depo sürümüyle eşleşmiyor.'
 }
 if ((Get-FileHash -LiteralPath $scriptPath).Hash -ne (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'Invoke-BoeclCodexWorker.ps1')).Hash) {
     throw "Worker kurulum doğrulaması başarısız: kurulu worker betiği depo sürümüyle eşleşmiyor."
