@@ -3202,6 +3202,7 @@ select:focus-visible {
 }
 .primary-navigation {
   display: flex;
+  flex: 1 1 auto;
   min-width: 0;
   align-items: center;
   gap: clamp(18px, 2.4vw, 38px);
@@ -3461,6 +3462,7 @@ select:focus-visible {
   .headline-grid { margin-inline: 0; }
   .headline-grid > *,
   .lead-story { min-width: 0; }
+  .hero h1 { max-width: 100%; overflow-wrap: anywhere; }
   .lead-copy { width: 100%; padding: 26px 0 30px; overflow: hidden; background: var(--background); }
   .lead-copy h1 { max-width: 100%; overflow-wrap: anywhere; }
   .lead-context { margin-bottom: 24px; }
