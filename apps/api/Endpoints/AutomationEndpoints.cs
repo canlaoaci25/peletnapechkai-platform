@@ -6,6 +6,8 @@ using Peletnapechkai.Api.Domain.Identity;
 using Peletnapechkai.Api.Infrastructure.Identity;
 using Peletnapechkai.Api.Infrastructure.Automation;
 using Peletnapechkai.Api.Infrastructure.Persistence;
+using Peletnapechkai.Api.Domain.Auditing;
+using System.Text.Json;
 
 namespace Peletnapechkai.Api.Endpoints;
 
@@ -21,6 +23,8 @@ public static class AutomationEndpoints
         group.MapGet("/{id:guid}", DetailAsync);
         group.MapGet("/scan", ScanAsync);
         group.MapGet("/visual-quality", VisualQualityAsync);
+        group.MapPost("/visual-quality/queue", QueueVisualReviewsAsync).ValidateAntiforgery();
+        group.MapPost("/visual-quality/{taskId:guid}/{action}", ChangeVisualReviewAsync).ValidateAntiforgery();
         group.MapPost("/", CreateAsync).ValidateAntiforgery();
         group.MapPost("/ready-content", CreateReadyContentAsync).ValidateAntiforgery();
         group.MapGet("/automatic-content", GetAutomaticContentAsync);
@@ -40,24 +44,75 @@ public static class AutomationEndpoints
                 article.CoverAltText, article.CoverCredit, article.PublishedAt,
                 coverId = article.CoverMediaAssetId, width = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.Width,
                 height = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.Height,
-                optimizedBytes = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.OptimizedByteLength
+                optimizedBytes = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.OptimizedByteLength,
+                categories = article.Categories.Select(category => category.Name).ToArray()
             }).ToListAsync(token);
+        var taskRows = await database.VisualReviewTasks.AsNoTracking().ToListAsync(token);
+        var tasks = taskRows.GroupBy(task => task.ArticleLocalizationId).ToDictionary(group => group.Key, group => group.OrderByDescending(task => task.CreatedAt).First());
         var items = rows.Select(row =>
         {
             var result = ArticleVisualQualityPolicy.Assess(new(row.Title, row.Summary, row.Body, row.CoverAltText,
                 row.CoverCredit, row.width, row.height, row.optimizedBytes, row.coverId is not null));
             return new { row.Id, row.locale, row.Slug, row.Title, row.PublishedAt, score = result.Score, grade = result.Grade,
                 risks = result.Risks, result.BodyImageCount, coverUrl = row.coverId is null ? null : "/api/media/" + row.coverId,
-                row.CoverAltText, row.width, row.height, row.optimizedBytes };
+                row.CoverAltText, row.width, row.height, row.optimizedBytes,
+                visualTask = tasks.TryGetValue(row.Id, out var task) ? new { task.Id, status = task.Status.ToString(), task.SectionContext, task.VisualPurpose, task.ProposedPrompt, task.NegativePrompt, task.AttemptCount, task.ReviewerNote, task.UpdatedAt } : null };
         }).OrderBy(item => item.score).ThenByDescending(item => item.PublishedAt).ToArray();
         return Results.Ok(new
         {
             checkedAt = DateTimeOffset.UtcNow, total = items.Length, passing = items.Count(item => item.score >= 80 && item.risks.Length == 0),
             needsReview = items.Count(item => item.risks.Length > 0), missingCover = items.Count(item => item.risks.Contains("missing-cover")),
             textRisk = items.Count(item => item.risks.Contains("text-risk")), averageScore = items.Length == 0 ? 0 : Math.Round(items.Average(item => item.score), 1),
-            items
+            queued = taskRows.Count(task => task.Status is VisualReviewStatus.Pending or VisualReviewStatus.InReview or VisualReviewStatus.RetryRequested),
+            approved = taskRows.Count(task => task.Status == VisualReviewStatus.Approved), items
         });
     }
+
+    private static async Task<IResult> QueueVisualReviewsAsync(PublishingDbContext database, CancellationToken token)
+    {
+        var rows = await database.ArticleLocalizations
+            .Where(article => article.Status == PublicationStatus.Published)
+            .Select(article => new { article.Id, article.Title, article.Summary, article.Body, locale = article.Locale.Code,
+                article.CoverAltText, article.CoverCredit, coverId = article.CoverMediaAssetId,
+                width = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.Width,
+                height = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.Height,
+                optimizedBytes = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.OptimizedByteLength,
+                categories = article.Categories.Select(category => category.Name).ToArray() }).ToListAsync(token);
+        var keys = await database.VisualReviewTasks.Select(task => task.IdempotencyKey).ToHashSetAsync(token);
+        var now = DateTimeOffset.UtcNow; var created = 0;
+        foreach (var row in rows)
+        {
+            var quality = ArticleVisualQualityPolicy.Assess(new(row.Title, row.Summary, row.Body, row.CoverAltText, row.CoverCredit, row.width, row.height, row.optimizedBytes, row.coverId is not null));
+            if (quality.Score >= 80 && quality.Risks.Length == 0) continue;
+            var key = $"cover:{row.Id}:{string.Join('-', quality.Risks.Order())}";
+            if (!keys.Add(key)) continue;
+            var brief = VisualBriefBuilder.Build(row.Title, row.Summary, row.Body, row.locale, row.categories);
+            database.VisualReviewTasks.Add(new(row.Id, row.coverId, quality.Score, string.Join(',', quality.Risks), brief.SectionContext, brief.Purpose, brief.Prompt, brief.NegativePrompt, key, now));
+            created++;
+        }
+        await database.SaveChangesAsync(token);
+        return Results.Ok(new { created, skipped = rows.Count - created });
+    }
+
+    private static async Task<IResult> ChangeVisualReviewAsync(Guid taskId, string action, VisualReviewActionRequest request,
+        System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
+    {
+        var actor = await users.GetUserAsync(principal); if (actor is null) return Results.Unauthorized();
+        var task = await database.VisualReviewTasks.SingleOrDefaultAsync(candidate => candidate.Id == taskId, token);
+        if (task is null) return Results.NotFound();
+        var status = action.ToLowerInvariant() switch { "review" => VisualReviewStatus.InReview, "approve" => VisualReviewStatus.Approved,
+            "reject" => VisualReviewStatus.Rejected, "retry" => VisualReviewStatus.RetryRequested, _ => (VisualReviewStatus?)null };
+        if (status is null) return Results.ValidationProblem(new Dictionary<string, string[]> { ["action"] = ["Unsupported visual review action."] });
+        if (status is VisualReviewStatus.Approved or VisualReviewStatus.Rejected && string.IsNullOrWhiteSpace(request.Note))
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["note"] = ["Editorial decisions require a note."] });
+        task.ChangeStatus(status.Value, actor.Id, request.Note, DateTimeOffset.UtcNow);
+        database.AuditLogs.Add(new AuditLog(actor.Id, $"visual-review.{action.ToLowerInvariant()}", nameof(VisualReviewTask), task.Id,
+            JsonSerializer.Serialize(new { task.ArticleLocalizationId, status = status.ToString(), note = request.Note }), DateTimeOffset.UtcNow));
+        await database.SaveChangesAsync(token);
+        return Results.Ok(new { task.Id, status = task.Status.ToString(), task.AttemptCount, task.UpdatedAt });
+    }
+
+    private sealed record VisualReviewActionRequest(string? Note);
 
     private static async Task<IResult> ListAsync(PublishingDbContext database, CancellationToken token) =>
         Results.Ok(await database.AutomationJobs

@@ -2,6 +2,13 @@
 
 ## Execution status
 
+Cycle 31 turns the Visual Quality Desk into a persistent Visual Renewal Studio: every
+risky published cover can be checkpointed once, receives a full-text, H2/H3, taxonomy,
+and locale-aware text-free visual brief, and moves through audited review, approval,
+rejection, or retry states without silently replacing a healthy live asset. Provider
+adapters, vision/perceptual-similarity scoring, proposed-asset preview and transactional
+promotion remain the next visual-service milestones.
+
 Cycle 30 turns International Publishing Health into a localization integrity control
 surface: editors can now see translations made stale by a newer Turkish source revision
 and category paths that have no locale-linked equivalent, alongside coverage and review
