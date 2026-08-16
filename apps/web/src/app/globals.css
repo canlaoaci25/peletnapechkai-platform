@@ -1918,6 +1918,33 @@ select:focus-visible {
   .header-register { padding:7px 9px; }
   .theme-lamp { left: 12px; bottom: 12px; width: 44px; height: 44px; }
 }
+@media (max-width: 480px) {
+  .site-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .brand {
+    min-width: 0;
+  }
+  .site-menu {
+    margin-left: 0;
+  }
+  .site-menu nav {
+    max-width: calc(100vw - 28px);
+  }
+  .header-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+  .member-actions {
+    min-width: 0;
+  }
+  .theme-lamp {
+    background: var(--surface);
+    backdrop-filter: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

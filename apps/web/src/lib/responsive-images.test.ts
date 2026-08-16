@@ -33,3 +33,15 @@ test("genel yayın kabuğu yerelleştirilmiş navigasyon ve ekran altı render s
   assert.match(styles, /\.picks-section,[\s\S]*content-visibility:\s*auto/);
   assert.match(styles, /contain-intrinsic-block-size:\s*auto 700px/);
 });
+
+test("dar ekran basligi eylemleri ayri satira alir ve pahali bulanikligi kapatir", () => {
+  const styles = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
+  const marker = "@media (max-width: 480px) {\n  .site-header";
+  const start = styles.indexOf(marker);
+  const narrowViewport = start >= 0 ? styles.slice(start, start + 800) : "";
+
+  assert.match(narrowViewport, /grid-template-columns:\s*minmax\(0, 1fr\) auto/);
+  assert.match(narrowViewport, /\.header-actions\s*\{[\s\S]*?grid-column:\s*1 \/ -1/);
+  assert.match(narrowViewport, /\.site-menu nav\s*\{[\s\S]*?max-width:\s*calc\(100vw - 28px\)/);
+  assert.match(narrowViewport, /\.theme-lamp\s*\{[\s\S]*?backdrop-filter:\s*none/);
+});
