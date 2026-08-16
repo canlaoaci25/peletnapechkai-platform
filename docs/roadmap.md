@@ -2,6 +2,12 @@
 
 ## Execution status
 
+Cycle 26 launches category authority hubs and a new evidence-backed Turkish taxonomy:
+category archives now surface archive depth, format distribution, related-topic paths,
+an image-led lead story, and a responsive editorial stream. The localized Software and
+Apps taxonomy classifies matching article groups through an idempotent, audited migration.
+The next discovery milestone is pagination plus orphan-content and taxonomy-parity reporting.
+
 Cycle 25 transforms the public front door and global navigation: BOECL now presents a
 clear publication promise, integrated search/account/theme/language utilities, a layered
 topic compass, and a responsive image-led lead package with a ranked secondary-news desk.

@@ -99,7 +99,12 @@ public static class PublicContentEndpoints
                 return Results.NotFound();
         }
         var articles = await query.OrderByDescending(article => article.PublishedAt).Take(take).Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } }).ToListAsync(token);
-        return Results.Ok(new { kind, slug, title, description, translations, articles });
+        var articleCount = await query.CountAsync(token);
+        var typeCounts = await query.GroupBy(article => article.ArticleGroup.Type).Select(group => new { type = group.Key.ToString(), count = group.Count() }).OrderByDescending(item => item.count).ToArrayAsync(token);
+        var relatedCategories = await query.SelectMany(article => article.Categories).Where(item => item.Slug != slug)
+            .GroupBy(item => new { item.Slug, item.Name }).Select(group => new { group.Key.Slug, title = group.Key.Name, articleCount = group.Count() })
+            .OrderByDescending(item => item.articleCount).ThenBy(item => item.title).Take(5).ToArrayAsync(token);
+        return Results.Ok(new { kind, slug, title, description, translations, articleCount, typeCounts, relatedCategories, articles });
     }
 
     private static async Task<IResult> SearchAsync(string locale, string? q, PublishingDbContext database, int? limit, CancellationToken token)

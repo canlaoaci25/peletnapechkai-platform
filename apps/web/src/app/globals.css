@@ -3400,6 +3400,38 @@ select:focus-visible {
 .topic-strip strong { display: inline-flex; align-items: center; gap: 9px; }
 .topic-strip strong span { width: 18px; height: 1px; background: var(--accent); }
 .topic-strip a { display: inline-flex; min-height: 44px; align-items: center; }
+
+/* Category authority hubs */
+.archive-page { width:min(100% - 32px,1380px); padding-block:28px 90px; }
+.archive-breadcrumbs { display:flex; flex-wrap:wrap; gap:9px; align-items:center; margin-bottom:clamp(36px,6vw,80px); color:var(--muted); font-size:.8rem; }
+.archive-breadcrumbs a { color:inherit; text-underline-offset:4px; }
+.archive-authority-hero { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,.65fr); gap:clamp(40px,8vw,120px); align-items:end; padding-bottom:clamp(40px,6vw,72px); border-bottom:3px solid var(--foreground); }
+.archive-authority-hero > * { min-width:0; }
+.archive-authority-hero h1 { max-width:900px; margin:.12em 0; font-size:clamp(3.5rem,8.5vw,8.5rem); line-height:.82; letter-spacing:-.075em; text-wrap:balance; }
+.archive-authority-hero .archive-description { max-width:760px; margin:28px 0 0; color:var(--muted); font-size:clamp(1rem,1.5vw,1.3rem); line-height:1.6; overflow-wrap:anywhere; }
+.archive-type-counts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1px; margin:0; padding:0; list-style:none; background:var(--line); border:1px solid var(--line); }
+.archive-type-counts li { display:flex; min-height:108px; flex-direction:column; justify-content:space-between; padding:18px; background:var(--surface); }
+.archive-type-counts strong { font-size:2.25rem; letter-spacing:-.06em; }
+.archive-type-counts span { color:var(--muted); font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+.archive-related { display:flex; gap:10px; align-items:center; overflow-x:auto; padding:22px 0; border-bottom:1px solid var(--line); scrollbar-width:thin; }
+.archive-related > strong { flex:0 0 auto; margin-right:10px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; }
+.archive-related a { display:inline-flex; min-height:44px; flex:0 0 auto; gap:18px; align-items:center; padding:0 16px; color:var(--foreground); border:1px solid var(--line); text-decoration:none; }
+.archive-related a:hover { border-color:var(--foreground); }
+.archive-related a span { color:var(--accent); font-weight:900; }
+.archive-stream { padding-top:clamp(48px,7vw,88px); }
+.archive-stream-heading { display:flex; align-items:end; justify-content:space-between; margin-bottom:30px; }
+.archive-stream-heading h2 { margin:0; font-size:clamp(2rem,4vw,4.6rem); letter-spacing:-.06em; }
+.archive-lead-grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:24px; }
+.archive-lead-grid > article { grid-column:span 4; }
+.archive-lead-grid .archive-lead { grid-column:span 12; display:grid; grid-template-columns:minmax(0,1.55fr) minmax(300px,.75fr); gap:clamp(28px,5vw,70px); padding-bottom:48px; border-bottom:1px solid var(--line); }
+.archive-lead .archive-card-cover { min-height:440px; margin:0; }
+.archive-card-copy { display:flex; min-width:0; flex-direction:column; }
+.archive-lead h2 { margin:.25em 0; font-size:clamp(2.2rem,4vw,4.8rem); line-height:.95; letter-spacing:-.055em; }
+.archive-lead h2 a { color:inherit; text-decoration:none; }
+.archive-lead .archive-card-copy > p:not(.section-kicker) { color:var(--muted); font-size:1.08rem; line-height:1.65; }
+.archive-lead time { margin-top:auto; color:var(--muted); }
+@media(max-width:900px){.archive-authority-hero{grid-template-columns:1fr}.archive-type-counts{max-width:600px}.archive-lead-grid>article{grid-column:span 6}.archive-lead-grid .archive-lead{grid-template-columns:1fr}.archive-lead .archive-card-cover{min-height:0;aspect-ratio:16/9}}
+@media(max-width:560px){.archive-page{width:min(100% - 28px,1380px);padding-top:20px}.archive-breadcrumbs{margin-bottom:36px}.archive-authority-hero h1{max-width:100%;font-size:clamp(3rem,15vw,4.4rem);line-height:.88;overflow-wrap:anywhere}.archive-type-counts li{min-height:90px;padding:14px}.archive-related{margin-inline:-14px;padding-inline:14px}.archive-lead-grid>article{grid-column:span 12}.archive-lead-grid{gap:18px}.archive-lead-grid .archive-lead{padding-bottom:34px}.archive-stream-heading{align-items:start;flex-direction:column;gap:6px}}
 .headline-grid {
   grid-template-columns: minmax(0, 1.65fr) minmax(330px, .7fr);
   padding-top: 30px;

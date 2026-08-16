@@ -5,6 +5,8 @@ import test from "node:test";
 const page = readFileSync(new URL("../app/[locale]/topics/page.tsx", import.meta.url), "utf8");
 const archive = readFileSync(new URL("../app/[locale]/[collection]/[slug]/page.tsx", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260816190000_AddMobileTechnologyTaxonomy.cs", import.meta.url), "utf8");
+const softwareMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260816203000_AddSoftwareApplicationsTaxonomy.cs", import.meta.url), "utf8");
+const publicApi = readFileSync(new URL("../../../api/Endpoints/PublicContentEndpoints.cs", import.meta.url), "utf8");
 const proxy = readFileSync(new URL("../proxy.ts", import.meta.url), "utf8");
 
 test("konu merkezi locale-aware canonical, hreflang ve gerçek yayın kapakları sunar", () => {
@@ -19,6 +21,23 @@ test("kategori arşivi yayın kapağını yinelenen klavye durağı oluşturmada
   assert.match(archive, /archive-card-cover/);
   assert.match(archive, /tabIndex=\{-1\}/);
   assert.match(archive, /aria-hidden="true"/);
+});
+
+test("kategori otorite merkezi derinlik, tür dağılımı ve ilişkili konu yolları sunar", () => {
+  assert.match(archive, /archive-authority-hero/);
+  assert.match(archive, /archive\.articleCount/);
+  assert.match(archive, /archive\.typeCounts/);
+  assert.match(archive, /archive\.relatedCategories/);
+  assert.match(publicApi, /GroupBy\(article => article\.ArticleGroup\.Type\)/);
+  assert.match(publicApi, /SelectMany\(article => article\.Categories\)/);
+});
+
+test("yazılım taxonomy migrationı dört locale, denetlenebilir ilişki ve rollback içerir", () => {
+  for (const locale of ["tr-TR", "en-US", "de-DE", "fr-FR"]) assert.match(softwareMigration, new RegExp(locale));
+  assert.match(softwareMigration, /ON CONFLICT DO NOTHING/);
+  assert.match(softwareMigration, /migration\.software_applications_taxonomy_added/);
+  assert.match(softwareMigration, /article_group_id/);
+  assert.match(softwareMigration, /protected override void Down/);
 });
 
 test("mobil taxonomy migrationı dört locale, idempotency, audit ve rollback içerir", () => {
