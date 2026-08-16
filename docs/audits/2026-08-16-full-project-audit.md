@@ -135,3 +135,5 @@ Bu eksikler doğrudan ihlal kanıtı değildir; tarayıcı taraflı saldırılar
 ## Sonuç
 
 BOECL canlıda işlevsel ve temel kalite kapıları yeşildir. Denetimde üretimi durduran worker ayrıştırma hatası ve yüksek önem dereceli npm açığı giderilmiştir. En önemli açık teknik çalışma hatası değil, savunma başlıkları ile içerik/görsel bakım borcudur. Sistem “iş kalmadı” seviyesinde değildir; fakat kalan işler sınıflandırılmış, ölçülmüş ve güvenli biçimde sıraya alınabilir durumdadır.
+
+İş kurallarının ayrı çapraz incelemesi için `docs/audits/2026-08-16-logic-audit.md` raporuna bakın. Bu ek denetimde 8 doğrulanmış mantık kusuru ile 6 davranış/tasarım riski sınıflandırılmıştır.
