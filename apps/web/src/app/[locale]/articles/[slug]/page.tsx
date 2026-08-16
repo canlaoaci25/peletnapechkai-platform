@@ -182,9 +182,8 @@ export default async function ArticlePage({
                 alt={article.cover.altText}
                 width={1200}
                 height={675}
-                sizes="(max-width: 820px) 100vw, 780px"
+                sizes="(max-width: 820px) calc(100vw - 40px), 780px"
                 priority
-                unoptimized
               />
               {(article.cover.caption || article.cover.credit) && (
                 <figcaption>
