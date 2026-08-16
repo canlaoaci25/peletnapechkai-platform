@@ -27,6 +27,7 @@ const text = {
     automation: "AI Hazır",
     bulkRunners: "Toplu çalıştırıcılar",
     readyContent: "Hazır içerik oluştur",
+    visualQuality: "Görsel kalite masası",
     site: "Siteyi görüntüle",
     workspace: "Yönetim alanı",
     light: "Açık tema",
@@ -57,6 +58,7 @@ const text = {
     automation: "AI Ready",
     bulkRunners: "Bulk runners",
     readyContent: "Create ready content",
+    visualQuality: "Visual quality desk",
     site: "View website",
     workspace: "Administration",
     light: "Light theme",
@@ -87,6 +89,7 @@ const text = {
     automation: "KI bereit",
     bulkRunners: "Stapelverarbeitung",
     readyContent: "Fertige Inhalte erstellen",
+    visualQuality: "Visueller Qualitätsdesk",
     site: "Website ansehen",
     workspace: "Verwaltung",
     light: "Helles Design",
@@ -117,6 +120,7 @@ const text = {
     automation: "IA prête",
     bulkRunners: "Traitements groupés",
     readyContent: "Créer du contenu prêt",
+    visualQuality: "Bureau qualité visuelle",
     site: "Voir le site",
     workspace: "Administration",
     light: "Thème clair",
@@ -431,6 +435,7 @@ export function AdminFrame({
               <div className="admin-nav-submenu">
                 {item(`/${locale}/admin/automation`, exact(`/${locale}/admin/automation`) || Boolean(pathname.match(/\/admin\/automation\/[0-9a-f-]{36}$/i)), "▶", copy.bulkRunners)}
                 {item(`/${locale}/admin/automation/ready-content`, exact(`/${locale}/admin/automation/ready-content`), "+", copy.readyContent)}
+                {item(`/${locale}/admin/automation/visual-quality`, exact(`/${locale}/admin/automation/visual-quality`), "◉", copy.visualQuality)}
               </div>
             </section>
           )}

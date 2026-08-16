@@ -2,6 +2,12 @@
 
 ## Execution status
 
+Cycle 23 launches the Visual Quality Desk: administrators can now see a real, risk-ranked
+inventory of every published article cover, including topic/alt relevance, text or logo
+risk, crop safety, optimization, rights metadata, and body-visual debt. The next visual
+service milestones are persistent generation attempts, provider/licence adapters, vision
+and similarity gates, transactional editorial approval, and resumable archive processing.
+
 Cycle 22 launches the International Publishing Health experience: administrators can
 compare published coverage, missing translations, drafts, and human translation-review
 debt across every enabled locale; article readers are offered only real published

@@ -20,12 +20,43 @@ public static class AutomationEndpoints
         group.MapGet("/", ListAsync);
         group.MapGet("/{id:guid}", DetailAsync);
         group.MapGet("/scan", ScanAsync);
+        group.MapGet("/visual-quality", VisualQualityAsync);
         group.MapPost("/", CreateAsync).ValidateAntiforgery();
         group.MapPost("/ready-content", CreateReadyContentAsync).ValidateAntiforgery();
         group.MapGet("/automatic-content", GetAutomaticContentAsync);
         group.MapPut("/automatic-content", UpdateAutomaticContentAsync).ValidateAntiforgery();
         group.MapPost("/{id:guid}/{action}", ChangeStateAsync).ValidateAntiforgery();
         return endpoints;
+    }
+
+    private static async Task<IResult> VisualQualityAsync(PublishingDbContext database, CancellationToken token)
+    {
+        var rows = await database.ArticleLocalizations.AsNoTracking()
+            .Where(article => article.Status == PublicationStatus.Published)
+            .OrderByDescending(article => article.PublishedAt)
+            .Select(article => new
+            {
+                article.Id, locale = article.Locale.Code, article.Slug, article.Title, article.Summary, article.Body,
+                article.CoverAltText, article.CoverCredit, article.PublishedAt,
+                coverId = article.CoverMediaAssetId, width = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.Width,
+                height = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.Height,
+                optimizedBytes = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.OptimizedByteLength
+            }).ToListAsync(token);
+        var items = rows.Select(row =>
+        {
+            var result = ArticleVisualQualityPolicy.Assess(new(row.Title, row.Summary, row.Body, row.CoverAltText,
+                row.CoverCredit, row.width, row.height, row.optimizedBytes, row.coverId is not null));
+            return new { row.Id, row.locale, row.Slug, row.Title, row.PublishedAt, score = result.Score, grade = result.Grade,
+                risks = result.Risks, result.BodyImageCount, coverUrl = row.coverId is null ? null : "/api/media/" + row.coverId,
+                row.CoverAltText, row.width, row.height, row.optimizedBytes };
+        }).OrderBy(item => item.score).ThenByDescending(item => item.PublishedAt).ToArray();
+        return Results.Ok(new
+        {
+            checkedAt = DateTimeOffset.UtcNow, total = items.Length, passing = items.Count(item => item.score >= 80 && item.risks.Length == 0),
+            needsReview = items.Count(item => item.risks.Length > 0), missingCover = items.Count(item => item.risks.Contains("missing-cover")),
+            textRisk = items.Count(item => item.risks.Contains("text-risk")), averageScore = items.Length == 0 ? 0 : Math.Round(items.Average(item => item.score), 1),
+            items
+        });
     }
 
     private static async Task<IResult> ListAsync(PublishingDbContext database, CancellationToken token) =>
