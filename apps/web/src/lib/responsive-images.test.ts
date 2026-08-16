@@ -107,3 +107,16 @@ test("izinli ucuncu taraf betikleri ana yukleme yolundan sonra calisir", () => {
   assert.match(integrations, /allowed&&adsense/);
   assert.match(integrations, /allowed&&ga/);
 });
+
+test("mobil admin cekmecesi klavye odagini iceride tutar ve kapaliyken etkilesime girmez", () => {
+  const frame = readFileSync(fileURLToPath(new URL("../components/admin/admin-frame.tsx", import.meta.url)), "utf8");
+  const styles = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
+
+  assert.match(frame, /mobileCloseButtonRef\.current\?\.focus\(\)/);
+  assert.match(frame, /event\.key !== "Tab"/);
+  assert.match(frame, /event\.preventDefault\(\);[\s\S]*?last\.focus\(\)/);
+  assert.match(frame, /mobileMenuButton\?\.focus\(\)/);
+  assert.match(styles, /@media \(max-width: 900px\)[\s\S]*?\.admin-sidebar\s*\{[\s\S]*?visibility: hidden/);
+  assert.match(styles, /data-mobile-menu="open"\] \.admin-sidebar\s*\{[\s\S]*?visibility: visible/);
+  assert.doesNotMatch(styles, /\.admin-mobile-backdrop\s*\{[^}]*backdrop-filter/);
+});

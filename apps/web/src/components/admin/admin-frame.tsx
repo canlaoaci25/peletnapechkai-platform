@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LogoutButton } from "@/components/admin/logout-button";
 import type { AdminSession } from "@/lib/admin-api";
 
@@ -146,6 +146,9 @@ export function AdminFrame({
   const [languageOpen, setLanguageOpen] = useState(false);
   const [automationOpen, setAutomationOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const mobileCloseButtonRef = useRef<HTMLButtonElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
   useEffect(() => {
     const saved = localStorage.getItem("boecl-admin-theme"),
       savedMenu = localStorage.getItem("boecl-admin-sidebar");
@@ -161,14 +164,36 @@ export function AdminFrame({
   useEffect(() => {
     if (!mobileOpen) return;
     const previousOverflow = document.body.style.overflow;
+    const sidebar = sidebarRef.current;
+    const mobileMenuButton = mobileMenuButtonRef.current;
     document.body.style.overflow = "hidden";
-    function close(event: KeyboardEvent) {
-      if (event.key === "Escape") setMobileOpen(false);
+    mobileCloseButtonRef.current?.focus();
+    function containFocus(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setMobileOpen(false);
+        return;
+      }
+      if (event.key !== "Tab" || !sidebar) return;
+      const focusable = Array.from(
+        sidebar.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => element.getClientRects().length > 0);
+      const first = focusable[0], last = focusable.at(-1);
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
-    window.addEventListener("keydown", close);
+    window.addEventListener("keydown", containFocus);
     return () => {
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", close);
+      window.removeEventListener("keydown", containFocus);
+      mobileMenuButton?.focus();
     };
   }, [mobileOpen]);
   function toggleTheme() {
@@ -231,6 +256,7 @@ export function AdminFrame({
       data-mobile-menu={mobileOpen ? "open" : "closed"}
     >
       <button
+        ref={mobileMenuButtonRef}
         className="admin-mobile-menu-button"
         type="button"
         aria-label={copy.openMenu}
@@ -247,7 +273,7 @@ export function AdminFrame({
         aria-label={copy.closeMenu}
         onClick={() => setMobileOpen(false)}
       />
-      <aside className="admin-sidebar" id="admin-sidebar">
+      <aside ref={sidebarRef} className="admin-sidebar" id="admin-sidebar">
         <header>
           <Link
             className="admin-sidebar-brand"
@@ -261,6 +287,7 @@ export function AdminFrame({
             </span>
           </Link>
           <button
+            ref={mobileCloseButtonRef}
             className="admin-mobile-close-button"
             type="button"
             aria-label={copy.closeMenu}

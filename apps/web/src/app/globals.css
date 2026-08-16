@@ -2913,7 +2913,6 @@ select:focus-visible {
     padding: 0;
     border: 0;
     background: rgb(0 0 0 / 62%);
-    backdrop-filter: blur(2px);
   }
   .admin-frame[data-mobile-menu="open"] .admin-mobile-backdrop {
     display: block;
@@ -2929,10 +2928,13 @@ select:focus-visible {
     border-right: 1px solid #303746;
     box-shadow: 24px 0 60px rgb(0 0 0 / 42%);
     transform: translateX(-105%);
-    transition: transform 0.22s ease;
+    visibility: hidden;
+    transition: transform 0.22s ease, visibility 0s linear 0.22s;
   }
   .admin-frame[data-mobile-menu="open"] .admin-sidebar {
     transform: translateX(0);
+    visibility: visible;
+    transition-delay: 0s;
   }
   .admin-sidebar header {
     padding-bottom: 18px;
