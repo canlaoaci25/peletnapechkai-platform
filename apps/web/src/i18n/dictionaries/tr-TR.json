@@ -19,7 +19,7 @@
     "allTopics": "Tüm konular"
   },
   "accessibility": { "skipToContent": "Ana içeriğe geç" },
-  "article": { "onThisPage": "Bu yazıda" },
+  "article": { "onThisPage": "Bu yazıda", "published": "Yayımlandı", "updated": "Güncellendi", "minuteRead": "{minutes} dk okuma", "sourcesUsed": "{count} kaynak", "editorialTrust": "Bu içerik nasıl hazırlandı?", "trustSummary": "BOECL; yazar, güncellik ve başvurulan kaynakları okurun değerlendirmesine açık biçimde sunar.", "sourceHeading": "Başvurulan kaynaklar", "sourceSummary": "İddiaları ve ayrıntıları denetlemek için kullanılan dış kaynaklar. Bağlantılar yeni sekmede açılır.", "relatedHeading": "Bu konuda okumaya devam edin" },
   "search": { "title": "BOECL'de ara", "label": "Arama terimi", "submit": "Ara", "results": "{count} sonuç", "empty": "Aramanızla eşleşen yayımlanmış içerik bulunamadı." },
   "home": {
     "eyebrow": "Yeni nesil çok dilli yayın platformu",

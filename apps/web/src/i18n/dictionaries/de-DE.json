@@ -19,7 +19,7 @@
     "allTopics": "Alle Themen"
   },
   "accessibility": { "skipToContent": "Zum Hauptinhalt springen" },
-  "article": { "onThisPage": "In diesem Artikel" },
+  "article": { "onThisPage": "In diesem Artikel", "published": "Veröffentlicht", "updated": "Aktualisiert", "minuteRead": "{minutes} Min. Lesezeit", "sourcesUsed": "{count} Quellen", "editorialTrust": "Wie ist dieser Beitrag entstanden?", "trustSummary": "BOECL macht Autorenschaft, Aktualität und verwendete Quellen sichtbar, damit Leser den Beitrag einordnen können.", "sourceHeading": "Verwendete Quellen", "sourceSummary": "Externe Quellen zur Prüfung von Aussagen und Details. Links öffnen sich in einem neuen Tab.", "relatedHeading": "Mehr zu diesem Thema" },
   "search": { "title": "BOECL durchsuchen", "label": "Suchbegriff", "submit": "Suchen", "results": "{count} Ergebnisse", "empty": "Keine veröffentlichten Inhalte entsprechen Ihrer Suche." },
   "home": {
     "eyebrow": "Eine neue mehrsprachige Publikationsplattform",

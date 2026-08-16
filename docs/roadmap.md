@@ -2,6 +2,13 @@
 
 ## Execution status
 
+Cycle 21 adds the multilingual Article Trust and Discovery Layer to every published story:
+visible category breadcrumbs, distinct published/updated dates, estimated reading time,
+author and source context, strengthened source cards, and image-led related reading. The
+persistent content-growth backlog is recorded in
+`docs/audits/2026-08-16-cycle-21-content-seo-traffic-audit.md`; source health, Turkish
+content scoring, cover debt, body normalization, and category authority hubs follow.
+
 Cycle 20 adds an editorial command queue to the admin control center, combining overdue
 tasks, near-term deadlines, review queues, and incomplete quality gates into one
 localized, risk-ranked workspace. The next admin milestones are personal assignments,

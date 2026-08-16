@@ -12,6 +12,7 @@ import { getDictionary } from "@/i18n/get-dictionary";
 import { getPublishedArticle, getRelatedArticles } from "@/lib/public-api";
 import { buildArticleStructuredData, getPublicSource } from "@/lib/article-structured-data";
 import { buildArticleOutline } from "@/lib/article-outline";
+import { estimateReadingMinutes, wasMeaningfullyUpdated } from "@/lib/article-reading";
 import { absoluteUrl } from "@/lib/site-url";
 
 function markdownBodyToHtml(body: string) {
@@ -85,19 +86,13 @@ export default async function ArticlePage({
   const isHtml = article.body.trimStart().startsWith("<"),
     commercial = commercialCopy[locale];
   const { bodyHtml, outline } = buildArticleOutline(isHtml ? article.body : markdownBodyToHtml(article.body));
-  const sourceTitle = {
-    "tr-TR": "Kaynaklar",
-    "en-US": "Sources",
-    "de-DE": "Quellen",
-    "fr-FR": "Sources",
-  }[locale];
-  const sourceSummary = {
-    "tr-TR": "Bu içerikte başvurulan kaynaklar",
-    "en-US": "Sources consulted for this article",
-    "de-DE": "Für diesen Artikel verwendete Quellen",
-    "fr-FR": "Sources consultées pour cet article",
-  }[locale];
   const publicSources = article.sources.map(getPublicSource).filter((source) => source !== null);
+  const articleCopy = dictionary.article;
+  const readingMinutes = estimateReadingMinutes(article.body);
+  const hasMeaningfulUpdate = wasMeaningfullyUpdated(article.publishedAt, article.updatedAt);
+  const formatDate = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(new Date(value));
+  const interpolate = (template: string, values: Record<string, string | number>) =>
+    Object.entries(values).reduce((result, [key, value]) => result.replace(`{${key}}`, String(value)), template);
   const structuredData = buildArticleStructuredData({
     title: article.title,
     summary: article.summary,
@@ -134,9 +129,10 @@ export default async function ArticlePage({
       <SiteHeader locale={locale} />
       <ArticleEngagement locale={locale} slug={slug} />
       <main className="article-page" id="main-content" tabIndex={-1}>
-        <Link className="back-link" href={`/${locale}`}>
-          ← {dictionary.navigation.home}
-        </Link>
+        <nav className="article-breadcrumbs" aria-label="Breadcrumb">
+          <Link href={`/${locale}`}>{dictionary.navigation.home}</Link>
+          {article.categories[0] && <><span aria-hidden="true">/</span><Link href={`/${locale}/categories/${article.categories[0].slug}`}>{article.categories[0].name}</Link></>}
+        </nav>
         <article>
           {(article.isSponsored || article.hasAffiliateLinks) && (
             <aside
@@ -155,23 +151,12 @@ export default async function ArticlePage({
             <p className="section-kicker">{article.type}</p>
             <h1>{article.title}</h1>
             <p className="article-lead">{article.summary}</p>
-            {article.authors.length > 0 && (
-              <p className="article-byline">
-                {article.authors.map((author, index) => (
-                  <span key={author.slug}>
-                    {index > 0 && ", "}
-                    <Link href={`/${locale}/authors/${author.slug}`}>
-                      {author.displayName}
-                    </Link>
-                  </span>
-                ))}
-              </p>
-            )}
-            <time dateTime={article.publishedAt}>
-              {new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(
-                new Date(article.publishedAt),
-              )}
-            </time>
+            <div className="article-facts" aria-label={articleCopy.editorialTrust}>
+              {article.authors.length > 0 && <div className="article-byline"><span className="article-fact-label">BOECL</span><strong>{article.authors.map((author, index) => <span key={author.slug}>{index > 0 && ", "}<Link href={`/${locale}/authors/${author.slug}`}>{author.displayName}</Link></span>)}</strong></div>}
+              <div><span className="article-fact-label">{articleCopy.published}</span><time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time></div>
+              {hasMeaningfulUpdate && <div><span className="article-fact-label">{articleCopy.updated}</span><time dateTime={article.updatedAt}>{formatDate(article.updatedAt)}</time></div>}
+              <div><span>{interpolate(articleCopy.minuteRead, { minutes: readingMinutes })}</span>{publicSources.length > 0 && <a href="#article-sources">{interpolate(articleCopy.sourcesUsed, { count: publicSources.length })}</a>}</div>
+            </div>
             <SaveArticleButton locale={locale} slug={slug} />
             {article.categories.length > 0 && (
               <div className="article-taxonomy">
@@ -217,6 +202,10 @@ export default async function ArticlePage({
               </ol>
             </nav>
           )}
+          <aside className="article-trust-note" aria-labelledby="article-trust-title">
+            <span aria-hidden="true">✓</span>
+            <div><h2 id="article-trust-title">{articleCopy.editorialTrust}</h2><p>{articleCopy.trustSummary}</p></div>
+          </aside>
           <div className="article-body">
             <div className="rich-article-body" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
           </div>
@@ -230,9 +219,9 @@ export default async function ArticlePage({
             </footer>
           )}
           {publicSources.length > 0 && (
-            <aside className="article-sources">
-              <h2>{sourceTitle}</h2>
-              <p>{sourceSummary}</p>
+            <aside className="article-sources" id="article-sources">
+              <h2>{articleCopy.sourceHeading}</h2>
+              <p>{articleCopy.sourceSummary}</p>
               <ul>
                 {publicSources.map((source) => (
                   <li key={source.url}>
@@ -243,13 +232,13 @@ export default async function ArticlePage({
                     >
                       {source.name}
                     </a>
-                    <small>{source.host}</small>
+                    <small>{source.host} <span aria-hidden="true">↗</span></small>
                   </li>
                 ))}
               </ul>
             </aside>
           )}
-          {related.length > 0 && <aside className="related-articles" aria-labelledby="related-title"><h2 id="related-title">{{"tr-TR":"İlgili içerikler","en-US":"Related stories","de-DE":"Ähnliche Artikel","fr-FR":"Articles associés"}[locale]}</h2><div>{related.map(item=><article key={item.slug}><p className="section-kicker">{item.type}</p><h3><Link href={`/${locale}/articles/${item.slug}`}>{item.title}</Link></h3><p>{item.summary}</p></article>)}</div></aside>}
+          {related.length > 0 && <aside className="related-articles" aria-labelledby="related-title"><h2 id="related-title">{articleCopy.relatedHeading}</h2><div>{related.map(item=><article key={item.slug}>{item.cover && <Link className="related-article-cover" href={`/${locale}/articles/${item.slug}`} tabIndex={-1} aria-hidden="true"><Image src={item.cover.url} alt="" fill sizes="(max-width: 760px) calc(100vw - 40px), 370px" /></Link>}<div><p className="section-kicker">{item.type}</p><h3><Link href={`/${locale}/articles/${item.slug}`}>{item.title}</Link></h3><p>{item.summary}</p></div></article>)}</div></aside>}
         </article>
         <script
           type="application/ld+json"
