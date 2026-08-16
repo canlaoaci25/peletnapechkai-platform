@@ -54,7 +54,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
       <SiteHeader locale={locale} />
       <main id="main-content">
         <nav className="topic-strip" aria-label={copy.currentTopics}>
-          <strong>{copy.currentTopics}</strong>
+          <strong><span aria-hidden="true" />{copy.currentTopics}</strong>
           {archives.categories.map(category => (
             <Link key={category.slug} href={`/${locale}/categories/${category.slug}`}>{category.title}</Link>
           ))}
@@ -65,13 +65,14 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
             <article className="lead-story">
               <ArticleImageLink article={lead} className="lead-image" locale={locale} sizes={homeImageSizes.lead} preload />
               <div className="lead-copy">
-                <p className="section-kicker">{copy.featured}</p>
+                <div className="lead-context"><p className="section-kicker">{copy.featured}</p><span>{copy.dailyEdition}</span></div>
                 <h1 id="headline-title"><Link href={`/${locale}/articles/${lead.slug}`}>{lead.title}</Link></h1>
                 <p>{lead.summary}</p>
-                <span>{lead.type} · {formatDate(lead.publishedAt)}</span>
+                <div className="lead-byline"><span>{lead.type} · {formatDate(lead.publishedAt)}</span><Link href={`/${locale}/articles/${lead.slug}`}>{copy.readArticle}<span aria-hidden="true"> →</span></Link></div>
               </div>
             </article>
             <div className="secondary-stories">
+              <header><span>{copy.moreHeadlines}</span><strong>{String(secondary.length).padStart(2, "0")}</strong></header>
               {secondary.map(article => (
                 <article key={article.slug}>
                   <ArticleImageLink article={article} className="secondary-image" locale={locale} sizes={homeImageSizes.secondary} />

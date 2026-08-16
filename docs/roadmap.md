@@ -2,6 +2,11 @@
 
 ## Execution status
 
+Cycle 25 transforms the public front door and global navigation: BOECL now presents a
+clear publication promise, integrated search/account/theme/language utilities, a layered
+topic compass, and a responsive image-led lead package with a ranked secondary-news desk.
+The next visible product phase is category authority hubs with measured archive depth.
+
 Cycle 24 launches the Release Recovery Center: web and API deployment scripts now persist
 sanitized, atomic staging/production checkpoints, verify automatic rollback health, and
 surface the latest commit, gate state, duration, and recovery outcome in the admin home.

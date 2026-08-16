@@ -17,7 +17,9 @@
     "language": "Dil",
     "translationUnavailable": "Çeviri henüz yok",
     "latest": "Son yayınlar",
-    "allTopics": "Tüm konular"
+    "allTopics": "Tüm konular",
+    "publicationPromise": "Teknoloji · Bilim · Kültür",
+    "menuDescription": "BOECL'in tüm yayın alanlarını ve güncel dosyalarını keşfedin."
   },
   "accessibility": { "skipToContent": "Ana içeriğe geç" },
   "article": { "onThisPage": "Bu yazıda", "published": "Yayımlandı", "updated": "Güncellendi", "minuteRead": "{minutes} dk okuma", "sourcesUsed": "{count} kaynak", "editorialTrust": "Bu içerik nasıl hazırlandı?", "trustSummary": "BOECL; yazar, güncellik ve başvurulan kaynakları okurun değerlendirmesine açık biçimde sunar.", "sourceHeading": "Başvurulan kaynaklar", "sourceSummary": "İddiaları ve ayrıntıları denetlemek için kullanılan dış kaynaklar. Bağlantılar yeni sekmede açılır.", "relatedHeading": "Bu konuda okumaya devam edin" },
@@ -33,6 +35,6 @@
     "latestTitle": "Son yayınlar",
     "noArticles": "Bu dilde henüz yayımlanmış içerik yok.",
     "readArticle": "Makaleyi oku",
-    "currentTopics": "Güncel konular", "featured": "Öne çıkan", "discover": "Keşfet", "trending": "Şimdi popüler", "trendingHint": "BOECL'de öne çıkan yayınlar", "curated": "Seçki", "editorsPicks": "Editörün seçtikleri", "advertisement": "Reklam", "coverage": "Dosya", "seeAll": "Tümünü gör", "justIn": "Yeni yayınlar", "explore": "Arşivi keşfet", "searchDescription": "İlgilendiğiniz konuyu BOECL arşivinde arayın."
+    "currentTopics": "Gündem rotası", "featured": "Bugünün odağı", "dailyEdition": "Bağımsız ve kaynaklı", "moreHeadlines": "Öne çıkan diğer başlıklar", "discover": "Keşfet", "trending": "Şimdi popüler", "trendingHint": "BOECL'de öne çıkan yayınlar", "curated": "Seçki", "editorsPicks": "Editörün seçtikleri", "advertisement": "Reklam", "coverage": "Dosya", "seeAll": "Tümünü gör", "justIn": "Yeni yayınlar", "explore": "Arşivi keşfet", "searchDescription": "İlgilendiğiniz konuyu BOECL arşivinde arayın."
   }
 }

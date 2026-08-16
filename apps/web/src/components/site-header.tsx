@@ -30,9 +30,13 @@ export async function SiteHeader({ locale, localeHrefs }: SiteHeaderProps) {
               <span>{copy.menu}</span>
             </summary>
             <div className="site-menu-panel">
-              <p>{copy.sections}</p>
+              <div className="site-menu-heading">
+                <p>{copy.sections}</p>
+                <span>{copy.menuDescription}</span>
+              </div>
               <nav aria-label={copy.sections}>
                 <Link href={`/${locale}`}>{copy.home}</Link>
+                <Link href={`/${locale}/search`}>{copy.search}</Link>
                 <Link href={`/${locale}/topics`}>{copy.allTopics}</Link>
                 {categories.map((category) => (
                   <Link key={category.slug} href={`/${locale}/categories/${category.slug}`}>
@@ -43,13 +47,17 @@ export async function SiteHeader({ locale, localeHrefs }: SiteHeaderProps) {
             </div>
           </details>
 
-          <Link className="brand" href={`/${locale}`} aria-label={`${siteConfig.name} — ${copy.home}`}>
-            {siteConfig.name}
-          </Link>
+          <div className="brand-lockup">
+            <Link className="brand" href={`/${locale}`} aria-label={`${siteConfig.name} — ${copy.home}`}>
+              {siteConfig.name}
+            </Link>
+            <span>{copy.publicationPromise}</span>
+          </div>
 
           <nav className="header-actions" aria-label={copy.account}>
             <Link className="header-search" href={`/${locale}/search`}>
-              <span aria-hidden="true">⌕</span>{copy.search}
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
+              <span>{copy.search}</span>
             </Link>
             <AccountActions locale={locale} />
           </nav>
@@ -85,9 +93,9 @@ export async function SiteHeader({ locale, localeHrefs }: SiteHeaderProps) {
               ))}
             </nav>
           </details>
+          <ThemeToggle locale={locale} />
         </div>
       </header>
-      <ThemeToggle locale={locale} />
     </>
   );
 }
