@@ -31,3 +31,4 @@ Thumbs.db
 *.log
 artifacts/
 .artifacts/
+apps/web/public/sitemap.txt

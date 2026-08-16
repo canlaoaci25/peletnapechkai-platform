@@ -34,4 +34,6 @@ foreach ($locale in $locales) {
 
 $sitemap = Invoke-WebRequest "$base/sitemap.xml" -UseBasicParsing -TimeoutSec 30
 if ($sitemap.StatusCode -ne 200) { throw 'Sitemap check failed.' }
+$sitemapText = Invoke-WebRequest "$base/sitemap.txt" -UseBasicParsing -TimeoutSec 30
+if ($sitemapText.StatusCode -ne 200 -or ($sitemapText.Content.Trim() -split "`n").Count -lt 4) { throw 'Text sitemap check failed.' }
 [pscustomobject]@{ BaseUrl = $base; Locales = $locales.Count; Search = 'Success'; Accessibility = 'Success'; Stylesheets = 'Success'; Result = 'Success' }

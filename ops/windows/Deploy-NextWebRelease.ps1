@@ -35,6 +35,10 @@ New-Item -ItemType Directory -Path (Join-Path $release '.next\static') -Force | 
 Copy-Item -Path (Join-Path $static '*') -Destination (Join-Path $release '.next\static') -Recurse -Force
 New-Item -ItemType Directory -Path (Join-Path $release 'public') -Force | Out-Null
 Copy-Item -Path (Join-Path $public '*') -Destination (Join-Path $release 'public') -Recurse -Force
+$currentSitemapText = Join-Path $active 'public\sitemap.txt'
+if (Test-Path -LiteralPath $currentSitemapText -PathType Leaf) {
+    Copy-Item -LiteralPath $currentSitemapText -Destination (Join-Path $release 'public\sitemap.txt') -Force
+}
 
 $serviceStopped = $false
 try {
@@ -58,4 +62,3 @@ catch {
     Start-Service -Name $settings.Service -ErrorAction SilentlyContinue
     throw
 }
-
