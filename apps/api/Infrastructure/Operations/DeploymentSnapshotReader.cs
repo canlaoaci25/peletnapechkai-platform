@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace Peletnapechkai.Api.Infrastructure.Operations;
 
-public sealed record DeploymentSnapshot(string Environment, string Component, string Status, string Commit,
+public sealed record DeploymentSnapshot(string DeploymentId, string Environment, string Component, string Status, string Commit,
     string Message, DateTimeOffset StartedAt, DateTimeOffset UpdatedAt, int DurationSeconds);
 
 public sealed class DeploymentSnapshotReader(IConfiguration configuration)
@@ -14,18 +14,41 @@ public sealed class DeploymentSnapshotReader(IConfiguration configuration)
     public DeploymentSnapshot[] ReadLatest() => new[] { "staging-web", "staging-api", "production-web", "production-api" }
         .Select(Read).Where(x => x is not null).Cast<DeploymentSnapshot>().OrderByDescending(x => x.UpdatedAt).ToArray();
 
+    public DeploymentSnapshot[] ReadHistory(int limit = 12)
+    {
+        try
+        {
+            return Directory.Exists(root)
+                ? Directory.EnumerateFiles(root, "deployment-*.json", SearchOption.TopDirectoryOnly)
+                    .Select(ReadFile).Where(x => x is not null).Cast<DeploymentSnapshot>()
+                    .OrderByDescending(x => x.UpdatedAt).Take(Math.Clamp(limit, 1, 50)).ToArray()
+                : [];
+        }
+        catch (IOException) { return []; }
+        catch (UnauthorizedAccessException) { return []; }
+    }
+
     private DeploymentSnapshot? Read(string name)
     {
         try
         {
-            var file = new FileInfo(Path.Combine(root, $"latest-{name}.json"));
+            return ReadFile(Path.Combine(root, $"latest-{name}.json"));
+        }
+        catch (IOException) { return null; } catch (UnauthorizedAccessException) { return null; }
+    }
+
+    private static DeploymentSnapshot? ReadFile(string path)
+    {
+        try
+        {
+            var file = new FileInfo(path);
             if (!file.Exists || file.Length is <= 0 or > MaximumSnapshotBytes) return null;
             using var stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             using var document = JsonDocument.Parse(stream); var value = document.RootElement;
-            if (ReadInt(value,"SchemaVersion") != 1 || !TryDate(value,"StartedAt",out var started) || !TryDate(value,"UpdatedAt",out var updated)) return null;
+            if (ReadInt(value,"SchemaVersion") is not (1 or 2) || !TryDate(value,"StartedAt",out var started) || !TryDate(value,"UpdatedAt",out var updated)) return null;
             var environment=ReadText(value,"Environment",20); var component=ReadText(value,"Component",20); var status=ReadText(value,"Status",30);
             if (environment is not ("Staging" or "Production") || component is not ("Web" or "Api") || status is null) return null;
-            return new(environment,component,status,ReadText(value,"Commit",64)??"",ReadText(value,"Message",240)??"",started,updated,ReadInt(value,"DurationSeconds")??0);
+            return new(ReadText(value,"DeploymentId",64)??"legacy",environment,component,status,ReadText(value,"Commit",64)??"",ReadText(value,"Message",240)??"",started,updated,ReadInt(value,"DurationSeconds")??0);
         }
         catch (IOException) { return null; } catch (UnauthorizedAccessException) { return null; } catch (JsonException) { return null; }
     }

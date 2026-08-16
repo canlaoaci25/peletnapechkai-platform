@@ -2,6 +2,12 @@
 
 ## Execution status
 
+Cycle 32 turns the Release Recovery Center into a durable deployment evidence surface:
+every staging and production Web/API release now keeps an atomic, sanitized history
+record in addition to the latest checkpoint, while administrators can see the last 12
+releases, successful promotions, automatic recoveries, and intervention debt. Manual
+rollback authorization and retention-policy automation remain later operational controls.
+
 Cycle 31 turns the Visual Quality Desk into a persistent Visual Renewal Studio: every
 risky published cover can be checkpointed once, receives a full-text, H2/H3, taxonomy,
 and locale-aware text-free visual brief, and moves through audited review, approval,
