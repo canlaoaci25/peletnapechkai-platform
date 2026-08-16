@@ -7,6 +7,7 @@ using Peletnapechkai.Api.Domain.Identity;
 using Peletnapechkai.Api.Domain.Localization;
 using Peletnapechkai.Api.Infrastructure.Identity;
 using Peletnapechkai.Api.Infrastructure.Persistence;
+using Peletnapechkai.Api.Localization;
 
 namespace Peletnapechkai.Api.Endpoints;
 
@@ -78,7 +79,11 @@ public static class LocaleManagementEndpoints
             string.IsNullOrWhiteSpace(request.DisplayName) ? culture.EnglishName : request.DisplayName,
             string.IsNullOrWhiteSpace(request.NativeName) ? culture.NativeName : request.NativeName, false);
         locale.Update(locale.DisplayName, locale.NativeName, false);
-        foreach (var country in countries.Values) locale.Countries.Add(new LocaleCountry(locale, country, true));
+        foreach (var country in countries.Values)
+        {
+            var isPrimary = country.Id == primary.Id;
+            locale.Countries.Add(new LocaleCountry(locale, country, isPrimary, isPrimary));
+        }
         database.Locales.Add(locale);
         database.AuditLogs.Add(new AuditLog(actor.Id, "localization.locale_created", nameof(Locale), locale.Id, JsonSerializer.Serialize(new { locale.Code, countries = countries.Count }), DateTimeOffset.UtcNow));
         await database.SaveChangesAsync(token);
@@ -90,6 +95,18 @@ public static class LocaleManagementEndpoints
         var actor = await users.GetUserAsync(principal); var locale = await database.Locales.SingleOrDefaultAsync(item => item.Id == localeId, token);
         if (actor is null) return Results.Unauthorized(); if (locale is null) return Results.NotFound();
         if (locale.IsDefault && !request.IsEnabled) return Results.Conflict(new { message = "Varsayılan dil pasifleştirilemez." });
+        if (request.IsEnabled && !SupportedLocales.Contains(locale.Code))
+            return Results.Conflict(new { message = "Bu dilin public arayüz paketi henüz hazır değil. Sözlük ve rota kalite kapıları tamamlanmadan etkinleştirilemez." });
+        if (request.IsEnabled)
+        {
+            var enabledCountryIds = await database.LocaleCountries.AsNoTracking()
+                .Where(link => link.LocaleId == locale.Id && link.IsEnabled).Select(link => link.CountryId).ToArrayAsync(token);
+            var conflicts = await database.LocaleCountries.AsNoTracking()
+                .Where(link => link.LocaleId != locale.Id && link.Locale.IsEnabled && link.IsEnabled && enabledCountryIds.Contains(link.CountryId))
+                .Select(link => link.Country.Code).Distinct().Order().ToArrayAsync(token);
+            if (conflicts.Length > 0)
+                return Results.Conflict(new { message = $"Şu ülkeler başka bir etkin dile bağlı: {string.Join(", ", conflicts)}." });
+        }
         locale.Update(request.DisplayName, request.NativeName, request.IsEnabled);
         database.AuditLogs.Add(new AuditLog(actor.Id, "localization.locale_updated", nameof(Locale), locale.Id, JsonSerializer.Serialize(new { request.IsEnabled }), DateTimeOffset.UtcNow));
         await database.SaveChangesAsync(token); return Results.Ok(new { locale.Id, locale.IsEnabled });
@@ -99,7 +116,14 @@ public static class LocaleManagementEndpoints
     {
         var actor = await users.GetUserAsync(principal); if (actor is null) return Results.Unauthorized();
         var item = await database.LocaleCountries.Include(link => link.Country).SingleOrDefaultAsync(link => link.LocaleId == localeId && link.Country.Code == countryCode.ToUpperInvariant(), token);
-        if (item is null) return Results.NotFound(); item.SetEnabled(request.IsEnabled);
+        if (item is null) return Results.NotFound();
+        if (request.IsEnabled)
+        {
+            var conflict = await database.LocaleCountries.AsNoTracking().AnyAsync(link =>
+                link.LocaleId != localeId && link.CountryId == item.CountryId && link.IsEnabled && link.Locale.IsEnabled, token);
+            if (conflict) return Results.Conflict(new { message = "Bu ülke zaten başka bir etkin dile bağlı." });
+        }
+        item.SetEnabled(request.IsEnabled);
         database.AuditLogs.Add(new AuditLog(actor.Id, "localization.country_toggled", nameof(LocaleCountry), localeId, JsonSerializer.Serialize(new { countryCode, request.IsEnabled }), DateTimeOffset.UtcNow));
         await database.SaveChangesAsync(token); return Results.Ok(new { item.LocaleId, item.CountryId, item.IsEnabled });
     }

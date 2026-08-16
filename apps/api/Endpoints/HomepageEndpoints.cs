@@ -28,7 +28,7 @@ public static class HomepageEndpoints
         var lead = manualLead is null ? articles[0] : byId[manualLead.ArticleLocalizationId];
         var automatic = articles.OrderByDescending(Score).ThenByDescending(x => x.PublishedAt).ToList();
         var editors = placements.Where(x => x.Section == "Editors" && byId.ContainsKey(x.ArticleLocalizationId)).Select(x => byId[x.ArticleLocalizationId]).ToList();
-        editors.AddRange(automatic.Where(x => x.Id != lead.Id && editors.All(y => y.Id != x.Id)).Take(4-editors.Count));
+        editors.AddRange(automatic.Where(x => x.Id != lead.Id && editors.All(y => y.Id != x.Id)).Take(Math.Max(0, 4-editors.Count)));
         var secondary = articles.Where(x => x.Id != lead.Id).Take(4).ToList();
         var excluded = new HashSet<Guid>(secondary.Select(x=>x.Id)) { lead.Id };
         return Results.Ok(new { lead=Shape(lead), secondary=secondary.Select(Shape), trending=automatic.Take(6).Select(Shape), editors=editors.Take(4).Select(Shape), latest=articles.Where(x=>!excluded.Contains(x.Id)).Take(15).Select(Shape), mode=placements.Count==0?"Automatic":"Hybrid" });
@@ -64,6 +64,7 @@ public static class HomepageEndpoints
     private static async Task<IResult> SaveAsync(string locale,HomepageRequest request,PublishingDbContext db,CancellationToken token)
     {
         var localeEntity=await db.Locales.SingleOrDefaultAsync(x=>x.Code==locale&&x.IsEnabled,token);if(localeEntity is null)return Results.NotFound();
+        var requested=request.Placements.Select(x=>(x.Section,x.Position,x.ArticleId)).ToArray();var validation=HomepagePlacementRules.Validate(requested);if(validation is not null)return Results.BadRequest(new{message=validation});
         var old=await db.HomepagePlacements.Where(x=>x.LocaleId==localeEntity.Id).ToListAsync(token);db.HomepagePlacements.RemoveRange(old);
         if(!request.AutomaticOnly){var ids=request.Placements.Select(x=>x.ArticleId).Distinct().ToArray();var articles=await db.ArticleLocalizations.Where(x=>ids.Contains(x.Id)&&x.LocaleId==localeEntity.Id&&x.Status==PublicationStatus.Published).ToDictionaryAsync(x=>x.Id,token);if(articles.Count!=ids.Length)return Results.BadRequest(new{message="All placements must reference published articles in this locale."});foreach(var item in request.Placements.Take(5)){if(item.Section is not("Lead" or "Editors"))return Results.BadRequest();db.HomepagePlacements.Add(new HomepagePlacement(localeEntity,articles[item.ArticleId],item.Section,item.Position,DateTimeOffset.UtcNow));}}
         await db.SaveChangesAsync(token);return Results.NoContent();
