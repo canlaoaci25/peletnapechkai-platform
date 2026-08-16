@@ -3203,6 +3203,7 @@ select:focus-visible {
 .primary-navigation {
   display: flex;
   flex: 1 1 auto;
+  width: 0;
   min-width: 0;
   align-items: center;
   gap: clamp(18px, 2.4vw, 38px);
