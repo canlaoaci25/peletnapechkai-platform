@@ -268,16 +268,19 @@ public static partial class AutomationWorkerEndpoints
             GeneratedCover? cover = null;
             if (job.IncludeImages)
             {
-                if (item.InlineImageQueries is not { Length: 2 } || item.InlineImageAltTexts is not { Length: 2 }) return Results.BadRequest(new { message = "Resimli makalede iki gövde görseli gereklidir." });
-                cover = await CreateGeneratedCoverAsync(item.ImageSearchQuery ?? item.Title, category.Name, configuration, now, token);
+                if (!ImageTopicRelevancePolicy.IsRelevantSet(item.Title, item.Summary, category.Name, item.ImageSearchQuery, item.InlineImageQueries, item.InlineImageAltTexts))
+                    return Results.BadRequest(new { message = "Kapak ve gövde görselleri; makale konusuna bağlı, somut, yazısız ve birbirinden farklı sahneler tarif etmelidir." });
+                var inlineQueries = item.InlineImageQueries!;
+                var inlineAltTexts = item.InlineImageAltTexts!;
+                cover = await CreateGeneratedCoverAsync(item.ImageSearchQuery!, category.Name, configuration, now, token);
                 database.MediaAssets.Add(cover.Asset); group.MediaAssets.Add(cover.Asset);
                 var inlineAssets = new List<MediaAsset>(2);
                 for (var imageIndex = 0; imageIndex < 2; imageIndex++)
                 {
-                    var inline = await CreateGeneratedInlineAsync(item.InlineImageQueries[imageIndex], category.Name, imageIndex, configuration, now, token);
+                    var inline = await CreateGeneratedInlineAsync(inlineQueries[imageIndex], category.Name, imageIndex, configuration, now, token);
                     database.MediaAssets.Add(inline); group.MediaAssets.Add(inline); inlineAssets.Add(inline);
                 }
-                sanitizedBody = InsertInlineImages(sanitizedBody, inlineAssets, item.InlineImageAltTexts);
+                sanitizedBody = InsertInlineImages(sanitizedBody, inlineAssets, inlineAltTexts);
             }
             var article = new ArticleLocalization(group, locale, item.Slug, item.Title, item.Summary, sanitizedBody, now);
             article.Categories.Add(category);
@@ -440,6 +443,9 @@ public static partial class AutomationWorkerEndpoints
             }
             catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException or InvalidDataException or KeyNotFoundException) { }
         }
+
+        if (allowStockProvider)
+            throw new InvalidOperationException("Konuya uygun, yazısız bir stok görseli doğrulanamadı; soyut yedek görselle yayına devam edilmedi.");
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(seed));
         var background = new SKColor((byte)(18 + hash[0] % 30), (byte)(22 + hash[1] % 34), (byte)(34 + hash[2] % 44));
