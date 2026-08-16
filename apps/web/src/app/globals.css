@@ -1695,6 +1695,17 @@ select:focus-visible {
 .search-page section {
   margin-top: 54px;
 }
+@media (max-width: 480px) {
+  .search-page form div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .search-page input,
+  .search-page button {
+    width: 100%;
+    min-height: 44px;
+  }
+}
 .search-results {
   display: grid;
   gap: 0;

@@ -76,3 +76,15 @@ test("mobil konu seridi kaydirilabilirligini gorsel olarak belli eder", () => {
   assert.match(styles, /@media\(max-width:700px\)\{\.topic-strip\{[^}]*scrollbar-width:thin/);
   assert.match(styles, /\.topic-strip::-webkit-scrollbar\{height:5px\}/);
 });
+
+test("arama sayfasi mobil klavyeyi kendiliginden acmaz ve dar ekranda tasmaz", () => {
+  const searchPage = readFileSync(fileURLToPath(new URL("../app/[locale]/search/page.tsx", import.meta.url)), "utf8");
+  const styles = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
+
+  assert.doesNotMatch(searchPage, /\bautoFocus\b/);
+  assert.match(searchPage, /type="search"/);
+  assert.match(searchPage, /enterKeyHint="search"/);
+  assert.match(searchPage, /<button type="submit">/);
+  assert.match(styles, /@media \(max-width: 480px\) \{[\s\S]*?\.search-page form div \{[\s\S]*?flex-direction: column/);
+  assert.match(styles, /\.search-page input,[\s\S]*?\.search-page button \{[\s\S]*?min-height: 44px/);
+});
