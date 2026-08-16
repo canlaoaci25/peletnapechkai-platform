@@ -48,9 +48,13 @@ try {
     Move-Item -LiteralPath $release -Destination $active
     Start-Service -Name $settings.Service
     $serviceStopped = $false
-    Start-Sleep -Seconds 3
-    & (Join-Path $PSScriptRoot $settings.Health) | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "$Environment health check failed." }
+    $healthy = $false
+    for ($attempt = 1; $attempt -le 6; $attempt++) {
+        Start-Sleep -Seconds 5
+        & (Join-Path $PSScriptRoot $settings.Health) | Out-Null
+        if ($LASTEXITCODE -eq 0) { $healthy = $true; break }
+    }
+    if (-not $healthy) { throw "$Environment health check failed after startup retries." }
     & (Join-Path $PSScriptRoot 'Test-PublicExperience.ps1') -BaseUrl $settings.BaseUrl | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "$Environment public experience check failed." }
     [pscustomobject]@{ Environment=$Environment; Active=$active; Rollback=$rollback; Healthy=$true }
