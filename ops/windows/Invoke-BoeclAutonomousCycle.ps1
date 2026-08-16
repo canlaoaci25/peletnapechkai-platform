@@ -22,7 +22,16 @@ try {
     if (@(& git.exe -C $repository status --porcelain).Count -gt 0) { throw 'Çalışma ağacı temiz değil; kullanıcı değişikliklerini korumak için çevrim atlandı.' }
     $baselineCommit = (& git.exe -C $repository rev-parse HEAD).Trim()
 
-    $focuses = @('iş mantığı ve API güvenilirliği','otomasyon ve hata kurtarma','Türkçe içerik, SEO ve kaynak kalitesi','çeviri ve locale bütünlüğü','erişilebilirlik, mobil tasarım ve performans','makale görsellerinin konu uygunluğu ve yazısız özgün tasarımı')
+    $focuses = @(
+        'ana sayfa, global navigasyon ve gorunur tasarim donusumu',
+        'icerik kesfi, kategori mimarisi ve yeni Turkce taxonomy',
+        'uyelik, etkilesim ve ziyaretciyi geri getiren urun ozellikleri',
+        'admin paneli, editoryal verimlilik ve yonetilebilirlik',
+        'Turkce icerik, SEO, kaynak kalitesi ve trafik buyumesi',
+        'ceviri, locale butunlugu ve uluslararasi deneyim',
+        'makale gorsellerinin konu uygunlugu ve yazisiz ozgun tasarimi',
+        'otomasyon, hata kurtarma ve canli dagitim guvenilirligi'
+    )
     $cycle = [int]$state.cycle + 1
     $focus = $focuses[($cycle - 1) % $focuses.Count]
     # Advance immediately so a failed deployment cannot trap every later run
@@ -44,7 +53,18 @@ try {
     $prompt = @"
 BOECL tam yetkili otonom geliştirme çevrimi $cycle. Bu çevrimin odağı: $focus.
 Repo AGENTS.md kurallarını eksiksiz uygula. Sistemi incele, yalnız kanıtlanabilir en yüksek değerli ve sınırlı bir iyileştirme paketi seç, uygula ve regresyon testlerini ekle. Türkçe içerik, SEO, etkin dillere çeviri, taxonomy, yazısız konuya özel kapak ve gövde görselleri, API, admin, mobil, güvenlik ve operasyon bütünlüğünü birlikte koru. Kullanıcı veya başka süreç değişikliklerini silme. Sırları okuma veya raporlama. Veritabanına doğrudan içerik yazma; doğrulanan API/migration yollarını kullan. Kalite kapıları geçmezse commit/push/deploy yapma. Geçerse anlamlı commit oluştur ve origin/main dalına push et. Geri döndürülemez hesap, DNS, ödeme veya kimlik işlemi yapma. Sonuçta yapılanları, testleri, commit'i ve kalan riski Türkçe raporla.
-Basari olcutu yalniz mikro CSS, lazy-loading, aria veya test degisikligi degildir. Son cevrimlerde ayni alanda yapilan commitleri incele ve tekrarlama. Her cevrim kullanicinin canlida fark edebilecegi en az bir sonuc uretmelidir: yeni veya iyilestirilmis ozellik, yonetilebilir kategori/taxonomy kapasitesi, konuya uygun gorsel hatti, icerik/SEO/ceviri kalitesi ya da kanitlanmis guvenilirlik duzeltmesi. Yeni kategori eklemek icin yalniz mevcut yetkili API/yonetim akisini kullan; veritabanina dogrudan yazma. Gorsellerde soyut dekoratif sablonu basari sayma; konu nesnesi/sahnesi ile sorgu uyumunu dogrula. Deploy basarisizsa bunu tamamlanmis gelistirme gibi raporlama.
+Bu bir bakim botu degil, BOECL'in tamamini gelistiren urun ekibidir. "Sinirli paket" ifadesini mikro degisiklik olarak yorumlama. Her cevrim tek bir urun fazini uctan uca tamamlamali ve kullanici sayfayi actiginda gozle gorulur bir fark olusturmalidir. Sadece CSS ayrintisi, lazy-loading, aria, test, refactor, dokuman veya altyapi degisikligi tek basina cevrim basarisi olamaz; bunlar gorunur fazin destekleyici parcalari olabilir.
+
+Her cevrimin zorunlu akisi:
+1. Canli siteyi, admini, son 20 commit'i ve kalici yol haritasini incele; tekrar eden mikro isi secme.
+2. O odak icin ziyaretcinin veya yoneticinin gorecegi bir once/sonra hedefi yaz. Ana sayfa/modul/akis/taxonomy/icerik sunumu gibi butun bir yuzeyi ele al.
+3. Tasarim fazinda masaustu ve mobil hiyerarsi, bosluk, tipografi, kartlar, navigasyon, dark/aydinlik tema ve erisilebilirligi birlikte tamamla. Global kaliteli yayinlardan yalniz desen ve prensip arastir; tasarimi kopyalama.
+4. Icerik fazinda yeni Turkce kategori ihtiyacini gercek arsiv ve trendlerle denetle; kanitli ihtiyac varsa mevcut yetkili API/yonetim akisi ve audit iziyle olustur, cevirilerini ve SEO baglarini tamamla. Veritabanina dogrudan yazma.
+5. Gorsel fazinda soyut dekoratif sablonu basari sayma; kapak ve govde gorselleri makalenin somut konusu/sahnesiyle uyumlu, yazisiz ve birbirinden farkli olsun.
+6. Kabul kriterlerini test et, anlamli tek faz commit'i olustur, GitHub'a push et, staging ve production'a deploy et. Canli URL'lerde sonucu dogrulamadan Completed yazma.
+7. Raporun ilk satirlarinda kullanicinin nerede hangi gorunur farki gorecegini, canli URL'yi ve deploy sonucunu belirt.
+
+Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Failed olarak raporla ve sonraki odaga gec. Deploy basarisizsa gelistirme tamamlanmis sayilmaz.
 "@
     $env:CODEX_HOME = [string]$config.codexHome
     $inputPath = Join-Path $logRoot "$stamp-cycle-$cycle.stdin"
