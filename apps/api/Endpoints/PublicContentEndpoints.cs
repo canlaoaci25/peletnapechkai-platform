@@ -35,7 +35,7 @@ public static class PublicContentEndpoints
 
     private static async Task<IResult> ListArchivesAsync(string locale, PublishingDbContext database, CancellationToken token)
     {
-        var categories = await database.Categories.AsNoTracking().Where(item => item.Locale.Code == locale && item.Articles.Any(article => article.Status == PublicationStatus.Published)).OrderBy(item => item.Name).Select(item => new { item.Slug, title = item.Name }).ToListAsync(token);
+        var categories = await database.Categories.AsNoTracking().Where(item => item.Locale.Code == locale && item.Articles.Any(article => article.Status == PublicationStatus.Published)).OrderBy(item => item.Name).Select(item => new { item.Slug, title = item.Name, translationKey = item.SourceCategoryId ?? item.Id }).ToListAsync(token);
         var tags = await database.Tags.AsNoTracking().Where(item => item.Locale.Code == locale && item.Articles.Any(article => article.Status == PublicationStatus.Published)).OrderBy(item => item.Name).Select(item => new { item.Slug, title = item.Name }).ToListAsync(token);
         var authors = await database.Authors.AsNoTracking().Where(item => database.ArticleLocalizations.Any(article => article.Locale.Code == locale && article.Status == PublicationStatus.Published && article.ArticleGroup.Authors.Any(author => author.Id == item.Id))).OrderBy(item => item.DisplayName).Select(item => new { item.Slug, title = item.DisplayName }).ToListAsync(token);
         return Results.Ok(new { categories, tags, authors });
@@ -47,13 +47,20 @@ public static class PublicContentEndpoints
         var query = database.ArticleLocalizations.AsNoTracking().Where(article => article.Locale.Code == locale && article.Locale.IsEnabled && article.Status == PublicationStatus.Published);
         string? title;
         string? description = null;
+        object translations = Array.Empty<object>();
         switch (kind)
         {
             case "categories":
-                var category = await database.Categories.AsNoTracking().Where(item => item.Locale.Code == locale && item.Slug == slug).Select(item => new { item.Name, item.Description }).SingleOrDefaultAsync(token);
+                var category = await database.Categories.AsNoTracking().Where(item => item.Locale.Code == locale && item.Slug == slug).Select(item => new { item.Id, item.SourceCategoryId, item.Name, item.Description }).SingleOrDefaultAsync(token);
                 if (category is null) return Results.NotFound();
                 title = category.Name; description = category.Description;
                 query = query.Where(article => article.Categories.Any(item => item.Slug == slug));
+                var translationKey = category.SourceCategoryId ?? category.Id;
+                translations = await database.Categories.AsNoTracking()
+                    .Where(item => (item.Id == translationKey || item.SourceCategoryId == translationKey) && item.Locale.IsEnabled && item.Articles.Any(article => article.Status == PublicationStatus.Published))
+                    .OrderBy(item => item.Locale.Code)
+                    .Select(item => new { locale = item.Locale.Code, item.Slug })
+                    .ToArrayAsync(token);
                 break;
             case "tags":
                 title = await database.Tags.AsNoTracking().Where(item => item.Locale.Code == locale && item.Slug == slug).Select(item => item.Name).SingleOrDefaultAsync(token);
@@ -70,7 +77,7 @@ public static class PublicContentEndpoints
                 return Results.NotFound();
         }
         var articles = await query.OrderByDescending(article => article.PublishedAt).Take(take).Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } }).ToListAsync(token);
-        return Results.Ok(new { kind, slug, title, description, articles });
+        return Results.Ok(new { kind, slug, title, description, translations, articles });
     }
 
     private static async Task<IResult> SearchAsync(string locale, string? q, PublishingDbContext database, int? limit, CancellationToken token)

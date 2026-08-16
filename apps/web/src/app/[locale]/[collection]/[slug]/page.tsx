@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { archiveCopy } from "@/i18n/archive-copy";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
+import { archiveLanguages } from "@/lib/archive-localization";
 import { getPublicArchive } from "@/lib/public-api";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: archive.title,
     description: archive.description ?? archiveCopy[locale].description,
-    alternates: { canonical: `/${locale}/${collection}/${slug}` },
+    alternates: {
+      canonical: `/${locale}/${collection}/${slug}`,
+      languages: archiveLanguages(collection, archive.translations),
+    },
   };
 }
 export default async function ArchivePage({ params }: Props) {
