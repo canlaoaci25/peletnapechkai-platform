@@ -20,6 +20,7 @@ try {
     $repository = [IO.Path]::GetFullPath([string]$config.repositoryPath)
     if (-not (Test-Path -LiteralPath (Join-Path $repository 'AGENTS.md'))) { throw 'Yetkili BOECL deposu doğrulanamadı.' }
     if (@(& git.exe -C $repository status --porcelain).Count -gt 0) { throw 'Çalışma ağacı temiz değil; kullanıcı değişikliklerini korumak için çevrim atlandı.' }
+    $baselineCommit = (& git.exe -C $repository rev-parse HEAD).Trim()
 
     $focuses = @('iş mantığı ve API güvenilirliği','otomasyon ve hata kurtarma','Türkçe içerik, SEO ve kaynak kalitesi','çeviri ve locale bütünlüğü','erişilebilirlik, mobil tasarım ve performans','makale görsellerinin konu uygunluğu ve yazısız özgün tasarımı')
     $cycle = [int]$state.cycle + 1
@@ -67,6 +68,22 @@ Repo AGENTS.md kurallarını eksiksiz uygula. Sistemi incele, yalnız kanıtlana
     try {
         foreach ($check in $checks) { & $check.Command @($check.Arguments); if ($LASTEXITCODE -ne 0) { throw "Otonom kalite kapısı başarısız: $($check.Command)." } }
     } finally { Pop-Location }
+
+    $finalCommit = (& git.exe -C $repository rev-parse HEAD).Trim()
+    $changedFiles = if ($finalCommit -ne $baselineCommit) { @(& git.exe -C $repository diff --name-only $baselineCommit $finalCommit) } else { @() }
+    if (@(& git.exe -C $repository status --porcelain).Count -gt 0) { throw 'Otonom çevrim temiz olmayan çalışma ağacı bıraktı; dağıtım durduruldu.' }
+    if ($changedFiles | Where-Object { $_ -like 'apps/api/*' -or $_ -like 'tests/api/*' }) {
+        & (Join-Path $repository 'ops\windows\Backup-PostgreSql.ps1')
+        if ($LASTEXITCODE -ne 0) { throw 'Dağıtım öncesi PostgreSQL yedeği başarısız.' }
+        & (Join-Path $repository 'ops\windows\Update-BoeclDatabase.ps1') -Environment Staging -RepositoryPath $repository
+        & (Join-Path $repository 'ops\windows\Deploy-AspNetApiRelease.ps1') -Environment Staging -RepositoryPath $repository
+        & (Join-Path $repository 'ops\windows\Update-BoeclDatabase.ps1') -Environment Production -RepositoryPath $repository
+        & (Join-Path $repository 'ops\windows\Deploy-AspNetApiRelease.ps1') -Environment Production -RepositoryPath $repository
+    }
+    if ($changedFiles | Where-Object { $_ -like 'apps/web/*' -or $_ -like 'config/supported-locales.json' }) {
+        & (Join-Path $repository 'ops\windows\Deploy-NextWebRelease.ps1') -Environment Staging
+        & (Join-Path $repository 'ops\windows\Deploy-NextWebRelease.ps1') -Environment Production
+    }
 
     $state.cycle = $cycle
     $state.lastRunAt = [DateTimeOffset]::UtcNow.ToString('o')
