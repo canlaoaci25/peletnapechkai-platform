@@ -5,6 +5,7 @@ using Peletnapechkai.Api.Localization;
 using Peletnapechkai.Api.Infrastructure.Persistence;
 using Peletnapechkai.Api.Infrastructure.Publishing;
 using Peletnapechkai.Api.Infrastructure.Automation;
+using Peletnapechkai.Api.Infrastructure.Operations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddApplicationIdentity(builder.Environment, builder.Configuration);
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ProductionHealthSnapshotReader>();
 builder.Services.AddHostedService<ScheduledPublishingWorker>();
 builder.Services.AddHostedService<AutomaticContentWorker>();
 

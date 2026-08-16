@@ -32,6 +32,9 @@ export function AdminOverview({
         {},
       ),
   ).sort((a, b) => b[1] - a[1]);
+  const health = status?.productionHealth;
+  const healthState = !health?.available ? "unavailable" : health.stale ? "stale" : health.healthy ? "healthy" : "failed";
+  const healthLabel = {healthy:"Tüm kapılar açık",failed:"Müdahale gerekiyor",stale:"Kontrol bayat",unavailable:"Sağlık verisi yok"}[healthState];
   return (
     <div className="overview-grid">
       <section
@@ -107,41 +110,32 @@ export function AdminOverview({
         </dl>
       </section>
       {status && (
-        <section className="admin-panel overview-system">
-          <p className="section-kicker">SİSTEM SAĞLIĞI</p>
-          <h2>Altyapı özeti</h2>
+        <section className={`admin-panel overview-system health-${healthState}`}>
+          <header className="health-heading">
+            <div><p className="section-kicker">CANLI YAYIN GÜVENİ</p><h2>Production kapıları</h2></div>
+            <strong><span className="health-dot" />{healthLabel}</strong>
+          </header>
           <dl>
             <div>
-              <dt>Veritabanı</dt>
-              <dd>
-                <span className="health-dot" />
-                Çalışıyor
-              </dd>
+              <dt>Servisler</dt><dd>{health?.servicesHealthy ?? 0} / {health?.servicesTotal ?? 0}</dd>
             </div>
             <div>
-              <dt>Kullanıcı</dt>
-              <dd>{status.users}</dd>
+              <dt>Public uçlar</dt><dd>{health?.endpointsHealthy ?? 0} / {health?.endpointsTotal ?? 0}</dd>
             </div>
             <div>
-              <dt>Medya</dt>
-              <dd>
-                {status.mediaFiles} dosya ·{" "}
-                {(status.mediaBytes / 1024 / 1024).toFixed(1)} MB
-              </dd>
+              <dt>TLS süresi</dt><dd>{health?.certificateDaysRemaining == null ? "—" : `${health.certificateDaysRemaining} gün`}</dd>
             </div>
             <div>
-              <dt>Boş disk</dt>
-              <dd>
-                {(status.diskFreeBytes / 1024 / 1024 / 1024).toFixed(1)} GB
-              </dd>
+              <dt>Boş disk</dt><dd>{health?.freeDiskGb == null ? `${(status.diskFreeBytes / 1024 / 1024 / 1024).toFixed(1)} GB` : `${health.freeDiskGb.toFixed(1)} GB`}</dd>
             </div>
           </dl>
-          <time dateTime={status.checkedAt}>
-            Son kontrol:{" "}
+          {!!health?.failures.length && <ul className="health-failures" aria-label="Sağlık kontrolü hataları">{health.failures.map((failure)=><li key={failure}>{failure}</li>)}</ul>}
+          <time dateTime={health?.checkedAt ?? status.checkedAt}>
+            Son production kontrolü:{" "}
             {new Intl.DateTimeFormat("tr-TR", {
               dateStyle: "medium",
               timeStyle: "short",
-            }).format(new Date(status.checkedAt))}
+            }).format(new Date(health?.checkedAt ?? status.checkedAt))}
           </time>
         </section>
       )}

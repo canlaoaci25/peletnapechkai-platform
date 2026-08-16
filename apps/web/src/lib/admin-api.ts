@@ -81,6 +81,19 @@ export type SystemStatus = {
   mediaFiles: number;
   mediaBytes: number;
   diskFreeBytes: number;
+  productionHealth: {
+    checkedAt: string | null;
+    available: boolean;
+    healthy: boolean;
+    stale: boolean;
+    servicesHealthy: number;
+    servicesTotal: number;
+    endpointsHealthy: number;
+    endpointsTotal: number;
+    freeDiskGb: number | null;
+    certificateDaysRemaining: number | null;
+    failures: string[];
+  };
 };
 export type KnowledgeLink = {
   id: string;
