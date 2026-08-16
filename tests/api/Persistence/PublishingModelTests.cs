@@ -122,4 +122,23 @@ public sealed class PublishingModelTests
         Assert.Throws<ArgumentException>(() =>
             new Source("Local file", new Uri("file:///private/source.txt"), DateTimeOffset.UtcNow));
     }
+
+    [Theory]
+    [InlineData("http://localhost/report")]
+    [InlineData("https://192.168.1.20/report")]
+    [InlineData("https://user:secret@example.org/report")]
+    [InlineData("https://intranet/report")]
+    public void Source_RejectsNonPublicUrls(string value)
+    {
+        Assert.Throws<ArgumentException>(() =>
+            new Source("Güvenilmeyen kaynak", new Uri(value), DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public void Source_NormalizesFragmentsForStableDeduplication()
+    {
+        var source = new Source("Araştırma", new Uri("https://example.org/report#section"), DateTimeOffset.UtcNow);
+
+        Assert.Equal("https://example.org/report", source.Url);
+    }
 }

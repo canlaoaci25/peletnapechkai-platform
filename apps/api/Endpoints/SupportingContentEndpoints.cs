@@ -105,7 +105,8 @@ public static partial class SupportingContentEndpoints
 
     private static Task<IResult> CreateSourceAsync(SourceRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext db, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(request.Name) || !Uri.TryCreate(request.Url, UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https")) return Task.FromResult(Invalid());
+        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length > 200 ||
+            !Uri.TryCreate(request.Url, UriKind.Absolute, out var url) || !Source.TryNormalizePublicUrl(url, out _)) return Task.FromResult(Invalid());
         return AddAsync(new Source(request.Name, url, DateTimeOffset.UtcNow), "supporting.source_created", principal, users, db, token);
     }
 

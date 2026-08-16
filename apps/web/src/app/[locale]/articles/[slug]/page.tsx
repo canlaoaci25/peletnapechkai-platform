@@ -9,7 +9,7 @@ import { commercialCopy } from "@/i18n/commercial-copy";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getPublishedArticle, getRelatedArticles } from "@/lib/public-api";
-import { buildArticleStructuredData } from "@/lib/article-structured-data";
+import { buildArticleStructuredData, getPublicSource } from "@/lib/article-structured-data";
 import { absoluteUrl } from "@/lib/site-url";
 
 function markdownBodyToHtml(body: string) {
@@ -88,6 +88,13 @@ export default async function ArticlePage({
     "de-DE": "Quellen",
     "fr-FR": "Sources",
   }[locale];
+  const sourceSummary = {
+    "tr-TR": "Bu içerikte başvurulan kaynaklar",
+    "en-US": "Sources consulted for this article",
+    "de-DE": "Für diesen Artikel verwendete Quellen",
+    "fr-FR": "Sources consultées pour cet article",
+  }[locale];
+  const publicSources = article.sources.map(getPublicSource).filter((source) => source !== null);
   const structuredData = buildArticleStructuredData({
     title: article.title,
     summary: article.summary,
@@ -206,11 +213,12 @@ export default async function ArticlePage({
               ))}
             </footer>
           )}
-          {article.sources.length > 0 && (
+          {publicSources.length > 0 && (
             <aside className="article-sources">
               <h2>{sourceTitle}</h2>
+              <p>{sourceSummary}</p>
               <ul>
-                {article.sources.map((source) => (
+                {publicSources.map((source) => (
                   <li key={source.url}>
                     <a
                       href={source.url}
@@ -219,6 +227,7 @@ export default async function ArticlePage({
                     >
                       {source.name}
                     </a>
+                    <small>{source.host}</small>
                   </li>
                 ))}
               </ul>

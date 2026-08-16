@@ -479,6 +479,15 @@ select:focus-visible {
   padding-top: 22px;
   border-top: 1px solid var(--line);
 }
+.article-sources > p,
+.article-sources li small {
+  color: var(--muted);
+}
+.article-sources li small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+}
 .status-panel {
   margin-top: 18px;
 }
