@@ -88,3 +88,22 @@ test("arama sayfasi mobil klavyeyi kendiliginden acmaz ve dar ekranda tasmaz", (
   assert.match(styles, /@media \(max-width: 480px\) \{[\s\S]*?\.search-page form div \{[\s\S]*?flex-direction: column/);
   assert.match(styles, /\.search-page input,[\s\S]*?\.search-page button \{[\s\S]*?min-height: 44px/);
 });
+
+test("mobil menu dokunma, kisa ekran ve yuksek karsitlik sozlesmesini korur", () => {
+  const styles = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
+
+  assert.match(styles, /\.site-menu summary\s*\{[^}]*min-width:44px[^}]*min-height:44px/);
+  assert.match(styles, /\.site-menu nav\s*\{[^}]*max-height:calc\(100dvh - 96px\)[^}]*overflow-y:auto[^}]*overscroll-behavior:contain/);
+  assert.match(styles, /\.site-menu nav a\s*\{[^}]*min-height:44px/);
+  assert.match(styles, /@media \(forced-colors: active\)\s*\{[\s\S]*?outline: 3px solid CanvasText/);
+});
+
+test("izinli ucuncu taraf betikleri ana yukleme yolundan sonra calisir", () => {
+  const integrations = readFileSync(fileURLToPath(new URL("../components/third-party-integrations.tsx", import.meta.url)), "utf8");
+
+  assert.equal((integrations.match(/strategy="lazyOnload"/g) ?? []).length, 4);
+  assert.doesNotMatch(integrations, /strategy="afterInteractive"/);
+  assert.match(integrations, /allowed&&clarity/);
+  assert.match(integrations, /allowed&&adsense/);
+  assert.match(integrations, /allowed&&ga/);
+});
