@@ -40,6 +40,12 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
   const latest = homepage.latest;
   const articles = [lead,...secondary,...trending,...picks,...latest].filter((item):item is PublicArticleSummary=>item!==null).filter((item,index,all)=>all.findIndex(candidate=>candidate.slug===item.slug)===index);
   const types = [...new Set(articles.map(article => article.type))].slice(0, 3);
+  const atlasFeatureSlugs = new Set<string>();
+  const atlasCategories = archives.categories.slice(0, 6).map(category => {
+    const feature = category.featured.find(article => !atlasFeatureSlugs.has(article.slug));
+    if (feature) atlasFeatureSlugs.add(feature.slug);
+    return { ...category, feature };
+  });
   const formatDate = (date: string) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(date));
   const structuredData = {
     "@context": "https://schema.org",
@@ -90,14 +96,14 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
           <ol>{trending.map((article, index) => <li key={article.slug}><span>{String(index + 1).padStart(2, "0")}</span><div><small>{article.type}</small><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3></div></li>)}</ol>
         </section>}
 
-        {archives.categories.length > 0 && <section className="topic-atlas" aria-labelledby="topic-atlas-title">
+        {atlasCategories.length > 0 && <section className="topic-atlas" aria-labelledby="topic-atlas-title">
           <header className="home-section-header">
             <div><p className="section-kicker">02 / {copy.coverage}</p><h2 id="topic-atlas-title">{copy.topicAtlas}</h2></div>
             <p>{copy.topicAtlasDescription}</p>
           </header>
           <div className="topic-atlas-grid">
-            {archives.categories.slice(0, 6).map((category, categoryIndex) => {
-              const feature = category.featured[0];
+            {atlasCategories.map((category, categoryIndex) => {
+              const { feature } = category;
               return <article key={category.slug} className={categoryIndex === 0 ? "topic-atlas-feature" : ""}>
                 {feature && <ArticleImageLink article={feature} className="topic-atlas-image" locale={locale} sizes={categoryIndex === 0 ? homeImageSizes.atlasLead : homeImageSizes.atlas} />}
                 <div className="topic-atlas-copy">

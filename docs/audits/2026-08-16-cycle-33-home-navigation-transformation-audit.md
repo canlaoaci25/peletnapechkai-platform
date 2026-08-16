@@ -43,7 +43,9 @@ hem birincil navigasyonda semantik ve görsel mevcut-konum işareti taşır.
 - Yeni içerik, translation veya veritabanı kaydı üretilmedi. Yayında ve editoryal onaylı
   gerçek kategori/kapak verisi kullanıldı; veri yedeği veya migration gerekmedi.
 - Görsel linkler yinelenen klavye durağı yaratmaz; yazısız kapaklar Next.js optimizasyon
-  hattı ve belirlenmiş boyut adayları üzerinden sunulur.
+  hattı ve belirlenmiş boyut adayları üzerinden sunulur. Birden çok kategoriye bağlı aynı
+  makale atlas içinde ikinci kez seçilmez; her kategori sıradaki benzersiz öne çıkan yayını
+  kullanır veya sağlıklı biçimde görselsiz taxonomy kartına düşer.
 - Canonical, hreflang, JSON-LD, locale routing, noindex politikaları ve admin yetkileri
   değişmedi.
 

@@ -20,6 +20,7 @@ test("ana sayfa konu atlasi gercek taxonomy yollarini ve arsiv derinligini sunar
   assert.match(homePage, /className="topic-atlas"/);
   assert.match(homePage, /category\.articleCount/);
   assert.match(homePage, /categories\/\$\{category\.slug\}/);
+  assert.match(homePage, /category\.featured\.find\(article => !atlasFeatureSlugs\.has\(article\.slug\)\)/);
   assert.match(homePage, /<SiteHeader locale=\{locale\} homeActive/);
   assert.match(header, /aria-current=\{homeActive \? "page" : undefined\}/);
 });
