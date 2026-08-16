@@ -10,16 +10,10 @@ public static class AutomationCandidateCounter
     {
         if (targetLocales.Length == 0) return 0;
         var sourceIds = await database.Categories.AsNoTracking().Where(item => item.Locale.IsDefault).Select(item => item.Id).ToArrayAsync(token);
-        var logs = await database.AuditLogs.AsNoTracking().Where(log => log.Action == "automation.category_localized" && sourceIds.Contains(log.EntityId)).Select(log => new { log.EntityId, log.DetailsJson }).ToArrayAsync(token);
-        var completed = logs.Select(log => (log.EntityId, Locale: ParseLocale(log.DetailsJson))).Where(item => item.Locale is not null).ToHashSet();
-        return sourceIds.Sum(sourceId => targetLocales.Count(locale => !completed.Contains((sourceId, locale))));
-    }
-
-    private static string? ParseLocale(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try { return System.Text.Json.JsonDocument.Parse(json).RootElement.GetProperty("locale").GetString(); }
-        catch { return null; }
+        var completed = await database.Categories.AsNoTracking().Where(category => category.SourceCategoryId != null && targetLocales.Contains(category.Locale.Code))
+            .Select(category => new { SourceId = category.SourceCategoryId!.Value, Locale = category.Locale.Code }).ToArrayAsync(token);
+        var completedPairs = completed.Select(item => (item.SourceId, item.Locale)).ToHashSet();
+        return sourceIds.Sum(sourceId => targetLocales.Count(locale => !completedPairs.Contains((sourceId, locale))));
     }
 
     public static async Task<int> CountReadyContentRemainingAsync(PublishingDbContext database, Peletnapechkai.Api.Domain.Automation.AutomationJob job, CancellationToken token)

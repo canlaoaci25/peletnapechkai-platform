@@ -28,8 +28,10 @@ public static partial class AutomationWorkerEndpoints
         if (job.Type == AutomationJobType.CategoryLocalization)
         {
             var sources = await database.Categories.AsNoTracking().Where(item => item.Locale.IsDefault).OrderBy(item => item.Id).Select(item => new { item.Id, item.Slug, item.Name, item.Description }).ToArrayAsync(token);
-            var logs = await database.AuditLogs.AsNoTracking().Where(log => log.Action == "automation.category_localized" && sources.Select(item => item.Id).Contains(log.EntityId)).Select(log => new { log.EntityId, log.DetailsJson }).ToArrayAsync(token);
-            var completed = logs.Select(log => (log.EntityId, Locale: CategoryLocale(log.DetailsJson))).Where(item => item.Locale is not null).ToHashSet();
+            var sourceIds = sources.Select(item => item.Id).ToArray();
+            var translated = await database.Categories.AsNoTracking().Where(category => category.SourceCategoryId != null && sourceIds.Contains(category.SourceCategoryId.Value))
+                .Select(category => new { SourceId = category.SourceCategoryId!.Value, Locale = category.Locale.Code }).ToArrayAsync(token);
+            var completed = translated.Select(item => (item.SourceId, item.Locale)).ToHashSet();
             var candidates = (from source in sources from locale in job.TargetLocales where !completed.Contains((source.Id, locale)) select new { sourceCategoryId = source.Id, source.Slug, source.Name, source.Description, locale }).Take(10).ToArray();
             return Results.Ok(new { kind = "category", candidates });
         }
@@ -121,7 +123,7 @@ public static partial class AutomationWorkerEndpoints
         foreach (var item in payload.Items)
         {
             if (!job.TargetLocales.Contains(item.Locale, StringComparer.OrdinalIgnoreCase) || !ValidTranslation(item)) return Results.BadRequest(new { message = "Çeviri alanları geçersiz." });
-            var source = await database.ArticleLocalizations.Include(article => article.ArticleGroup).Include(article => article.CoverMediaAsset).SingleOrDefaultAsync(article => article.Id == item.SourceArticleId && article.Locale.IsDefault && article.Status == PublicationStatus.Published && (job.Type != AutomationJobType.ReadyContentGeneration || article.GeneratedByAutomationJobId == job.Id), token);
+            var source = await database.ArticleLocalizations.Include(article => article.ArticleGroup).Include(article => article.CoverMediaAsset).Include(article => article.Categories).SingleOrDefaultAsync(article => article.Id == item.SourceArticleId && article.Locale.IsDefault && article.Status == PublicationStatus.Published && (job.Type != AutomationJobType.ReadyContentGeneration || article.GeneratedByAutomationJobId == job.Id), token);
             var locale = await database.Locales.SingleOrDefaultAsync(candidate => candidate.Code == item.Locale && candidate.IsEnabled, token);
             if (source is null || locale is null) return Results.BadRequest(new { message = "Kaynak veya hedef dil bulunamadı." });
             var exists = await database.ArticleLocalizations.AnyAsync(article => article.ArticleGroupId == source.ArticleGroupId && article.LocaleId == locale.Id && article.Status != PublicationStatus.Archived, token);
@@ -130,6 +132,12 @@ public static partial class AutomationWorkerEndpoints
             if (await database.ArticleLocalizations.AnyAsync(article => article.LocaleId == locale.Id && article.Slug == slug, token))
                 slug = $"{slug[..Math.Min(slug.Length, 230)]}-{source.ArticleGroupId.ToString("N")[..8]}";
             var article = new ArticleLocalization(source.ArticleGroup, locale, slug, item.Title, item.Summary, SanitizeBody(item.Body), now);
+            var sourceCategoryIds = source.Categories.Select(category => category.Id).ToArray();
+            if (sourceCategoryIds.Length > 0)
+            {
+                var translatedCategories = await database.Categories.Where(category => category.LocaleId == locale.Id && category.SourceCategoryId != null && sourceCategoryIds.Contains(category.SourceCategoryId.Value)).ToListAsync(token);
+                foreach (var translatedCategory in translatedCategories) article.Categories.Add(translatedCategory);
+            }
             if (job.Type == AutomationJobType.ReadyContentGeneration) article.MarkGeneratedTranslation(job.Id);
             if (source.CoverMediaAsset is not null) article.UpdateCover(source.CoverMediaAsset, item.Title, source.CoverCaption, source.CoverCredit, now);
             article.PublishAutomatedTranslation(now);
@@ -154,14 +162,12 @@ public static partial class AutomationWorkerEndpoints
             var source = await database.Categories.AsNoTracking().SingleOrDefaultAsync(category => category.Id == item.SourceCategoryId && category.Locale.IsDefault, token);
             var locale = await database.Locales.SingleOrDefaultAsync(candidate => candidate.Code == item.Locale && candidate.IsEnabled && !candidate.IsDefault, token);
             if (source is null || locale is null) return Results.BadRequest(new { message = "Kaynak kategori veya hedef dil bulunamadı." });
-            var priorDetails = await database.AuditLogs.AsNoTracking()
-                .Where(log => log.Action == "automation.category_localized" && log.EntityId == source.Id)
-                .Select(log => log.DetailsJson).ToArrayAsync(token);
-            var alreadyLogged = priorDetails.Any(details => string.Equals(CategoryLocale(details), item.Locale, StringComparison.OrdinalIgnoreCase));
-            if (alreadyLogged) continue;
+            var existingTranslation = await database.Categories.AnyAsync(category => category.SourceCategoryId == source.Id && category.LocaleId == locale.Id, token);
+            if (existingTranslation) continue;
             var slug = item.Slug;
             if (await database.Categories.AnyAsync(category => category.LocaleId == locale.Id && category.Slug == slug, token)) slug = $"{slug[..Math.Min(slug.Length, 150)]}-{source.Id.ToString("N")[..8]}";
             var translated = new Category(locale, slug, item.Name, DateTimeOffset.UtcNow);
+            translated.LinkTranslationSource(source);
             database.Categories.Add(translated);
             database.AuditLogs.Add(new AuditLog(job.CreatedByUserId, "automation.category_localized", nameof(Category), source.Id, JsonSerializer.Serialize(new { locale = item.Locale, translatedCategoryId = translated.Id }), DateTimeOffset.UtcNow));
         }

@@ -28,6 +28,9 @@ public sealed class Category
     }
 
     public Guid Id { get; private set; }
+    public Guid? SourceCategoryId { get; private set; }
+    public Category? SourceCategory { get; private set; }
+    public ICollection<Category> Translations { get; } = [];
     public Guid LocaleId { get; private set; }
     public Locale Locale { get; private set; } = null!;
     public string Slug { get; private set; } = string.Empty;
@@ -35,4 +38,13 @@ public sealed class Category
     public string? Description { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public ICollection<ArticleLocalization> Articles { get; } = [];
+
+    public void LinkTranslationSource(Category source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!source.Locale.IsDefault || Locale.IsDefault || source.Id == Id)
+            throw new InvalidOperationException("Category translations require a default-locale source and a non-default target.");
+        SourceCategory = source;
+        SourceCategoryId = source.Id;
+    }
 }
