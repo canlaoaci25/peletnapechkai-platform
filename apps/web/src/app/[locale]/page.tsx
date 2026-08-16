@@ -15,8 +15,12 @@ export const dynamic = "force-dynamic";
 
 function ArticleImage({ article, sizes, preload = false }: { article: PublicArticleSummary; sizes: string; preload?: boolean }) {
   return article.cover ? (
-    <Image src={article.cover.url} alt={article.cover.altText} fill preload={preload} sizes={sizes} />
+    <Image src={article.cover.url} alt="" fill preload={preload} sizes={sizes} />
   ) : <span className="home-image-fallback" aria-hidden="true">BOECL</span>;
+}
+
+function ArticleImageLink({ article, className, locale, sizes, preload = false }: { article: PublicArticleSummary; className: string; locale: string; sizes: string; preload?: boolean }) {
+  return <Link className={className} href={`/${locale}/articles/${article.slug}`} tabIndex={-1} aria-hidden="true"><ArticleImage article={article} sizes={sizes} preload={preload} /></Link>;
 }
 
 export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
@@ -55,7 +59,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
         {lead ? (
           <section className="headline-grid" aria-labelledby="headline-title">
             <article className="lead-story">
-              <Link className="lead-image" href={`/${locale}/articles/${lead.slug}`}><ArticleImage article={lead} sizes={homeImageSizes.lead} preload /></Link>
+              <ArticleImageLink article={lead} className="lead-image" locale={locale} sizes={homeImageSizes.lead} preload />
               <div className="lead-copy">
                 <p className="section-kicker">{copy.featured}</p>
                 <h1 id="headline-title"><Link href={`/${locale}/articles/${lead.slug}`}>{lead.title}</Link></h1>
@@ -66,7 +70,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
             <div className="secondary-stories">
               {secondary.map(article => (
                 <article key={article.slug}>
-                  <Link className="secondary-image" href={`/${locale}/articles/${article.slug}`}><ArticleImage article={article} sizes={homeImageSizes.secondary} /></Link>
+                  <ArticleImageLink article={article} className="secondary-image" locale={locale} sizes={homeImageSizes.secondary} />
                   <div><p className="section-kicker">{article.type}</p><h2><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h2><time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time></div>
                 </article>
               ))}
@@ -83,7 +87,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
 
         {picks.length > 0 && <section className="picks-section" aria-labelledby="picks-title">
           <header className="home-section-header"><div><p className="section-kicker">02 / {copy.curated}</p><h2 id="picks-title">{copy.editorsPicks}</h2></div></header>
-          <div className="pick-grid">{picks.map(article => <article key={article.slug}><Link className="pick-image" href={`/${locale}/articles/${article.slug}`}><ArticleImage article={article} sizes={homeImageSizes.pick} /></Link><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p></article>)}</div>
+          <div className="pick-grid">{picks.map(article => <article key={article.slug}><ArticleImageLink article={article} className="pick-image" locale={locale} sizes={homeImageSizes.pick} /><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p></article>)}</div>
         </section>}
 
         <AdSlot label={copy.advertisement} />
@@ -93,13 +97,13 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
           if (items.length < 2) return null;
           return <section className="category-showcase" key={type} aria-labelledby={`type-${typeIndex}`}>
             <header className="home-section-header"><div><p className="section-kicker">{String(typeIndex + 3).padStart(2, "0")} / {copy.coverage}</p><h2 id={`type-${typeIndex}`}>{type}</h2></div><Link href={`/${locale}/search?q=${encodeURIComponent(type)}`}>{copy.seeAll} →</Link></header>
-            <div className="category-grid">{items.map((article, index) => <article className={index === 0 ? "category-feature" : ""} key={article.slug}>{index === 0 && <Link className="category-image" href={`/${locale}/articles/${article.slug}`}><ArticleImage article={article} sizes={homeImageSizes.category} /></Link>}<div><small>{formatDate(article.publishedAt)}</small><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3>{index === 0 && <p>{article.summary}</p>}</div></article>)}</div>
+            <div className="category-grid">{items.map((article, index) => <article className={index === 0 ? "category-feature" : ""} key={article.slug}>{index === 0 && <ArticleImageLink article={article} className="category-image" locale={locale} sizes={homeImageSizes.category} />}<div><small>{formatDate(article.publishedAt)}</small><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3>{index === 0 && <p>{article.summary}</p>}</div></article>)}</div>
           </section>;
         })}
 
         {latest.length > 0 && <section className="latest-feed" aria-labelledby="latest-title">
           <header className="home-section-header"><div><p className="section-kicker">{copy.justIn}</p><h2 id="latest-title">{copy.latestTitle}</h2></div></header>
-          <div>{latest.map(article => <article key={article.slug}>{article.cover && <Link className="latest-image" href={`/${locale}/articles/${article.slug}`}><ArticleImage article={article} sizes={homeImageSizes.latest} /></Link>}<div><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p><time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time></div></article>)}</div>
+          <div>{latest.map(article => <article key={article.slug}>{article.cover && <ArticleImageLink article={article} className="latest-image" locale={locale} sizes={homeImageSizes.latest} />}<div><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p><time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time></div></article>)}</div>
         </section>}
 
         <section className="home-search"><div><p className="section-kicker">{copy.explore}</p><h2>{dictionary.search.title}</h2><p>{copy.searchDescription}</p></div><form action={`/${locale}/search`} role="search"><label htmlFor="home-search">{dictionary.search.label}</label><div><input id="home-search" name="q" minLength={2} required /><button>{dictionary.search.submit}</button></div></form></section>

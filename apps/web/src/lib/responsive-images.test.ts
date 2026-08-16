@@ -58,3 +58,21 @@ test("kritik olmayan kamu istekleri mobil yukleme yolunu bloke etmez", () => {
   assert.match(accountActions, /active=false;cancelIdle\(\)/);
   assert.match(engagement, /cancelIdle\(\)/);
 });
+
+test("ana sayfa gorsel baglantilari yinelenen klavye duraklari olusturmaz", () => {
+  const homePage = readFileSync(fileURLToPath(new URL("../app/[locale]/page.tsx", import.meta.url)), "utf8");
+
+  assert.match(homePage, /function ArticleImageLink/);
+  assert.match(homePage, /tabIndex=\{-1\}/);
+  assert.match(homePage, /aria-hidden="true"/);
+  assert.match(homePage, /<Image src=\{article\.cover\.url\} alt=""/);
+  assert.doesNotMatch(homePage, /<Link className="(?:lead|secondary|pick|category|latest)-image"/);
+});
+
+test("mobil konu seridi kaydirilabilirligini gorsel olarak belli eder", () => {
+  const styles = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
+
+  assert.doesNotMatch(styles, /\.topic-strip\s*\{[^}]*scrollbar-width:\s*none/);
+  assert.match(styles, /@media\(max-width:700px\)\{\.topic-strip\{[^}]*scrollbar-width:thin/);
+  assert.match(styles, /\.topic-strip::-webkit-scrollbar\{height:5px\}/);
+});
