@@ -45,3 +45,16 @@ test("dar ekran basligi eylemleri ayri satira alir ve pahali bulanikligi kapatir
   assert.match(narrowViewport, /\.site-menu nav\s*\{[\s\S]*?max-width:\s*calc\(100vw - 28px\)/);
   assert.match(narrowViewport, /\.theme-lamp\s*\{[\s\S]*?backdrop-filter:\s*none/);
 });
+
+test("kritik olmayan kamu istekleri mobil yukleme yolunu bloke etmez", () => {
+  const accountActions = readFileSync(fileURLToPath(new URL("../components/account-actions.tsx", import.meta.url)), "utf8");
+  const engagement = readFileSync(fileURLToPath(new URL("../components/article-engagement.tsx", import.meta.url)), "utf8");
+  const idleHelper = readFileSync(fileURLToPath(new URL("browser-idle.ts", import.meta.url)), "utf8");
+
+  assert.match(accountActions, /scheduleWhenIdle\(\(\)\s*=>\s*\{void fetch\("\/api\/admin\/auth\/session"/);
+  assert.match(engagement, /scheduleWhenIdle\(\(\)\s*=>\s*\{void send\("view"\)/);
+  assert.match(idleHelper, /requestIdleCallback\(callback, \{ timeout \}\)/);
+  assert.match(idleHelper, /Math\.min\(timeout, 250\)/);
+  assert.match(accountActions, /active=false;cancelIdle\(\)/);
+  assert.match(engagement, /cancelIdle\(\)/);
+});
