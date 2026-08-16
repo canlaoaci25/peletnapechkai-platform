@@ -94,6 +94,21 @@ public sealed class ArticleWorkflowTests
     }
 
     [Fact]
+    public void PublishedArticle_CannotBypassEditorialReviewForContentChanges()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var article = CreateArticle(now);
+        article.SubmitForEditorialReview(now.AddMinutes(1));
+        article.ApproveEditorialReview(now.AddMinutes(2));
+        article.Publish(now.AddMinutes(3));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            article.UpdateDraft("corrected", "Corrected title", "summary", "body", null, null, now.AddMinutes(4)));
+        Assert.Equal(PublicationStatus.Published, article.Status);
+        Assert.Equal("Draft title", article.Title);
+    }
+
+    [Fact]
     public void ReviewArticle_CanReturnToDraft()
     {
         var now = DateTimeOffset.UtcNow;

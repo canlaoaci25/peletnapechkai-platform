@@ -95,7 +95,7 @@ public static partial class EditorialEndpoints
         var actor = await users.GetUserAsync(principal);
         if (article is null || actor is null) return Results.NotFound();
         if (article.UpdatedAt != request.ExpectedUpdatedAt) return Results.Conflict(new { message = "Article changed since it was loaded." });
-        if (article.Status is not (PublicationStatus.Draft or PublicationStatus.Published)) return Results.Conflict(new { message = "Only draft or published articles can be edited." });
+        if (article.Status != PublicationStatus.Draft) return Results.Conflict(new { message = "Only draft articles can be edited." });
         var now = DateTimeOffset.UtcNow;
         var revision = new ArticleRevision(article, article.Revisions.Count == 0 ? 1 : article.Revisions.Max(x => x.Number) + 1, article.Title, article.Summary, article.Body, actor.Id, now);
         database.ArticleRevisions.Add(revision);
