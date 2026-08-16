@@ -75,7 +75,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
-      <body><a className="skip-link" href="#page-root">{dictionary.accessibility.skipToContent}</a><div id="page-root" tabIndex={-1}>{children}</div><ConsentBanner locale={locale}/><ThirdPartyIntegrations/></body>
+      <body><a className="skip-link" href="#main-content">{dictionary.accessibility.skipToContent}</a><div id="page-root">{children}</div><ConsentBanner locale={locale}/><ThirdPartyIntegrations/></body>
     </html>
   );
 }

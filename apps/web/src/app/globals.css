@@ -80,7 +80,7 @@
 .skip-link:focus {
   transform: translateY(0);
 }
-#page-root:focus {
+#main-content:focus {
   outline: none;
 }
 

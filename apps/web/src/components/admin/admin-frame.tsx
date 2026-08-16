@@ -482,7 +482,7 @@ export function AdminFrame({
           </div>
         </div>
       </aside>
-      <div className="admin-frame-content">{children}</div>
+      <div className="admin-frame-content" id="main-content" tabIndex={-1}>{children}</div>
     </div>
   );
 }

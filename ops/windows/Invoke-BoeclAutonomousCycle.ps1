@@ -25,6 +25,9 @@ try {
     $focuses = @('iş mantığı ve API güvenilirliği','otomasyon ve hata kurtarma','Türkçe içerik, SEO ve kaynak kalitesi','çeviri ve locale bütünlüğü','erişilebilirlik, mobil tasarım ve performans','makale görsellerinin konu uygunluğu ve yazısız özgün tasarımı')
     $cycle = [int]$state.cycle + 1
     $focus = $focuses[($cycle - 1) % $focuses.Count]
+    # Advance immediately so a failed deployment cannot trap every later run
+    # on the same focus forever.
+    $state.cycle = $cycle
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
     $output = Join-Path $logRoot "$stamp-cycle-$cycle-result.txt"
     $events = Join-Path $logRoot "$stamp-cycle-$cycle.jsonl"
@@ -41,6 +44,7 @@ try {
     $prompt = @"
 BOECL tam yetkili otonom geliştirme çevrimi $cycle. Bu çevrimin odağı: $focus.
 Repo AGENTS.md kurallarını eksiksiz uygula. Sistemi incele, yalnız kanıtlanabilir en yüksek değerli ve sınırlı bir iyileştirme paketi seç, uygula ve regresyon testlerini ekle. Türkçe içerik, SEO, etkin dillere çeviri, taxonomy, yazısız konuya özel kapak ve gövde görselleri, API, admin, mobil, güvenlik ve operasyon bütünlüğünü birlikte koru. Kullanıcı veya başka süreç değişikliklerini silme. Sırları okuma veya raporlama. Veritabanına doğrudan içerik yazma; doğrulanan API/migration yollarını kullan. Kalite kapıları geçmezse commit/push/deploy yapma. Geçerse anlamlı commit oluştur ve origin/main dalına push et. Geri döndürülemez hesap, DNS, ödeme veya kimlik işlemi yapma. Sonuçta yapılanları, testleri, commit'i ve kalan riski Türkçe raporla.
+Basari olcutu yalniz mikro CSS, lazy-loading, aria veya test degisikligi degildir. Son cevrimlerde ayni alanda yapilan commitleri incele ve tekrarlama. Her cevrim kullanicinin canlida fark edebilecegi en az bir sonuc uretmelidir: yeni veya iyilestirilmis ozellik, yonetilebilir kategori/taxonomy kapasitesi, konuya uygun gorsel hatti, icerik/SEO/ceviri kalitesi ya da kanitlanmis guvenilirlik duzeltmesi. Yeni kategori eklemek icin yalniz mevcut yetkili API/yonetim akisini kullan; veritabanina dogrudan yazma. Gorsellerde soyut dekoratif sablonu basari sayma; konu nesnesi/sahnesi ile sorgu uyumunu dogrula. Deploy basarisizsa bunu tamamlanmis gelistirme gibi raporlama.
 "@
     $env:CODEX_HOME = [string]$config.codexHome
     $inputPath = Join-Path $logRoot "$stamp-cycle-$cycle.stdin"
@@ -68,6 +72,16 @@ Repo AGENTS.md kurallarını eksiksiz uygula. Sistemi incele, yalnız kanıtlana
     try {
         foreach ($check in $checks) { & $check.Command @($check.Arguments); if ($LASTEXITCODE -ne 0) { throw "Otonom kalite kapısı başarısız: $($check.Command)." } }
     } finally { Pop-Location }
+
+    # Never deploy an incomplete standalone tree. A missing fallback module was
+    # previously discovered only after the live swap had started.
+    $fallback = Join-Path $repository 'apps\web\.next\standalone\node_modules\next\dist\lib\fallback.js'
+    if (-not (Test-Path -LiteralPath $fallback -PathType Leaf)) {
+        Push-Location $repository
+        try { & npm.cmd run build:web; if ($LASTEXITCODE -ne 0) { throw 'Web release artifact rebuild failed.' } }
+        finally { Pop-Location }
+    }
+    if (-not (Test-Path -LiteralPath $fallback -PathType Leaf)) { throw 'Web standalone release artifact is incomplete.' }
 
     $finalCommit = (& git.exe -C $repository rev-parse HEAD).Trim()
     $changedFiles = if ($finalCommit -ne $baselineCommit) { @(& git.exe -C $repository diff --name-only $baselineCommit $finalCommit) } else { @() }

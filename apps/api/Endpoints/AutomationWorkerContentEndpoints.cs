@@ -346,7 +346,7 @@ public static partial class AutomationWorkerEndpoints
         var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
         var key = Path.Combine(now.ToString("yyyy"), now.ToString("MM"), $"{Guid.CreateVersion7()}-ai-cover.webp");
         var path = Path.GetFullPath(Path.Combine(root, key)); if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Invalid media path.");
-        var attribution = await WriteTextlessCoverAsync(path, title + " " + category, false, configuration, false, token);
+        var attribution = await WriteTextlessCoverAsync(path, title + " " + category, false, configuration, true, token);
         var length = new FileInfo(path).Length; var normalizedKey = key.Replace('\\', '/');
         var asset = new MediaAsset(normalizedKey, "boecl-ai-cover.webp", "image/webp", length, now); asset.SetImageMetadata(width, height, normalizedKey, length); return new GeneratedCover(asset, attribution.Credit, attribution.SourceUrl);
     }
@@ -356,7 +356,7 @@ public static partial class AutomationWorkerEndpoints
         var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
         var key = Path.Combine(now.ToString("yyyy"), now.ToString("MM"), $"{Guid.CreateVersion7()}-inline-{index + 1}.webp");
         var path = Path.GetFullPath(Path.Combine(root, key)); if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Invalid media path.");
-        await WriteTextlessCoverAsync(path, query + " " + category, false, configuration, false, token);
+        await WriteTextlessCoverAsync(path, query + " " + category, false, configuration, true, token);
         var length = new FileInfo(path).Length; var normalizedKey = key.Replace('\\', '/');
         var asset = new MediaAsset(normalizedKey, $"boecl-inline-{index + 1}.webp", "image/webp", length, now); asset.SetImageMetadata(width, height, normalizedKey, length); return asset;
     }

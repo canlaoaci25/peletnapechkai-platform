@@ -123,7 +123,7 @@ export default async function ArticlePage({
     <div className="site-shell">
       <SiteHeader locale={locale} />
       <ArticleEngagement locale={locale} slug={slug} />
-      <main className="article-page">
+      <main className="article-page" id="main-content" tabIndex={-1}>
         <Link className="back-link" href={`/${locale}`}>
           ← {dictionary.navigation.home}
         </Link>
