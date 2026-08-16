@@ -95,6 +95,11 @@ export type SystemStatus = {
     failures: string[];
   };
 };
+export type EditorialCommandCenter = {
+  checkedAt: string;
+  summary: { overdue: number; dueSoon: number; inReview: number; incompleteQuality: number };
+  items: { articleId: string; title: string; locale: string; kind: string; dueAt: string; taskTitle: string | null; assignee: string | null; priority: string | null }[];
+};
 export type KnowledgeLink = {
   id: string;
   articleLocalizationId: string;
@@ -247,6 +252,9 @@ export async function getMedia() {
 }
 export function getSystemStatus() {
   return apiGet<SystemStatus>("/api/v1/admin/status");
+}
+export function getEditorialCommandCenter() {
+  return apiGet<EditorialCommandCenter>("/api/v1/admin/editorial/command-center");
 }
 export async function getKnowledgeCandidates() {
   return (await apiGet<KnowledgeCandidate[]>("/api/v1/admin/knowledge/")) ?? [];

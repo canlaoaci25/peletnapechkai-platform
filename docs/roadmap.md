@@ -2,6 +2,11 @@
 
 ## Execution status
 
+Cycle 20 adds an editorial command queue to the admin control center, combining overdue
+tasks, near-term deadlines, review queues, and incomplete quality gates into one
+localized, risk-ranked workspace. The next admin milestones are personal assignments,
+workflow-enforced quality gates, and editorial SLA measurement.
+
 Completed foundations include server/runtime setup, production safeguards, BOECL naming,
 isolated staging, identity and editorial administration, public article publishing, and
 localized technical SEO. The remaining delivery order is:
