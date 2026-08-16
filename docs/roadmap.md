@@ -2,6 +2,13 @@
 
 ## Execution status
 
+Cycle 22 launches the International Publishing Health experience: administrators can
+compare published coverage, missing translations, drafts, and human translation-review
+debt across every enabled locale; article readers are offered only real published
+equivalents and see an explicit unavailable state instead of being redirected to an
+unrelated locale homepage. The next localization milestones are translation SLA/owner
+assignment, locale-specific content quality scoring, and taxonomy parity reporting.
+
 Cycle 21 adds the multilingual Article Trust and Discovery Layer to every published story:
 visible category breadcrumbs, distinct published/updated dates, estimated reading time,
 author and source context, strengthened source cards, and image-led related reading. The

@@ -173,6 +173,11 @@ export type ManagedLocale = {
   isDefault: boolean;
   isEnabled: boolean;
   articleCount: number;
+  publishedCount: number;
+  draftCount: number;
+  sourcePublishedCount: number;
+  missingTranslationCount: number;
+  reviewPendingCount: number;
   countries: {
     code: string;
     name: string;

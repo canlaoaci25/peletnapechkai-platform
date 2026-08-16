@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Peletnapechkai.Api.Domain.Auditing;
+using Peletnapechkai.Api.Domain.Content;
 using Peletnapechkai.Api.Domain.Identity;
 using Peletnapechkai.Api.Domain.Localization;
 using Peletnapechkai.Api.Infrastructure.Identity;
@@ -40,17 +41,32 @@ public static class LocaleManagementEndpoints
         return Results.Ok(items);
     }
 
-    private static async Task<IResult> ListAsync(PublishingDbContext database, CancellationToken token) =>
-        Results.Ok(await database.Locales.AsNoTracking()
+    private static async Task<IResult> ListAsync(PublishingDbContext database, CancellationToken token)
+    {
+        var sourcePublishedCount = await database.ArticleLocalizations.AsNoTracking()
+            .CountAsync(article => article.Locale.IsDefault && article.Status == PublicationStatus.Published, token);
+        var locales = await database.Locales.AsNoTracking()
             .OrderByDescending(locale => locale.IsDefault).ThenBy(locale => locale.Code)
             .Select(locale => new
             {
                 locale.Id, locale.Code, locale.LanguageCode, locale.DisplayName, locale.NativeName,
                 locale.IsDefault, locale.IsEnabled,
                 articleCount = locale.ArticleLocalizations.Count,
+                publishedCount = locale.ArticleLocalizations.Count(article => article.Status == PublicationStatus.Published),
+                draftCount = locale.ArticleLocalizations.Count(article => article.Status == PublicationStatus.Draft),
+                sourcePublishedCount,
+                missingTranslationCount = locale.IsDefault ? 0 : database.ArticleLocalizations.Count(source =>
+                    source.Locale.IsDefault && source.Status == PublicationStatus.Published &&
+                    !database.ArticleLocalizations.Any(translation => translation.ArticleGroupId == source.ArticleGroupId &&
+                        translation.LocaleId == locale.Id && translation.Status != PublicationStatus.Archived)),
+                reviewPendingCount = locale.IsDefault ? 0 : locale.ArticleLocalizations.Count(article =>
+                    (article.Status == PublicationStatus.Draft || article.Status == PublicationStatus.Published) &&
+                    !database.ArticleQualityChecklists.Any(checklist => checklist.ArticleLocalizationId == article.Id && checklist.TranslationReviewed)),
                 countries = locale.Countries.OrderByDescending(item => item.CountryId == locale.RegionId).ThenBy(item => item.Country.Name)
                     .Select(item => new { code = item.Country.Code, item.Country.Name, item.Country.CurrencyCode, item.IsRequired, item.IsEnabled, isPrimary = item.CountryId == locale.RegionId })
-            }).ToListAsync(token));
+            }).ToListAsync(token);
+        return Results.Ok(locales);
+    }
 
     private static async Task<IResult> CreateAsync(CreateLocaleRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
     {

@@ -18,9 +18,9 @@ export default async function LanguagesPage({
     <main className="admin-shell admin-dashboard-shell">
       <header className="admin-command-header">
         <div>
-          <p className="section-kicker">YERELLEŞTİRME</p>
-          <h1>Dil listesi</h1>
-          <p>Bir dili düzenlemek ve ülke eşleşmelerini görmek için seçin.</p>
+          <p className="section-kicker">ULUSLARARASI YAYIN SAĞLIĞI</p>
+          <h1>Diller arasındaki yayın farkını kapatın</h1>
+          <p>Eksik çevirileri, inceleme borcunu ve yayın kapsamını tek bakışta izleyin.</p>
         </div>
         <Link className="primary-link" href={`/${locale}/admin/languages/new`}>
           + Dil ekle

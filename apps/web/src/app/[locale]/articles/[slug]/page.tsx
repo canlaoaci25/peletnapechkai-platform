@@ -126,7 +126,7 @@ export default async function ArticlePage({
   };
   return (
     <div className="site-shell">
-      <SiteHeader locale={locale} />
+      <SiteHeader locale={locale} localeHrefs={Object.fromEntries(article.translations.map((item) => [item.locale, `/${item.locale}/articles/${item.slug}`]))} />
       <ArticleEngagement locale={locale} slug={slug} />
       <main className="article-page" id="main-content" tabIndex={-1}>
         <nav className="article-breadcrumbs" aria-label="Breadcrumb">

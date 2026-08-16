@@ -29,8 +29,20 @@ export function LanguageList({
   locale: string;
   locales: ManagedLocale[];
 }) {
+  const enabled = locales.filter((item) => item.isEnabled);
+  const missing = enabled.reduce((total, item) => total + item.missingTranslationCount, 0);
+  const pending = enabled.reduce((total, item) => total + item.reviewPendingCount, 0);
+  const translated = enabled.filter((item) => !item.isDefault);
+  const coverage = translated.length === 0 ? 100 : Math.round(translated.reduce((total, item) => total + (item.sourcePublishedCount ? item.publishedCount / item.sourcePublishedCount * 100 : 100), 0) / translated.length);
   return (
-    <section className="language-list-page">
+    <section className="language-health-dashboard">
+      <div className="language-health-summary" aria-label="Çeviri sağlığı özeti">
+        <article><small>Etkin yayınlar</small><strong>{enabled.length}</strong><span>dil-bölge</span></article>
+        <article><small>Ortalama kapsam</small><strong>%{coverage}</strong><span>Türkçe kaynak arşive göre</span></article>
+        <article className={missing ? "needs-attention" : ""}><small>Eksik çeviri</small><strong>{missing}</strong><span>henüz oluşturulmamış</span></article>
+        <article className={pending ? "needs-attention" : ""}><small>Editör incelemesi</small><strong>{pending}</strong><span>yayın öncesi kontrol</span></article>
+      </div>
+      <div className="language-list-page">
       {locales.map((item) => (
         <Link
           className="admin-panel language-list-card"
@@ -51,13 +63,17 @@ export function LanguageList({
             >
               {item.isEnabled ? "Aktif" : "Pasif"}
             </span>
-            <small>
-              {item.articleCount} içerik · {item.countries.length} ülke
-            </small>
+            <small>{item.publishedCount} yayında · {item.draftCount} taslak · {item.countries.length} ülke</small>
+          </span>
+          <span className="language-coverage" aria-label={`${item.nativeName} yayın kapsamı`}>
+            <b>%{item.isDefault || !item.sourcePublishedCount ? 100 : Math.min(100, Math.round(item.publishedCount / item.sourcePublishedCount * 100))}</b>
+            <i><span style={{width:`${item.isDefault || !item.sourcePublishedCount ? 100 : Math.min(100, item.publishedCount / item.sourcePublishedCount * 100)}%`}} /></i>
+            <small>{item.isDefault ? "Kaynak yayın" : `${item.missingTranslationCount} eksik · ${item.reviewPendingCount} incelemede`}</small>
           </span>
           <b aria-hidden>→</b>
         </Link>
       ))}
+      </div>
     </section>
   );
 }

@@ -69,7 +69,11 @@ export async function SiteHeader({ locale, localeHrefs }: SiteHeaderProps) {
           <details className="locale-menu">
             <summary>{locale.split("-")[0].toUpperCase()}<span className="sr-only"> — {copy.language}</span></summary>
             <nav aria-label={copy.language}>
-              {locales.map((supportedLocale) => (
+              {locales.map((supportedLocale) => localeHrefs && !localeHrefs[supportedLocale] ? (
+                <span className="locale-unavailable" key={supportedLocale} aria-disabled="true">
+                  {localeLabels[supportedLocale]}<small>{copy.translationUnavailable}</small>
+                </span>
+              ) : (
                 <Link
                   key={supportedLocale}
                   href={localeHrefs?.[supportedLocale] ?? `/${supportedLocale}`}
