@@ -264,5 +264,7 @@ export type TrafficDashboard={locale:string;checkedAt:string;published:number;to
 export function getTrafficDashboard(locale:string){return apiGet<TrafficDashboard>(`/api/v1/admin/traffic/${encodeURIComponent(locale)}`)}
 export type DevelopmentStatus={task:string;phase:string;status:string;steps:string[];currentStep:number;lastAction:string;commit:string;startedAt:string|null;updatedAt:string|null;machine:string};
 export async function getDevelopmentStatus(){return await apiGet<DevelopmentStatus>("/api/v1/admin/development/status")??{task:"Bekleyen Codex görevi yok",phase:"Hazır",status:"Paused",steps:[],currentStep:0,lastAction:"—",commit:"",startedAt:null,updatedAt:null,machine:"—"}}
+export type SavedArticle={slug:string;title:string;summary:string;type:string;locale:string;publishedAt:string;savedAt:string;cover:null|{url:string;altText:string}};
 export type MemberAccount={id:string;email:string;displayName:string;emailConfirmed:boolean;roles:string[];verificationAvailable:boolean;createdAt:string};
 export function getMemberAccount(){return apiGet<MemberAccount>("/api/v1/account/")}
+export async function getSavedArticles(locale:string){return await apiGet<SavedArticle[]>(`/api/v1/account/saved?locale=${encodeURIComponent(locale)}`)??[]}

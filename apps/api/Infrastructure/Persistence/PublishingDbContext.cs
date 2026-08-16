@@ -39,6 +39,7 @@ public sealed class PublishingDbContext(DbContextOptions<PublishingDbContext> op
     public DbSet<AutomaticContentSchedule> AutomaticContentSchedules => Set<AutomaticContentSchedule>();
     public DbSet<ArticleEngagement> ArticleEngagements => Set<ArticleEngagement>();
     public DbSet<HomepagePlacement> HomepagePlacements => Set<HomepagePlacement>();
+    public DbSet<SavedArticle> SavedArticles => Set<SavedArticle>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

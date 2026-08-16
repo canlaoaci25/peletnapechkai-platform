@@ -99,3 +99,10 @@ accessible contrast and focus states; stable design tokens; locale-safe typograp
 consistent homepage, listing, article, search, author, and legal-page patterns. Validate
 the result across all supported locales, common viewport sizes, keyboard use, reduced
 motion, and Core Web Vitals budgets.
+
+## Phase 14 — Membership, interaction, and return visits
+
+Create durable reader value without restricting public editorial content: account-bound
+reading lists, accessible save actions, locale-aware saved-story discovery, and audited
+ownership controls. Follow with topic subscriptions and consented notifications only when
+delivery infrastructure and preference management are complete.

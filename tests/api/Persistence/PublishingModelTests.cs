@@ -39,6 +39,7 @@ public sealed class PublishingModelTests
         Assert.NotNull(context.Model.FindEntityType(typeof(AuditLog)));
         Assert.NotNull(context.Model.FindEntityType(typeof(ApplicationUser)));
         Assert.NotNull(context.Model.FindEntityType(typeof(ApplicationRole)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(SavedArticle)));
     }
 
     [Fact]
@@ -82,6 +83,13 @@ public sealed class PublishingModelTests
         Assert.Equal(3, SeedData.Locales.Length);
         Assert.Single(SeedData.Locales, locale => locale.IsDefault);
         Assert.All(SeedData.Locales, locale => Assert.True(locale.IsEnabled));
+    }
+
+    [Fact]
+    public void SavedArticle_HasPerMemberArticleUniqueIndex()
+    {
+        using var context = CreateContext();
+        AssertUniqueIndex(context, typeof(SavedArticle), "ux_saved_articles_user_article");
     }
 
     [Fact]

@@ -76,6 +76,20 @@ public sealed class AuthEndpointTests : IClassFixture<AuthEndpointTests.ApiFacto
     }
 
     [Fact]
+    public async Task SavedArticles_WithoutAuthenticatedCookie_ReturnsUnauthorized()
+    {
+        var response = await client.GetAsync("/api/v1/account/saved?locale=tr-TR");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SaveArticle_WithoutAuthenticatedCookie_IsRejected()
+    {
+        var response = await client.PutAsync("/api/v1/account/saved/tr-TR/ornek", null);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
     public async Task CompleteInvitation_WithoutCsrfToken_IsRejected()
     {
         var response = await client.PostAsJsonAsync("/api/v1/auth/complete-invitation", new

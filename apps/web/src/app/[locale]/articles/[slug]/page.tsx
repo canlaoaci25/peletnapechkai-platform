@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { ArticleEngagement } from "@/components/article-engagement";
+import { SaveArticleButton } from "@/components/save-article-button";
 import { siteConfig } from "@/config/site";
 import { commercialCopy } from "@/i18n/commercial-copy";
 import { hasLocale } from "@/i18n/config";
@@ -171,6 +172,7 @@ export default async function ArticlePage({
                 new Date(article.publishedAt),
               )}
             </time>
+            <SaveArticleButton locale={locale} slug={slug} />
             {article.categories.length > 0 && (
               <div className="article-taxonomy">
                 {article.categories.map((category) => (
