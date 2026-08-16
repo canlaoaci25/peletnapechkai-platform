@@ -65,25 +65,13 @@ public static partial class AutomationWorkerEndpoints
         var sources = await database.ArticleLocalizations.AsNoTracking()
             .Where(article => article.GeneratedByAutomationJobId == job.Id && article.Locale.IsDefault && article.Status == PublicationStatus.Published)
             .OrderBy(article => article.Id).Select(article => new { article.Id, article.ArticleGroupId, article.Slug, article.Title, article.Summary, article.Body }).ToListAsync(token);
-        if (sources.Count < job.TotalItems)
-        {
-            var category = await database.Categories.AsNoTracking().Where(item => item.Id == job.CategoryId)
-                .Select(item => new { item.Id, item.Name, item.Slug }).SingleAsync(token);
-            var existing = await database.ArticleLocalizations.AsNoTracking().Where(article => article.Locale.IsDefault && article.Status != PublicationStatus.Archived)
-                .OrderByDescending(article => article.CreatedAt).Take(300).Select(article => new { article.Title, article.Summary, article.Slug }).ToArrayAsync(token);
-            var count = Math.Min(3, job.TotalItems - sources.Count);
-            job.ReportProgress(sources.Count, 0, 2, $"İçerik üretimi: {sources.Count}/{job.TotalItems} tamamlandı, {job.TotalItems - sources.Count} makale kaldı.", DateTimeOffset.UtcNow);
-            await database.SaveChangesAsync(token);
-            return Results.Ok(new { kind = "generation", requestedCount = count, category, articleType = job.RequestedArticleType, includeImages = job.IncludeImages, autoSeo = job.AutoSeo, existing });
-        }
-
-        if (job.AutoTranslate)
+        if (sources.Count > 0 && job.AutoTranslate)
         {
             var existing = await database.ArticleLocalizations.AsNoTracking().Where(article => article.GeneratedByAutomationJobId == job.Id && !article.Locale.IsDefault && article.Status != PublicationStatus.Archived)
                 .Select(article => new { article.ArticleGroupId, Locale = article.Locale.Code }).ToListAsync(token);
             var keys = existing.Select(item => $"{item.ArticleGroupId:N}|{item.Locale}").ToHashSet(StringComparer.OrdinalIgnoreCase);
             var candidates = (from source in sources from locale in job.TargetLocales where !keys.Contains($"{source.ArticleGroupId:N}|{locale}")
-                              select new { sourceArticleId = source.Id, sourceArticleGroupId = source.ArticleGroupId, source.Slug, source.Title, source.Summary, source.Body, locale }).Take(5).ToArray();
+                              select new { sourceArticleId = source.Id, sourceArticleGroupId = source.ArticleGroupId, source.Slug, source.Title, source.Summary, source.Body, locale }).Take(job.TargetLocales.Length).ToArray();
             if (candidates.Length > 0)
             {
                 var total = sources.Count * job.TargetLocales.Length; var done = existing.Count;
@@ -92,7 +80,7 @@ public static partial class AutomationWorkerEndpoints
             }
         }
 
-        if (job.AutoSeo)
+        if (sources.Count > 0 && job.AutoSeo)
         {
             var candidates = await database.ArticleLocalizations.AsNoTracking()
                 .Where(article => article.GeneratedByAutomationJobId == job.Id && article.Status == PublicationStatus.Published && (article.SeoTitle == null || article.SeoDescription == null))
@@ -103,6 +91,17 @@ public static partial class AutomationWorkerEndpoints
                 job.ReportProgress(sources.Count, 0, 5, $"SEO fazı: {remaining} makalenin SEO alanları kaldı.", DateTimeOffset.UtcNow);
                 await database.SaveChangesAsync(token); return Results.Ok(new { kind = "seo", candidates });
             }
+        }
+
+        if (sources.Count < job.TotalItems)
+        {
+            var category = await database.Categories.AsNoTracking().Where(item => item.Id == job.CategoryId)
+                .Select(item => new { item.Id, item.Name, item.Slug }).SingleAsync(token);
+            var existing = await database.ArticleLocalizations.AsNoTracking().Where(article => article.Locale.IsDefault && article.Status != PublicationStatus.Archived)
+                .OrderByDescending(article => article.CreatedAt).Take(300).Select(article => new { article.Title, article.Summary, article.Slug }).ToArrayAsync(token);
+            job.ReportProgress(sources.Count, 0, 2, $"Makale aşaması {sources.Count + 1}/{job.TotalItems}: tek ve kapsamlı Türkçe içerik araştırılıyor.", DateTimeOffset.UtcNow);
+            await database.SaveChangesAsync(token);
+            return Results.Ok(new { kind = "generation", requestedCount = 1, category, articleType = job.RequestedArticleType, includeImages = job.IncludeImages, autoSeo = job.AutoSeo, existing });
         }
 
         job.ReportProgress(sources.Count, 0, 6, "Son doğrulama tamamlandı; tüm seçili fazlar eksiksiz.", DateTimeOffset.UtcNow);
@@ -237,7 +236,7 @@ public static partial class AutomationWorkerEndpoints
         var payload = DecodePayload<GeneratedContentBatch>(request.PayloadBase64);
         var alreadyCreated = await database.ArticleLocalizations.CountAsync(article => article.GeneratedByAutomationJobId == job.Id && article.Locale.IsDefault, token);
         var remaining = job.TotalItems - alreadyCreated;
-        if (payload?.Items is not { Length: > 0 and <= 3 } || payload.Items.Length > remaining) return Results.BadRequest(new { message = "Geçersiz hazır içerik paketi." });
+        if (payload?.Items is not { Length: 1 } || payload.Items.Length > remaining) return Results.BadRequest(new { message = "Her aşamada tam olarak bir hazır içerik gereklidir." });
         var locale = await database.Locales.SingleAsync(item => item.IsDefault && item.IsEnabled, token);
         var category = await database.Categories.SingleOrDefaultAsync(item => item.Id == job.CategoryId && item.LocaleId == locale.Id, token);
         if (category is null) return Results.BadRequest(new { message = "Kategori bulunamadı." });
@@ -286,7 +285,7 @@ public static partial class AutomationWorkerEndpoints
         await database.SaveChangesAsync(token);
         var completed = alreadyCreated + payload.Items.Length;
         var phase = completed == job.TotalItems && job.IncludeImages ? 3 : 2;
-        job.ReportProgress(completed, 0, phase, $"Türkçe içerik: {completed}/{job.TotalItems} yayımlandı, {job.TotalItems - completed} kaldı.", DateTimeOffset.UtcNow);
+        job.ReportProgress(completed, 0, phase, $"Makale aşaması {completed}/{job.TotalItems}: Türkçe yayın hazır; çeviri ve SEO tamamlanıyor.", DateTimeOffset.UtcNow);
         await database.SaveChangesAsync(token);
         return Results.Ok(new { completed, remaining = job.TotalItems - completed });
     }
@@ -341,7 +340,7 @@ public static partial class AutomationWorkerEndpoints
         var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
         var key = Path.Combine(now.ToString("yyyy"), now.ToString("MM"), $"{Guid.CreateVersion7()}-ai-cover.webp");
         var path = Path.GetFullPath(Path.Combine(root, key)); if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Invalid media path.");
-        var attribution = await WriteTextlessCoverAsync(path, title + " " + category, false, configuration, true, token);
+        var attribution = await WriteTextlessCoverAsync(path, title + " " + category, false, configuration, false, token);
         var length = new FileInfo(path).Length; var normalizedKey = key.Replace('\\', '/');
         var asset = new MediaAsset(normalizedKey, "boecl-ai-cover.webp", "image/webp", length, now); asset.SetImageMetadata(width, height, normalizedKey, length); return new GeneratedCover(asset, attribution.Credit, attribution.SourceUrl);
     }
@@ -351,7 +350,7 @@ public static partial class AutomationWorkerEndpoints
         var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
         var key = Path.Combine(now.ToString("yyyy"), now.ToString("MM"), $"{Guid.CreateVersion7()}-inline-{index + 1}.webp");
         var path = Path.GetFullPath(Path.Combine(root, key)); if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Invalid media path.");
-        await WriteTextlessCoverAsync(path, query + " " + category, false, configuration, true, token);
+        await WriteTextlessCoverAsync(path, query + " " + category, false, configuration, false, token);
         var length = new FileInfo(path).Length; var normalizedKey = key.Replace('\\', '/');
         var asset = new MediaAsset(normalizedKey, $"boecl-inline-{index + 1}.webp", "image/webp", length, now); asset.SetImageMetadata(width, height, normalizedKey, length); return asset;
     }
@@ -371,6 +370,7 @@ public static partial class AutomationWorkerEndpoints
         var job = await database.AutomationJobs.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id && item.Type == AutomationJobType.ReadyContentGeneration, token);
         if (job is null) return Results.NotFound();
         var articles = await database.ArticleLocalizations.Include(item => item.Locale).Include(item => item.Categories).Include(item => item.CoverMediaAsset)
+            .Include(item => item.ArticleGroup).ThenInclude(group => group.MediaAssets)
             .Where(item => item.GeneratedByAutomationJobId == id && item.Locale.IsDefault && item.CoverMediaAsset != null).ToListAsync(token);
         var root = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
         var refreshed = 0;
@@ -380,7 +380,14 @@ public static partial class AutomationWorkerEndpoints
             if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return Results.BadRequest();
             var requestedQuery = request?.Queries?.GetValueOrDefault(article.Id);
             var query = string.IsNullOrWhiteSpace(requestedQuery) ? article.Title + " " + string.Join(' ', article.Categories.Select(item => item.Name)) : requestedQuery.Trim();
-            var attribution = await WriteTextlessCoverAsync(path, query, true, configuration, true, token);
+            var attribution = await WriteTextlessCoverAsync(path, query, true, configuration, false, token);
+            var inlineIndex = 0;
+            foreach (var inline in article.ArticleGroup.MediaAssets.Where(asset => asset.Id != article.CoverMediaAssetId))
+            {
+                var inlinePath = Path.GetFullPath(Path.Combine(root, inline.StorageKey));
+                if (!inlinePath.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) continue;
+                await WriteTextlessCoverAsync(inlinePath, $"{article.Title} {string.Join(' ', article.Categories.Select(item => item.Name))} scene {++inlineIndex}", true, configuration, false, token);
+            }
             var siblings = await database.ArticleLocalizations.Where(item => item.GeneratedByAutomationJobId == id && item.CoverMediaAssetId == article.CoverMediaAssetId).ToListAsync(token);
             foreach (var sibling in siblings) sibling.RefreshGeneratedCover(id, article.CoverMediaAsset, sibling.CoverAltText ?? sibling.Title, attribution.SourceUrl, attribution.Credit, DateTimeOffset.UtcNow);
             refreshed++;
@@ -440,6 +447,21 @@ public static partial class AutomationWorkerEndpoints
         canvas.Save(); canvas.RotateDegrees(-12 + hash[12] % 25, 600, 338);
         for (var index = 0; index < 5; index++) canvas.DrawRoundRect(90 + index * 205, 120 + (hash[13 + index] % 170), 170, 330, 38, 38, soft);
         canvas.Restore();
+        if (seed.Contains("anime", StringComparison.OrdinalIgnoreCase))
+        {
+            using var ink = new SKPaint { Color = SKColors.White.WithAlpha(175), IsAntialias = true, StrokeWidth = 7, Style = SKPaintStyle.Stroke };
+            using var silhouette = new SKPaint { Color = SKColors.Black.WithAlpha(155), IsAntialias = true };
+            var focus = new SKPoint(600, 320);
+            for (var ray = 0; ray < 28; ray++)
+            {
+                var angle = (float)(ray * Math.PI * 2 / 28); var inner = 245 + hash[ray % hash.Length] % 75;
+                canvas.DrawLine(focus.X + MathF.Cos(angle) * inner, focus.Y + MathF.Sin(angle) * inner,
+                    focus.X + MathF.Cos(angle) * 690, focus.Y + MathF.Sin(angle) * 690, ink);
+            }
+            canvas.DrawOval(new SKRect(515, 105, 685, 285), silhouette);
+            using var hair = new SKPath(); hair.MoveTo(505, 180); hair.LineTo(530, 65); hair.LineTo(575, 115); hair.LineTo(620, 55); hair.LineTo(650, 125); hair.LineTo(705, 95); hair.LineTo(690, 210); hair.Close(); canvas.DrawPath(hair, silhouette);
+            using var body = new SKPath(); body.MoveTo(470, 665); body.LineTo(505, 310); body.QuadTo(600, 245, 695, 310); body.LineTo(735, 665); body.Close(); canvas.DrawPath(body, silhouette);
+        }
         using var image = surface.Snapshot(); using var generatedBitmap = SKBitmap.FromImage(image);
         await SaveCoverBitmapAsync(path, generatedBitmap, overwrite, token);
         return new CoverAttribution("BOECL yazısız otomatik görsel", null);
