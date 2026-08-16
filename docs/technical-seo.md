@@ -6,6 +6,9 @@ localizations in the same article group; missing translations never fall back to
 language's content URL.
 
 Production provides a dynamic `/sitemap.xml`, locale feeds at `/{locale}/feed.xml`, and a
+plain-text `/sitemap.txt`. The `BOECL Hourly Sitemap Text` SYSTEM task rebuilds the text file
+from the canonical XML sitemap every hour. It accepts only same-origin HTTPS URLs, writes
+atomically, and preserves the last valid file when retrieval or validation fails.
 `robots.txt` that blocks administration and API paths. Staging builds disallow all robots,
 omit the sitemap directive, and retain the IIS `X-Robots-Tag` defense in depth.
 
