@@ -2,6 +2,11 @@
 
 ## Execution status
 
+Cycle 27 launches topic following and a personal return-visit surface: readers can follow
+locale-specific category hubs, manage those interests in their account, and discover the
+newest published stories in an image-led personal feed. The next retention milestone is
+an explicit-consent digest preference center with verified delivery infrastructure.
+
 Cycle 26 launches category authority hubs and a new evidence-backed Turkish taxonomy:
 category archives now surface archive depth, format distribution, related-topic paths,
 an image-led lead story, and a responsive editorial stream. The localized Software and

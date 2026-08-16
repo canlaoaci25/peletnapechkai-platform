@@ -282,3 +282,7 @@ export type SavedArticle={slug:string;title:string;summary:string;type:string;lo
 export type MemberAccount={id:string;email:string;displayName:string;emailConfirmed:boolean;roles:string[];verificationAvailable:boolean;createdAt:string};
 export function getMemberAccount(){return apiGet<MemberAccount>("/api/v1/account/")}
 export async function getSavedArticles(locale:string){return await apiGet<SavedArticle[]>(`/api/v1/account/saved?locale=${encodeURIComponent(locale)}`)??[]}
+export type FollowedCategory={slug:string;title:string;description:string|null;locale:string;followedAt:string;articleCount:number};
+export type PersonalFeedArticle=SavedArticle&{categories:string[]};
+export async function getFollowedCategories(locale:string){return await apiGet<FollowedCategory[]>(`/api/v1/account/following?locale=${encodeURIComponent(locale)}`)??[]}
+export async function getPersonalFeed(locale:string){return await apiGet<PersonalFeedArticle[]>(`/api/v1/account/feed?locale=${encodeURIComponent(locale)}`)??[]}

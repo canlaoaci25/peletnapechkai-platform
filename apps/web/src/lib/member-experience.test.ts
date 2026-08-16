@@ -20,3 +20,20 @@ test("article save control is a csrf-protected accessible toggle", () => {
   assert.match(source, /method:saved\?"DELETE":"PUT"/);
   assert.match(source, /role="status"/);
 });
+
+test("topic following and personal feed cover every locale", () => {
+  for (const copy of Object.values(memberCopy)) {
+    assert.ok(copy.follow.length > 2);
+    assert.ok(copy.following.length > 2);
+    assert.ok(copy.topicsTitle.length > 2);
+    assert.ok(copy.feedTitle.length > 2);
+    assert.ok(copy.feedEmpty.length > 8);
+  }
+  const follow = readFileSync(fileURLToPath(new URL("../components/follow-category-button.tsx", import.meta.url)), "utf8");
+  const account = readFileSync(fileURLToPath(new URL("../components/account-dashboard.tsx", import.meta.url)), "utf8");
+  assert.match(follow, /aria-pressed=\{following\}/);
+  assert.match(follow, /x-csrf-token/);
+  assert.match(follow, /method:following\?"DELETE":"PUT"/);
+  assert.match(account, /personal-discovery/);
+  assert.match(account, /followed-topic-grid/);
+});

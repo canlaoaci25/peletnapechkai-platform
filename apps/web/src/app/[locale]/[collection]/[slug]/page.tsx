@@ -8,6 +8,7 @@ import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { archiveLanguages } from "@/lib/archive-localization";
 import { getPublicArchive } from "@/lib/public-api";
+import { FollowCategoryButton } from "@/components/follow-category-button";
 
 export const dynamic = "force-dynamic";
 const collections = ["categories", "tags", "authors"] as const;
@@ -46,7 +47,7 @@ export default async function ArchivePage({ params }: Props) {
       <main className="archive-page">
         <nav className="archive-breadcrumbs" aria-label="Breadcrumb"><Link href={`/${locale}`}>{dictionary.navigation.home}</Link><span aria-hidden="true">/</span>{collection === "categories" && <><Link href={`/${locale}/topics`}>{copy.allTopics}</Link><span aria-hidden="true">/</span></>}<span aria-current="page">{archive.title}</span></nav>
         <header className="archive-authority-hero">
-          <div><p className="section-kicker">{copy[collection]} · {archive.articleCount} {copy.stories}</p><h1>{archive.title}</h1>{archive.description && <p className="archive-description">{archive.description}</p>}</div>
+          <div><p className="section-kicker">{copy[collection]} · {archive.articleCount} {copy.stories}</p><h1>{archive.title}</h1>{archive.description && <p className="archive-description">{archive.description}</p>}{collection === "categories" && <FollowCategoryButton locale={locale} slug={slug}/>}</div>
           {archive.typeCounts.length > 0 && <ul className="archive-type-counts" aria-label={copy.description}>{archive.typeCounts.map(item => <li key={item.type}><strong>{item.count}</strong><span>{item.type}</span></li>)}</ul>}
         </header>
         {collection === "categories" && archive.relatedCategories.length > 0 && <nav className="archive-related" aria-label={copy.explore}><strong>{copy.explore}</strong>{archive.relatedCategories.map(item => <Link key={item.slug} href={`/${locale}/categories/${item.slug}`}>{item.title}<span>{item.articleCount}</span></Link>)}</nav>}

@@ -40,6 +40,7 @@ public sealed class PublishingDbContext(DbContextOptions<PublishingDbContext> op
     public DbSet<ArticleEngagement> ArticleEngagements => Set<ArticleEngagement>();
     public DbSet<HomepagePlacement> HomepagePlacements => Set<HomepagePlacement>();
     public DbSet<SavedArticle> SavedArticles => Set<SavedArticle>();
+    public DbSet<FollowedCategory> FollowedCategories => Set<FollowedCategory>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

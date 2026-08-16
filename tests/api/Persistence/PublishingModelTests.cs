@@ -40,6 +40,7 @@ public sealed class PublishingModelTests
         Assert.NotNull(context.Model.FindEntityType(typeof(ApplicationUser)));
         Assert.NotNull(context.Model.FindEntityType(typeof(ApplicationRole)));
         Assert.NotNull(context.Model.FindEntityType(typeof(SavedArticle)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(FollowedCategory)));
     }
 
     [Fact]
@@ -90,6 +91,13 @@ public sealed class PublishingModelTests
     {
         using var context = CreateContext();
         AssertUniqueIndex(context, typeof(SavedArticle), "ux_saved_articles_user_article");
+    }
+
+    [Fact]
+    public void FollowedCategory_HasPerMemberCategoryUniqueIndex()
+    {
+        using var context = CreateContext();
+        AssertUniqueIndex(context, typeof(FollowedCategory), "ux_followed_categories_user_category");
     }
 
     [Fact]

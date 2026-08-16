@@ -21,6 +21,11 @@ public static class MemberAccountEndpoints
         group.MapGet("/saved/{locale}/{slug}", GetSavedStatusAsync);
         group.MapPut("/saved/{locale}/{slug}", SaveArticleAsync).ValidateAntiforgery();
         group.MapDelete("/saved/{locale}/{slug}", RemoveSavedArticleAsync).ValidateAntiforgery();
+        group.MapGet("/following", ListFollowingAsync);
+        group.MapGet("/following/{locale}/{slug}", GetFollowingStatusAsync);
+        group.MapPut("/following/{locale}/{slug}", FollowCategoryAsync).ValidateAntiforgery();
+        group.MapDelete("/following/{locale}/{slug}", UnfollowCategoryAsync).ValidateAntiforgery();
+        group.MapGet("/feed", GetPersonalFeedAsync);
         return endpoints;
     }
     private static async Task<IResult> GetAsync(System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,IConfiguration configuration)
@@ -59,6 +64,39 @@ public static class MemberAccountEndpoints
         var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
         var saved=await db.SavedArticles.Include(item=>item.ArticleLocalization).SingleOrDefaultAsync(item=>item.UserId==user.Id&&item.ArticleLocalization.Locale.Code==locale&&item.ArticleLocalization.Slug==slug,token);if(saved is null)return Results.NoContent();
         db.SavedArticles.Remove(saved);db.AuditLogs.Add(new AuditLog(user.Id,"member.article_unsaved",nameof(ArticleLocalization),saved.ArticleLocalizationId,null,DateTimeOffset.UtcNow));await db.SaveChangesAsync(token);return Results.NoContent();
+    }
+    private static async Task<IResult> ListFollowingAsync(string? locale,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
+        var query=db.FollowedCategories.AsNoTracking().Where(item=>item.UserId==user.Id);
+        if(!string.IsNullOrWhiteSpace(locale))query=query.Where(item=>item.Category.Locale.Code==locale);
+        return Results.Ok(await query.OrderByDescending(item=>item.FollowedAt).Select(item=>new{item.Category.Slug,title=item.Category.Name,description=item.Category.Description,locale=item.Category.Locale.Code,item.FollowedAt,articleCount=item.Category.Articles.Count(article=>article.Status==PublicationStatus.Published)}).ToArrayAsync(token));
+    }
+    private static async Task<IResult> GetFollowingStatusAsync(string locale,string slug,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
+        return Results.Ok(new{following=await db.FollowedCategories.AsNoTracking().AnyAsync(item=>item.UserId==user.Id&&item.Category.Locale.Code==locale&&item.Category.Slug==slug,token)});
+    }
+    private static async Task<IResult> FollowCategoryAsync(string locale,string slug,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
+        var category=await db.Categories.SingleOrDefaultAsync(item=>item.Locale.Code==locale&&item.Slug==slug,token);if(category is null)return Results.NotFound();
+        if(await db.FollowedCategories.AnyAsync(item=>item.UserId==user.Id&&item.CategoryId==category.Id,token))return Results.NoContent();
+        db.FollowedCategories.Add(new FollowedCategory(user,category,DateTimeOffset.UtcNow));
+        db.AuditLogs.Add(new AuditLog(user.Id,"member.category_followed",nameof(Category),category.Id,null,DateTimeOffset.UtcNow));
+        await db.SaveChangesAsync(token);return Results.NoContent();
+    }
+    private static async Task<IResult> UnfollowCategoryAsync(string locale,string slug,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
+        var followed=await db.FollowedCategories.Include(item=>item.Category).SingleOrDefaultAsync(item=>item.UserId==user.Id&&item.Category.Locale.Code==locale&&item.Category.Slug==slug,token);if(followed is null)return Results.NoContent();
+        db.FollowedCategories.Remove(followed);db.AuditLogs.Add(new AuditLog(user.Id,"member.category_unfollowed",nameof(Category),followed.CategoryId,null,DateTimeOffset.UtcNow));await db.SaveChangesAsync(token);return Results.NoContent();
+    }
+    private static async Task<IResult> GetPersonalFeedAsync(string locale,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
+        var items=await db.ArticleLocalizations.AsNoTracking().Where(article=>article.Locale.Code==locale&&article.Status==PublicationStatus.Published&&article.Categories.Any(category=>db.FollowedCategories.Any(follow=>follow.UserId==user.Id&&follow.CategoryId==category.Id))).OrderByDescending(article=>article.PublishedAt).Take(12).Select(article=>new{article.Slug,article.Title,article.Summary,type=article.ArticleGroup.Type.ToString(),locale=article.Locale.Code,article.PublishedAt,categories=article.Categories.Where(category=>db.FollowedCategories.Any(follow=>follow.UserId==user.Id&&follow.CategoryId==category.Id)).Select(category=>category.Name).ToArray(),cover=article.CoverMediaAssetId==null?null:new{url="/api/media/"+article.CoverMediaAssetId+"?v="+article.CoverMediaAsset!.OptimizedByteLength,altText=article.CoverAltText}}).ToArrayAsync(token);
+        return Results.Ok(items);
     }
     public sealed record ProfileRequest(string? DisplayName);
     public sealed record PasswordRequest(string? CurrentPassword,string? NewPassword);
