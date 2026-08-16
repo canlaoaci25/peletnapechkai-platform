@@ -2,6 +2,13 @@
 
 ## Execution status
 
+Cycle 28 transforms the shared editorial command queue into a personal daily workspace:
+editors see their own open, overdue, and near-SLA assignments first, can switch to the
+team queue, filter operational states, and advance task status in place. Status changes
+retain ownership authorization, antiforgery protection, and a durable audit event. The
+next admin milestones are workflow-enforced publishing gates, assignment load balancing,
+and historical editorial SLA trend measurement.
+
 Cycle 27 launches topic following and a personal return-visit surface: readers can follow
 locale-specific category hubs, manage those interests in their account, and discover the
 newest published stories in an image-led personal feed. The next retention milestone is

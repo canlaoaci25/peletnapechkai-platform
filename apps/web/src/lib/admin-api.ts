@@ -98,8 +98,8 @@ export type SystemStatus = {
 };
 export type EditorialCommandCenter = {
   checkedAt: string;
-  summary: { overdue: number; dueSoon: number; inReview: number; incompleteQuality: number };
-  items: { articleId: string; title: string; locale: string; kind: string; dueAt: string; taskTitle: string | null; assignee: string | null; priority: string | null }[];
+  summary: { overdue: number; dueSoon: number; inReview: number; incompleteQuality: number; personalOpen: number; personalOverdue: number; personalDueSoon: number };
+  items: { articleId: string; title: string; locale: string; kind: string; dueAt: string; taskTitle: string | null; assignee: string | null; priority: string | null; taskId: string | null; status: string | null; isMine: boolean }[];
 };
 export type KnowledgeLink = {
   id: string;

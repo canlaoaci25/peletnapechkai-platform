@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Peletnapechkai.Api.Domain.Content;
+using Peletnapechkai.Api.Domain.Auditing;
 using Peletnapechkai.Api.Domain.Identity;
 using Peletnapechkai.Api.Infrastructure.Identity;
 using Peletnapechkai.Api.Infrastructure.Persistence;
@@ -40,7 +41,7 @@ public static class EditorialCollaborationEndpoints
 
     private static async Task<IResult> SetTaskStatusAsync(Guid articleId,Guid taskId,StatusRequest request,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
     {
-        var actor=await users.GetUserAsync(principal);var item=await db.EditorialTasks.SingleOrDefaultAsync(x=>x.Id==taskId&&x.ArticleLocalizationId==articleId,token);if(actor is null)return Results.Unauthorized();if(item is null)return Results.NotFound();if(item.AssigneeUserId!=actor.Id&&!principal.IsInRole(RoleNames.Owner)&&!principal.IsInRole(RoleNames.Admin)&&!principal.IsInRole(RoleNames.Editor))return Results.Forbid();if(!Enum.TryParse<EditorialTaskStatus>(request.Status,true,out var status))return Results.BadRequest();item.ChangeStatus(status,DateTimeOffset.UtcNow);await db.SaveChangesAsync(token);return Results.Ok();
+        var actor=await users.GetUserAsync(principal);var item=await db.EditorialTasks.SingleOrDefaultAsync(x=>x.Id==taskId&&x.ArticleLocalizationId==articleId,token);if(actor is null)return Results.Unauthorized();if(item is null)return Results.NotFound();if(item.AssigneeUserId!=actor.Id&&!principal.IsInRole(RoleNames.Owner)&&!principal.IsInRole(RoleNames.Admin)&&!principal.IsInRole(RoleNames.Editor))return Results.Forbid();if(!Enum.TryParse<EditorialTaskStatus>(request.Status,true,out var status))return Results.BadRequest();var previous=item.Status;var now=DateTimeOffset.UtcNow;item.ChangeStatus(status,now);db.AuditLogs.Add(new AuditLog(actor.Id,"editorial.task_status_changed",nameof(EditorialTask),item.Id,System.Text.Json.JsonSerializer.Serialize(new{articleId,previous=previous.ToString(),status=status.ToString()}),now));await db.SaveChangesAsync(token);return Results.Ok();
     }
 
     private static async Task<IResult> CreateCommentAsync(Guid articleId,CommentRequest request,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)

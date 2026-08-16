@@ -80,6 +80,7 @@ public sealed class ArticleWorkflowTests
         var task=new EditorialTask(article,assignee,"Kaynakları doğrula",EditorialTaskPriority.High,now.AddDays(1),Guid.NewGuid(),now);
         task.ChangeStatus(EditorialTaskStatus.Completed,now.AddHours(1));
         Assert.Equal(assignee,task.AssigneeUserId);Assert.Equal(EditorialTaskStatus.Completed,task.Status);
+        Assert.Equal(now.AddHours(1),task.UpdatedAt);
     }
 
     [Fact]
