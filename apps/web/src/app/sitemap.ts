@@ -11,6 +11,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const { locale, articles } of collections) for (const article of articles) groups.set(article.articleGroupId, { ...(groups.get(article.articleGroupId) ?? {}), [locale]: absoluteUrl(`/${locale}/articles/${article.slug}`) });
   const homeLanguages = Object.fromEntries([...locales.map(item => [item, absoluteUrl(`/${item}`)] as const), ["x-default", absoluteUrl("/tr-TR")] as const]);
   const homes: MetadataRoute.Sitemap = locales.map(locale => ({ url: absoluteUrl(`/${locale}`), changeFrequency: "daily", priority: .9, alternates: { languages: homeLanguages } }));
+  const topicLanguages = Object.fromEntries([...locales.map(item => [item, absoluteUrl(`/${item}/topics`)] as const), ["x-default", absoluteUrl("/tr-TR/topics")] as const]);
+  const topics: MetadataRoute.Sitemap = locales.map(locale => ({ url: absoluteUrl(`/${locale}/topics`), changeFrequency: "daily", priority: .85, alternates: { languages: topicLanguages } }));
   const articles: MetadataRoute.Sitemap = collections.flatMap(({ locale, articles }) => articles.map(article => ({ url: absoluteUrl(`/${locale}/articles/${article.slug}`), lastModified: article.updatedAt, changeFrequency: "weekly" as const, priority: .7, alternates: { languages: groups.get(article.articleGroupId) ?? {} } })));
   const archiveCollections = await Promise.all(locales.map(async locale => ({ locale, index: await getPublicArchiveIndex(locale) })));
   const categoryLanguages = new Map<string, Record<string, string>>();
@@ -25,5 +27,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...index.tags.map(item=>({path:`tags/${item.slug}`,languages:undefined})),
     ...index.authors.map(item=>({path:`authors/${item.slug}`,languages:undefined})),
   ].map(item=>({url:absoluteUrl(`/${locale}/${item.path}`),changeFrequency:"weekly" as const,priority:.5,alternates:item.languages?{languages:item.languages}:undefined})));
-  return [...homes, ...articles, ...archives];
+  return [...homes, ...topics, ...articles, ...archives];
 }

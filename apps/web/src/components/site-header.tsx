@@ -33,6 +33,7 @@ export async function SiteHeader({ locale, localeHrefs }: SiteHeaderProps) {
               <p>{copy.sections}</p>
               <nav aria-label={copy.sections}>
                 <Link href={`/${locale}`}>{copy.home}</Link>
+                <Link href={`/${locale}/topics`}>{copy.allTopics}</Link>
                 {categories.map((category) => (
                   <Link key={category.slug} href={`/${locale}/categories/${category.slug}`}>
                     {category.title}
@@ -57,6 +58,7 @@ export async function SiteHeader({ locale, localeHrefs }: SiteHeaderProps) {
         <div className="masthead-navline">
           <nav className="primary-navigation" aria-label={copy.sections}>
             <Link href={`/${locale}`}>{copy.latest}</Link>
+            <Link href={`/${locale}/topics`}>{copy.allTopics}</Link>
             {categories.map((category) => (
               <Link key={category.slug} href={`/${locale}/categories/${category.slug}`}>
                 {category.title}

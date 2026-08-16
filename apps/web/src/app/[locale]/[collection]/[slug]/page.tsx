@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
@@ -59,6 +60,7 @@ export default async function ArchivePage({ params }: Props) {
           <div className="article-cards">
             {archive.articles.map((article) => (
               <article className="public-card" key={article.slug}>
+                {article.cover && <Link className="archive-card-cover" href={`/${locale}/articles/${article.slug}`} tabIndex={-1} aria-hidden="true"><Image src={article.cover.url} alt="" fill sizes="(max-width: 700px) 100vw, 33vw" /></Link>}
                 <p className="section-kicker">{article.type}</p>
                 <h2>
                   <Link href={`/${locale}/articles/${article.slug}`}>

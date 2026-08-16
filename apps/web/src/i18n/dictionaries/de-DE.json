@@ -15,7 +15,8 @@
     "search": "Suchen",
     "account": "Konto",
     "language": "Sprache",
-    "latest": "Neueste"
+    "latest": "Neueste",
+    "allTopics": "Alle Themen"
   },
   "accessibility": { "skipToContent": "Zum Hauptinhalt springen" },
   "article": { "onThisPage": "In diesem Artikel" },

@@ -15,7 +15,8 @@
     "search": "Ara",
     "account": "Hesap",
     "language": "Dil",
-    "latest": "Son yayınlar"
+    "latest": "Son yayınlar",
+    "allTopics": "Tüm konular"
   },
   "accessibility": { "skipToContent": "Ana içeriğe geç" },
   "article": { "onThisPage": "Bu yazıda" },

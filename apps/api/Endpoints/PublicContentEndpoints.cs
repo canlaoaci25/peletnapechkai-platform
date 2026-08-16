@@ -35,7 +35,29 @@ public static class PublicContentEndpoints
 
     private static async Task<IResult> ListArchivesAsync(string locale, PublishingDbContext database, CancellationToken token)
     {
-        var categories = await database.Categories.AsNoTracking().Where(item => item.Locale.Code == locale && item.Articles.Any(article => article.Status == PublicationStatus.Published)).OrderBy(item => item.Name).Select(item => new { item.Slug, title = item.Name, translationKey = item.SourceCategoryId ?? item.Id }).ToListAsync(token);
+        var categoryRows = await database.Categories.AsNoTracking()
+            .Where(item => item.Locale.Code == locale && item.Articles.Any(article => article.Status == PublicationStatus.Published))
+            .OrderByDescending(item => item.Articles.Count(article => article.Status == PublicationStatus.Published))
+            .ThenBy(item => item.Name)
+            .Select(item => new
+            {
+                item.Id,
+                item.Slug,
+                title = item.Name,
+                item.Description,
+                translationKey = item.SourceCategoryId ?? item.Id,
+                articleCount = item.Articles.Count(article => article.Status == PublicationStatus.Published)
+            }).ToListAsync(token);
+        var categories = new List<object>(categoryRows.Count);
+        foreach (var item in categoryRows)
+        {
+            var featured = await database.ArticleLocalizations.AsNoTracking()
+                .Where(article => article.Status == PublicationStatus.Published && article.Categories.Any(category => category.Id == item.Id))
+                .OrderByDescending(article => article.PublishedAt).Take(3)
+                .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } })
+                .ToArrayAsync(token);
+            categories.Add(new { item.Slug, item.title, item.Description, item.translationKey, item.articleCount, featured });
+        }
         var tags = await database.Tags.AsNoTracking().Where(item => item.Locale.Code == locale && item.Articles.Any(article => article.Status == PublicationStatus.Published)).OrderBy(item => item.Name).Select(item => new { item.Slug, title = item.Name }).ToListAsync(token);
         var authors = await database.Authors.AsNoTracking().Where(item => database.ArticleLocalizations.Any(article => article.Locale.Code == locale && article.Status == PublicationStatus.Published && article.ArticleGroup.Authors.Any(author => author.Id == item.Id))).OrderBy(item => item.DisplayName).Select(item => new { item.Slug, title = item.DisplayName }).ToListAsync(token);
         return Results.Ok(new { categories, tags, authors });

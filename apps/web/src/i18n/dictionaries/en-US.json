@@ -15,7 +15,8 @@
     "search": "Search",
     "account": "Account",
     "language": "Language",
-    "latest": "Latest"
+    "latest": "Latest",
+    "allTopics": "All topics"
   },
   "accessibility": { "skipToContent": "Skip to main content" },
   "article": { "onThisPage": "In this article" },
