@@ -19,4 +19,7 @@ test("international publishing dashboard exposes coverage and editorial debt", (
   assert.match(manager, /reviewPendingCount/);
   assert.match(manager, /sourcePublishedCount/);
   assert.match(manager, /language-health-summary/);
+  assert.match(manager, /staleTranslationCount/);
+  assert.match(manager, /missingCategoryCount/);
+  assert.match(manager, /linkedCategoryCount/);
 });

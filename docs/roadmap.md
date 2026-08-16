@@ -2,6 +2,12 @@
 
 ## Execution status
 
+Cycle 30 turns International Publishing Health into a localization integrity control
+surface: editors can now see translations made stale by a newer Turkish source revision
+and category paths that have no locale-linked equivalent, alongside coverage and review
+debt. The next localization milestones are owner/SLA assignment, locale-specific quality
+scoring, tag translation relationships, and culturally adapted visual review.
+
 Cycle 29 transforms locale search into an image-led discovery center: readers now see
 real cover imagery, taxonomy paths, publication context, and source counts, while title
 and summary matches rank ahead of incidental body matches. Search URLs remain noindex

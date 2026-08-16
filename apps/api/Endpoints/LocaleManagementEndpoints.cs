@@ -45,6 +45,9 @@ public static class LocaleManagementEndpoints
     {
         var sourcePublishedCount = await database.ArticleLocalizations.AsNoTracking()
             .CountAsync(article => article.Locale.IsDefault && article.Status == PublicationStatus.Published, token);
+        var sourceCategoryCount = await database.Categories.AsNoTracking()
+            .CountAsync(category => category.Locale.IsDefault &&
+                category.Articles.Any(article => article.Status == PublicationStatus.Published), token);
         var locales = await database.Locales.AsNoTracking()
             .OrderByDescending(locale => locale.IsDefault).ThenBy(locale => locale.Code)
             .Select(locale => new
@@ -55,6 +58,7 @@ public static class LocaleManagementEndpoints
                 publishedCount = locale.ArticleLocalizations.Count(article => article.Status == PublicationStatus.Published),
                 draftCount = locale.ArticleLocalizations.Count(article => article.Status == PublicationStatus.Draft),
                 sourcePublishedCount,
+                sourceCategoryCount,
                 missingTranslationCount = locale.IsDefault ? 0 : database.ArticleLocalizations.Count(source =>
                     source.Locale.IsDefault && source.Status == PublicationStatus.Published &&
                     !database.ArticleLocalizations.Any(translation => translation.ArticleGroupId == source.ArticleGroupId &&
@@ -62,6 +66,16 @@ public static class LocaleManagementEndpoints
                 reviewPendingCount = locale.IsDefault ? 0 : locale.ArticleLocalizations.Count(article =>
                     (article.Status == PublicationStatus.Draft || article.Status == PublicationStatus.Published) &&
                     !database.ArticleQualityChecklists.Any(checklist => checklist.ArticleLocalizationId == article.Id && checklist.TranslationReviewed)),
+                staleTranslationCount = locale.IsDefault ? 0 : locale.ArticleLocalizations.Count(translation =>
+                    (translation.Status == PublicationStatus.Draft || translation.Status == PublicationStatus.Published) &&
+                    database.ArticleLocalizations.Any(source => source.ArticleGroupId == translation.ArticleGroupId &&
+                        source.Locale.IsDefault && source.Status == PublicationStatus.Published && source.UpdatedAt > translation.UpdatedAt)),
+                linkedCategoryCount = locale.IsDefault ? sourceCategoryCount : database.Categories.Count(category =>
+                    category.LocaleId == locale.Id && category.SourceCategoryId != null &&
+                    category.SourceCategory!.Articles.Any(article => article.Status == PublicationStatus.Published)),
+                missingCategoryCount = locale.IsDefault ? 0 : database.Categories.Count(source =>
+                    source.Locale.IsDefault && source.Articles.Any(article => article.Status == PublicationStatus.Published) &&
+                    !database.Categories.Any(translation => translation.LocaleId == locale.Id && translation.SourceCategoryId == source.Id)),
                 countries = locale.Countries.OrderByDescending(item => item.CountryId == locale.RegionId).ThenBy(item => item.Country.Name)
                     .Select(item => new { code = item.Country.Code, item.Country.Name, item.Country.CurrencyCode, item.IsRequired, item.IsEnabled, isPrimary = item.CountryId == locale.RegionId })
             }).ToListAsync(token);

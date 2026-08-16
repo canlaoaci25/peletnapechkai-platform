@@ -32,6 +32,8 @@ export function LanguageList({
   const enabled = locales.filter((item) => item.isEnabled);
   const missing = enabled.reduce((total, item) => total + item.missingTranslationCount, 0);
   const pending = enabled.reduce((total, item) => total + item.reviewPendingCount, 0);
+  const stale = enabled.reduce((total, item) => total + item.staleTranslationCount, 0);
+  const missingCategories = enabled.reduce((total, item) => total + item.missingCategoryCount, 0);
   const translated = enabled.filter((item) => !item.isDefault);
   const coverage = translated.length === 0 ? 100 : Math.round(translated.reduce((total, item) => total + (item.sourcePublishedCount ? item.publishedCount / item.sourcePublishedCount * 100 : 100), 0) / translated.length);
   return (
@@ -41,6 +43,8 @@ export function LanguageList({
         <article><small>Ortalama kapsam</small><strong>%{coverage}</strong><span>Türkçe kaynak arşive göre</span></article>
         <article className={missing ? "needs-attention" : ""}><small>Eksik çeviri</small><strong>{missing}</strong><span>henüz oluşturulmamış</span></article>
         <article className={pending ? "needs-attention" : ""}><small>Editör incelemesi</small><strong>{pending}</strong><span>yayın öncesi kontrol</span></article>
+        <article className={stale ? "needs-attention" : ""}><small>Güncellik farkı</small><strong>{stale}</strong><span>kaynak yazıdan geride</span></article>
+        <article className={missingCategories ? "needs-attention" : ""}><small>Eksik kategori</small><strong>{missingCategories}</strong><span>yerelleştirilmemiş konu yolu</span></article>
       </div>
       <div className="language-list-page">
       {locales.map((item) => (
@@ -68,7 +72,8 @@ export function LanguageList({
           <span className="language-coverage" aria-label={`${item.nativeName} yayın kapsamı`}>
             <b>%{item.isDefault || !item.sourcePublishedCount ? 100 : Math.min(100, Math.round(item.publishedCount / item.sourcePublishedCount * 100))}</b>
             <i><span style={{width:`${item.isDefault || !item.sourcePublishedCount ? 100 : Math.min(100, item.publishedCount / item.sourcePublishedCount * 100)}%`}} /></i>
-            <small>{item.isDefault ? "Kaynak yayın" : `${item.missingTranslationCount} eksik · ${item.reviewPendingCount} incelemede`}</small>
+            <small>{item.isDefault ? `${item.sourceCategoryCount} kaynak kategori` : `${item.missingTranslationCount} eksik · ${item.staleTranslationCount} güncel değil`}</small>
+            {!item.isDefault && <small className={item.missingCategoryCount ? "taxonomy-debt" : ""}>{item.linkedCategoryCount}/{item.sourceCategoryCount} kategori bağlı · {item.reviewPendingCount} incelemede</small>}
           </span>
           <b aria-hidden>→</b>
         </Link>

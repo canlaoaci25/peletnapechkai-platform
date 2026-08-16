@@ -20,7 +20,7 @@ export default async function LanguagesPage({
         <div>
           <p className="section-kicker">ULUSLARARASI YAYIN SAĞLIĞI</p>
           <h1>Diller arasındaki yayın farkını kapatın</h1>
-          <p>Eksik çevirileri, inceleme borcunu ve yayın kapsamını tek bakışta izleyin.</p>
+          <p>Eksik ve güncelliğini yitiren çevirileri, inceleme borcunu ve yerelleştirilmemiş kategori yollarını tek bakışta izleyin.</p>
         </div>
         <Link className="primary-link" href={`/${locale}/admin/languages/new`}>
           + Dil ekle

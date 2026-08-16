@@ -177,8 +177,12 @@ export type ManagedLocale = {
   publishedCount: number;
   draftCount: number;
   sourcePublishedCount: number;
+  sourceCategoryCount: number;
   missingTranslationCount: number;
   reviewPendingCount: number;
+  staleTranslationCount: number;
+  linkedCategoryCount: number;
+  missingCategoryCount: number;
   countries: {
     code: string;
     name: string;
