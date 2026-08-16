@@ -10,9 +10,10 @@ import { getPublicArchiveIndex } from "@/lib/public-api";
 type SiteHeaderProps = {
   locale: Locale;
   localeHrefs?: Partial<Record<Locale, string>>;
+  homeActive?: boolean;
 };
 
-export async function SiteHeader({ locale, localeHrefs }: SiteHeaderProps) {
+export async function SiteHeader({ locale, localeHrefs, homeActive = false }: SiteHeaderProps) {
   const [dictionary, archives] = await Promise.all([
     getDictionary(locale),
     getPublicArchiveIndex(locale),
@@ -35,12 +36,12 @@ export async function SiteHeader({ locale, localeHrefs }: SiteHeaderProps) {
                 <span>{copy.menuDescription}</span>
               </div>
               <nav aria-label={copy.sections}>
-                <Link href={`/${locale}`}>{copy.home}</Link>
+                <Link href={`/${locale}`} aria-current={homeActive ? "page" : undefined}>{copy.home}</Link>
                 <Link href={`/${locale}/search`}>{copy.search}</Link>
                 <Link href={`/${locale}/topics`}>{copy.allTopics}</Link>
                 {categories.map((category) => (
                   <Link key={category.slug} href={`/${locale}/categories/${category.slug}`}>
-                    {category.title}
+                    <span>{category.title}</span><small>{category.articleCount}</small>
                   </Link>
                 ))}
               </nav>
@@ -65,7 +66,7 @@ export async function SiteHeader({ locale, localeHrefs }: SiteHeaderProps) {
 
         <div className="masthead-navline">
           <nav className="primary-navigation" aria-label={copy.sections}>
-            <Link href={`/${locale}`}>{copy.latest}</Link>
+            <Link href={`/${locale}`} aria-current={homeActive ? "page" : undefined}>{copy.latest}</Link>
             <Link href={`/${locale}/topics`}>{copy.allTopics}</Link>
             {categories.map((category) => (
               <Link key={category.slug} href={`/${locale}/categories/${category.slug}`}>

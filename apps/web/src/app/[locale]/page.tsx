@@ -51,7 +51,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
 
   return (
     <div className="site-shell home-shell">
-      <SiteHeader locale={locale} />
+      <SiteHeader locale={locale} homeActive />
       <main id="main-content">
         <nav className="topic-strip" aria-label={copy.currentTopics}>
           <strong><span aria-hidden="true" />{copy.currentTopics}</strong>
@@ -90,18 +90,40 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
           <ol>{trending.map((article, index) => <li key={article.slug}><span>{String(index + 1).padStart(2, "0")}</span><div><small>{article.type}</small><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3></div></li>)}</ol>
         </section>}
 
+        {archives.categories.length > 0 && <section className="topic-atlas" aria-labelledby="topic-atlas-title">
+          <header className="home-section-header">
+            <div><p className="section-kicker">02 / {copy.coverage}</p><h2 id="topic-atlas-title">{copy.topicAtlas}</h2></div>
+            <p>{copy.topicAtlasDescription}</p>
+          </header>
+          <div className="topic-atlas-grid">
+            {archives.categories.slice(0, 6).map((category, categoryIndex) => {
+              const feature = category.featured[0];
+              return <article key={category.slug} className={categoryIndex === 0 ? "topic-atlas-feature" : ""}>
+                {feature && <ArticleImageLink article={feature} className="topic-atlas-image" locale={locale} sizes={categoryIndex === 0 ? homeImageSizes.atlasLead : homeImageSizes.atlas} />}
+                <div className="topic-atlas-copy">
+                  <div><span>{String(categoryIndex + 1).padStart(2, "0")}</span><small>{category.articleCount} {copy.publications}</small></div>
+                  <h3><Link href={`/${locale}/categories/${category.slug}`}>{category.title}</Link></h3>
+                  {category.description && <p>{category.description}</p>}
+                  {feature && <Link className="topic-atlas-story" href={`/${locale}/articles/${feature.slug}`}>{feature.title}<span aria-hidden="true"> →</span></Link>}
+                </div>
+              </article>;
+            })}
+          </div>
+          <Link className="topic-atlas-all" href={`/${locale}/topics`}>{copy.exploreAllTopics}<span aria-hidden="true"> →</span></Link>
+        </section>}
+
         {picks.length > 0 && <section className="picks-section" aria-labelledby="picks-title">
-          <header className="home-section-header"><div><p className="section-kicker">02 / {copy.curated}</p><h2 id="picks-title">{copy.editorsPicks}</h2></div></header>
+          <header className="home-section-header"><div><p className="section-kicker">03 / {copy.curated}</p><h2 id="picks-title">{copy.editorsPicks}</h2></div></header>
           <div className="pick-grid">{picks.map(article => <article key={article.slug}><ArticleImageLink article={article} className="pick-image" locale={locale} sizes={homeImageSizes.pick} /><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p></article>)}</div>
         </section>}
 
         <AdSlot label={copy.advertisement} />
 
-        {types.map((type, typeIndex) => {
+        {types.slice(0, 2).map((type, typeIndex) => {
           const items = articles.filter(article => article.type === type).slice(0, 4);
           if (items.length < 2) return null;
           return <section className="category-showcase" key={type} aria-labelledby={`type-${typeIndex}`}>
-            <header className="home-section-header"><div><p className="section-kicker">{String(typeIndex + 3).padStart(2, "0")} / {copy.coverage}</p><h2 id={`type-${typeIndex}`}>{type}</h2></div><Link href={`/${locale}/search?q=${encodeURIComponent(type)}`}>{copy.seeAll} →</Link></header>
+            <header className="home-section-header"><div><p className="section-kicker">{String(typeIndex + 4).padStart(2, "0")} / {copy.coverage}</p><h2 id={`type-${typeIndex}`}>{type}</h2></div><Link href={`/${locale}/search?q=${encodeURIComponent(type)}`}>{copy.seeAll} →</Link></header>
             <div className="category-grid">{items.map((article, index) => <article className={index === 0 ? "category-feature" : ""} key={article.slug}>{index === 0 && <ArticleImageLink article={article} className="category-image" locale={locale} sizes={homeImageSizes.category} />}<div><small>{formatDate(article.publishedAt)}</small><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3>{index === 0 && <p>{article.summary}</p>}</div></article>)}</div>
           </section>;
         })}

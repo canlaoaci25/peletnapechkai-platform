@@ -9,6 +9,19 @@ test("ana sayfa görselleri gerçek mobil kart genişliklerini bildirir", () => 
   assert.match(homeImageSizes.secondary, /120px/);
   assert.match(homeImageSizes.pick, /calc\(50vw - 35px\)/);
   assert.match(homeImageSizes.latest, /110px, 240px/);
+  assert.match(homeImageSizes.atlasLead, /calc\(100vw - 28px\)/);
+  assert.match(homeImageSizes.atlas, /38vw/);
+});
+
+test("ana sayfa konu atlasi gercek taxonomy yollarini ve arsiv derinligini sunar", () => {
+  const homePage = readFileSync(fileURLToPath(new URL("../app/[locale]/page.tsx", import.meta.url)), "utf8");
+  const header = readFileSync(fileURLToPath(new URL("../components/site-header.tsx", import.meta.url)), "utf8");
+
+  assert.match(homePage, /className="topic-atlas"/);
+  assert.match(homePage, /category\.articleCount/);
+  assert.match(homePage, /categories\/\$\{category\.slug\}/);
+  assert.match(homePage, /<SiteHeader locale=\{locale\} homeActive/);
+  assert.match(header, /aria-current=\{homeActive \? "page" : undefined\}/);
 });
 
 test("yayın görselleri Next.js optimizasyon hattını kullanır", () => {

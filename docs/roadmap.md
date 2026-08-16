@@ -2,6 +2,12 @@
 
 ## Execution status
 
+Cycle 33 extends the transformed publication front door into a taxonomy-led discovery
+system: the homepage now exposes a localized BOECL topic atlas with real archive depth,
+featured stories, editorial imagery, and direct category paths, while global navigation
+shows category scope and an explicit current-page state. Traffic-informed ordering,
+mobile art-direction crops, and measured atlas engagement remain the next homepage steps.
+
 Cycle 32 turns the Release Recovery Center into a durable deployment evidence surface:
 every staging and production Web/API release now keeps an atomic, sanitized history
 record in addition to the latest checkpoint, while administrators can see the last 12
