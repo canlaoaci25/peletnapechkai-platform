@@ -7,7 +7,7 @@
     "build:web": "npm --prefix apps/web run build",
     "lint": "npm --prefix apps/web run lint",
     "typecheck": "npm --prefix apps/web run typecheck",
-    "check:locales": "node tools/check-locales.mjs",
+    "check:locales": "node --test tools/check-locales.test.mjs && node tools/check-locales.mjs",
     "sync:locales": "node tools/sync-locales.mjs",
     "test:automation": "powershell -NoProfile -ExecutionPolicy Bypass -File ops/windows/Test-PowerShellScripts.ps1 && powershell -NoProfile -ExecutionPolicy Bypass -File ops/tests/Test-BoeclAutomationRecovery.ps1",
     "test:api": "dotnet test Peletnapechkai.slnx",
