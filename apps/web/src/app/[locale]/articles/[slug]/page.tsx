@@ -9,6 +9,7 @@ import { commercialCopy } from "@/i18n/commercial-copy";
 import { hasLocale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getPublishedArticle, getRelatedArticles } from "@/lib/public-api";
+import { buildArticleStructuredData } from "@/lib/article-structured-data";
 import { absoluteUrl } from "@/lib/site-url";
 
 function markdownBodyToHtml(body: string) {
@@ -53,6 +54,7 @@ export async function generateMetadata({
   return {
     title: article.seoTitle ?? `${article.title} — ${siteConfig.name}`,
     description: article.seoDescription ?? article.summary,
+    keywords: article.tags.map((tag) => tag.name),
     alternates: { canonical: `/${locale}/articles/${slug}`, languages },
     openGraph: {
       type: "article",
@@ -86,23 +88,28 @@ export default async function ArticlePage({
     "de-DE": "Quellen",
     "fr-FR": "Sources",
   }[locale];
-  const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: article.title,
-    description: article.summary,
-    datePublished: article.publishedAt,
-    dateModified: article.updatedAt,
-    inLanguage: locale,
-    image: article.cover ? [absoluteUrl(article.cover.url)] : undefined,
-    author: article.authors.map((author) => ({
-      "@type": "Person",
-      name: author.displayName,
+  const structuredData = buildArticleStructuredData({
+    title: article.title,
+    summary: article.summary,
+    seoDescription: article.seoDescription,
+    publishedAt: article.publishedAt,
+    updatedAt: article.updatedAt,
+    locale,
+    canonicalUrl: absoluteUrl(`/${locale}/articles/${slug}`),
+    imageUrl: article.cover ? absoluteUrl(article.cover.url) : undefined,
+    categories: article.categories,
+    tags: article.tags,
+    authors: article.authors.map((author) => ({
+      displayName: author.displayName,
       url: absoluteUrl(`/${locale}/authors/${author.slug}`),
     })),
-    mainEntityOfPage: absoluteUrl(`/${locale}/articles/${slug}`),
-    publisher: { "@type": "Organization", "@id": absoluteUrl("/#organization"), name: siteConfig.name, url: absoluteUrl(`/${locale}`) },
-  };
+    sources: article.sources,
+    publisher: {
+      id: absoluteUrl("/#organization"),
+      name: siteConfig.name,
+      url: absoluteUrl(`/${locale}`),
+    },
+  });
   const breadcrumbData = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
