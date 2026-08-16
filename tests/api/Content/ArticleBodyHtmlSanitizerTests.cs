@@ -19,6 +19,21 @@ public sealed class ArticleBodyHtmlSanitizerTests
     }
 
     [Fact]
+    public void Inline_images_are_normalized_for_accessibility_and_deferred_rendering()
+    {
+        const string body = "<p>Metin</p><img src=\"/api/media/123\"><img src=\"/api/media/456\" alt=\"Konuya özel gövde görseli\" loading=\"eager\" decoding=\"sync\">";
+
+        var sanitized = ArticleBodyHtmlSanitizer.Sanitize(body);
+
+        Assert.Equal(2, CountOccurrences(sanitized, "loading=\"lazy\""));
+        Assert.Equal(2, CountOccurrences(sanitized, "decoding=\"async\""));
+        Assert.Contains("alt=\"\"", sanitized);
+        Assert.Contains("alt=\"Konuya özel gövde görseli\"", sanitized);
+        Assert.DoesNotContain("loading=\"eager\"", sanitized);
+        Assert.DoesNotContain("decoding=\"sync\"", sanitized);
+    }
+
+    [Fact]
     public void Executable_markup_and_event_handlers_are_removed()
     {
         const string body = "<script>alert(1)</script><img src=\"javascript:alert(2)\" onerror=\"alert(3)\" alt=\"Güvenli açıklama\">";
@@ -30,4 +45,7 @@ public sealed class ArticleBodyHtmlSanitizerTests
         Assert.DoesNotContain("onerror", sanitized, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("alt=\"Güvenli açıklama\"", sanitized);
     }
+
+    private static int CountOccurrences(string value, string search) =>
+        value.Split(search, StringSplitOptions.None).Length - 1;
 }

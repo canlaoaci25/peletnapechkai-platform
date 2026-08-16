@@ -1,4 +1,5 @@
 using Ganss.Xss;
+using AngleSharp.Dom;
 
 namespace Peletnapechkai.Api.Infrastructure.Publishing;
 
@@ -18,6 +19,21 @@ public static class ArticleBodyHtmlSanitizer
         sanitizer.AllowedSchemes.Clear();
         foreach (var scheme in new[] { "http", "https" })
             sanitizer.AllowedSchemes.Add(scheme);
+
+        sanitizer.PostProcessNode += (_, eventArgs) =>
+        {
+            if (eventArgs.Node is not IElement { LocalName: "img" } image)
+                return;
+
+            // Article-body images follow the primary cover and need not block rendering.
+            image.SetAttribute("loading", "lazy");
+            image.SetAttribute("decoding", "async");
+
+            // Without alt, browsers may announce the source filename. Preserve any
+            // editorial text, but use an empty alternative when the attribute is absent.
+            if (!image.HasAttribute("alt"))
+                image.SetAttribute("alt", string.Empty);
+        };
 
         return sanitizer.Sanitize(body ?? string.Empty);
     }
