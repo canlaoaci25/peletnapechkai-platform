@@ -23,7 +23,7 @@
   },
   "accessibility": { "skipToContent": "Ana içeriğe geç" },
   "article": { "onThisPage": "Bu yazıda", "published": "Yayımlandı", "updated": "Güncellendi", "minuteRead": "{minutes} dk okuma", "sourcesUsed": "{count} kaynak", "editorialTrust": "Bu içerik nasıl hazırlandı?", "trustSummary": "BOECL; yazar, güncellik ve başvurulan kaynakları okurun değerlendirmesine açık biçimde sunar.", "sourceHeading": "Başvurulan kaynaklar", "sourceSummary": "İddiaları ve ayrıntıları denetlemek için kullanılan dış kaynaklar. Bağlantılar yeni sekmede açılır.", "relatedHeading": "Bu konuda okumaya devam edin" },
-  "search": { "title": "BOECL'de ara", "label": "Arama terimi", "submit": "Ara", "results": "{count} sonuç", "empty": "Aramanızla eşleşen yayımlanmış içerik bulunamadı." },
+  "search": { "eyebrow": "ARŞİV VE KEŞİF", "title": "BOECL'de ara", "description": "Kaynaklı haber, rehber, inceleme ve analizleri konuya göre keşfedin.", "label": "Arama terimi", "submit": "Ara", "results": "{count} sonuç", "sources": "{count} kaynak", "emptyTitle": "Henüz eşleşme yok", "empty": "Başka bir terim deneyin veya bölüm menüsünden konu arşivlerini keşfedin." },
   "home": {
     "eyebrow": "Yeni nesil çok dilli yayın platformu",
     "title": "Bilgiyi yalnızca çevirmiyor, doğru bağlama yerleştiriyoruz.",

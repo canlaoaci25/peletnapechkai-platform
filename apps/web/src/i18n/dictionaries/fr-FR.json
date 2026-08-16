@@ -23,7 +23,7 @@
   },
   "accessibility": { "skipToContent": "Aller au contenu principal" },
   "article": { "onThisPage": "Dans cet article", "published": "Publié", "updated": "Mis à jour", "minuteRead": "{minutes} min de lecture", "sourcesUsed": "{count} sources", "editorialTrust": "Comment cet article a-t-il été préparé ?", "trustSummary": "BOECL rend visibles l’auteur, l’actualité et les sources consultées afin que chacun puisse évaluer l’article.", "sourceHeading": "Sources consultées", "sourceSummary": "Sources externes utilisées pour vérifier les affirmations et les détails. Les liens s’ouvrent dans un nouvel onglet.", "relatedHeading": "Poursuivre sur ce sujet" },
-  "search": { "title": "Rechercher sur BOECL", "label": "Termes de recherche", "submit": "Rechercher", "results": "{count} résultats", "empty": "Aucun contenu publié ne correspond à votre recherche." },
+  "search": { "eyebrow": "ARCHIVES ET DÉCOUVERTE", "title": "Rechercher sur BOECL", "description": "Découvrez par sujet des actualités, guides, tests et analyses sourcés.", "label": "Termes de recherche", "submit": "Rechercher", "results": "{count} résultats", "sources": "{count} sources", "emptyTitle": "Aucun résultat pour l’instant", "empty": "Essayez un autre terme ou explorez les archives thématiques depuis le menu des rubriques." },
   "home": {
     "eyebrow": "Une nouvelle plateforme de publication multilingue",
     "title": "Nous ne nous contentons pas de traduire l’information. Nous la plaçons dans le bon contexte.",

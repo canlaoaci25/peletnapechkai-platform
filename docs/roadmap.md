@@ -2,6 +2,12 @@
 
 ## Execution status
 
+Cycle 29 transforms locale search into an image-led discovery center: readers now see
+real cover imagery, taxonomy paths, publication context, and source counts, while title
+and summary matches rank ahead of incidental body matches. Search URLs remain noindex
+and published-locale isolation is preserved. The next growth milestones are indexed
+Turkish full-text search, zero-result analytics, and Search Console-backed content gaps.
+
 Cycle 28 transforms the shared editorial command queue into a personal daily workspace:
 editors see their own open, overdue, and near-SLA assignments first, can switch to the
 team queue, filter operational states, and advance task status in place. Status changes

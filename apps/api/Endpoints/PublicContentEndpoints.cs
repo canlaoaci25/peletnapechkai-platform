@@ -117,9 +117,24 @@ public static class PublicContentEndpoints
         var articles = await database.ArticleLocalizations.AsNoTracking()
             .Where(article => article.Locale.Code == locale && article.Locale.IsEnabled && article.Status == PublicationStatus.Published)
             .Where(article => EF.Functions.ILike(article.Title, pattern, "\\") || EF.Functions.ILike(article.Summary, pattern, "\\") || EF.Functions.ILike(article.Body, pattern, "\\"))
-            .OrderByDescending(article => article.PublishedAt)
+            .OrderByDescending(article => EF.Functions.ILike(article.Title, escaped, "\\"))
+            .ThenByDescending(article => EF.Functions.ILike(article.Title, pattern, "\\"))
+            .ThenByDescending(article => EF.Functions.ILike(article.Summary, pattern, "\\"))
+            .ThenByDescending(article => article.PublishedAt)
             .Take(take)
-            .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } })
+            .Select(article => new
+            {
+                article.ArticleGroupId,
+                article.Slug,
+                article.Title,
+                article.Summary,
+                type = article.ArticleGroup.Type.ToString(),
+                article.PublishedAt,
+                article.UpdatedAt,
+                categories = article.Categories.OrderBy(category => category.Name).Select(category => new { category.Slug, category.Name }).Take(2).ToArray(),
+                sourceCount = article.ArticleGroup.Sources.Count,
+                cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText }
+            })
             .ToListAsync(token);
         return Results.Ok(articles);
     }

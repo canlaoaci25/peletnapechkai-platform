@@ -1,7 +1,7 @@
 import "server-only";
 
 export type PublicArticleSummary = {
-  articleGroupId: string; slug: string; title: string; summary: string; type: string; publishedAt: string; updatedAt: string; cover:{url:string;altText:string}|null;
+  articleGroupId: string; slug: string; title: string; summary: string; type: string; publishedAt: string; updatedAt: string; cover:{url:string;altText:string}|null; categories?:{slug:string;name:string}[]; sourceCount?:number;
 };
 export type PublicArticle = Omit<PublicArticleSummary, "articleGroupId"|"cover"> & { body: string; seoTitle: string | null; seoDescription: string | null; isSponsored:boolean; sponsorName:string|null; hasAffiliateLinks:boolean; cover:{url:string;altText:string;caption:string|null;credit:string|null}|null; categories:{slug:string;name:string}[]; tags:{slug:string;name:string}[]; authors:{slug:string;displayName:string}[]; sources:{name:string;url:string}[]; translations: { locale: string; slug: string }[] };
 export type PublicArchive = { kind:string; slug:string; title:string; description:string|null; translations?:{locale:string;slug:string}[]; articleCount:number; typeCounts:{type:string;count:number}[]; relatedCategories:{slug:string;title:string;articleCount:number}[]; articles:PublicArticleSummary[] };

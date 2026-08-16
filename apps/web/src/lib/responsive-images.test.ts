@@ -93,6 +93,13 @@ test("arama sayfasi mobil klavyeyi kendiliginden acmaz ve dar ekranda tasmaz", (
   assert.match(searchPage, /<button type="submit">/);
   assert.match(styles, /@media \(max-width: 480px\) \{[\s\S]*?\.search-page form div \{[\s\S]*?flex-direction: column/);
   assert.match(styles, /\.search-page input,[\s\S]*?\.search-page button \{[\s\S]*?min-height: 44px/);
+  assert.match(searchPage, /robots: \{ index: false, follow: true \}/);
+  assert.match(searchPage, /className="search-result-cover"[\s\S]*?<Image[\s\S]*?sizes="\(max-width: 640px\) calc\(100vw - 28px\), 240px"/);
+  assert.match(searchPage, /article\.categories\?\.map/);
+  assert.match(searchPage, /article\.sourceCount/);
+  assert.match(searchPage, /article\.cover \? undefined : "search-result-no-cover"/);
+  assert.match(styles, /article\.search-result-no-cover \{ grid-template-columns:minmax\(0,760px\)/);
+  assert.match(styles, /@media \(max-width: 640px\)[\s\S]*?\.search-results article \{ grid-template-columns:1fr/);
 });
 
 test("mobil menu dokunma, kisa ekran ve yuksek karsitlik sozlesmesini korur", () => {
