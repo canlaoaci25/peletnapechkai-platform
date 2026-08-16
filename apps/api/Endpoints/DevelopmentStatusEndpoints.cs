@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Peletnapechkai.Api.Infrastructure.Identity;
 
 namespace Peletnapechkai.Api.Endpoints;
@@ -9,6 +10,7 @@ public static class DevelopmentStatusEndpoints
     {
         endpoints.MapGet("/api/v1/admin/development/status",GetAsync).RequireAuthorization(AuthorizationPolicies.ManageUsers).WithTags("Development status");
         endpoints.MapGet("/api/v1/admin/development/autonomous",GetAutonomousAsync).RequireAuthorization(AuthorizationPolicies.ManageUsers).WithTags("Development status");
+        endpoints.MapPost("/api/v1/admin/development/autonomous/mode",SetAutonomousModeAsync).RequireAuthorization(AuthorizationPolicies.ManageUsers).ValidateAntiforgery().WithTags("Development status");
         return endpoints;
     }
     private static async Task<IResult> GetAsync(IConfiguration configuration,CancellationToken token)
@@ -55,9 +57,38 @@ public static class DevelopmentStatusEndpoints
         return Results.Ok(new{enabled=GetBool(state,"enabled"),cycle=GetInt(state,"currentCycle")??GetInt(state,"cycle")??0,status=GetString(state,"currentStatus")??GetString(state,"lastResult")??"Waiting",focus=SafeText(GetString(state,"currentFocus")),lastResult=SafeText(GetString(state,"lastResult")),startedAt=GetString(state,"currentStartedAt")??GetString(state,"startedAt"),updatedAt=GetString(state,"updatedAt"),events,reports});
     }
 
+    private static async Task<IResult> SetAutonomousModeAsync(AutonomousModeRequest request,CancellationToken token)
+    {
+        var root=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),"Peletnapechkai","Autonomous");
+        var statePath=Path.Combine(root,"state.json");
+        try
+        {
+            Directory.CreateDirectory(root);
+            JsonObject state;
+            if(File.Exists(statePath))
+            {
+                await using var input=File.Open(statePath,FileMode.Open,FileAccess.Read,FileShare.ReadWrite);
+                state=(await JsonNode.ParseAsync(input,cancellationToken:token) as JsonObject)??new JsonObject();
+            }
+            else state=new JsonObject();
+            var now=DateTimeOffset.UtcNow.ToString("o");
+            state["enabled"]=request.Enabled;
+            state[request.Enabled?"startedAt":"stoppedAt"]=now;
+            state["currentStatus"]=request.Enabled?"Queued":"Stopping";
+            state["updatedAt"]=now;
+            var temporary=statePath+"."+Guid.NewGuid().ToString("N")+".tmp";
+            await File.WriteAllTextAsync(temporary,state.ToJsonString(new JsonSerializerOptions{WriteIndented=true}),token);
+            File.Move(temporary,statePath,true);
+            return Results.Ok(new{enabled=request.Enabled,status=request.Enabled?"Queued":"Stopping",updatedAt=now});
+        }
+        catch(UnauthorizedAccessException){return Results.Problem("Otonom sistem durumuna yazma yetkisi bulunmuyor.",statusCode:503);}
+        catch(IOException){return Results.Problem("Otonom sistem durumu şu anda güncellenemiyor.",statusCode:503);}
+    }
+
     private static void AddSafeEvent(List<object> events,string type,string? text,int? exitCode){var safe=SafeText(text);if(!string.IsNullOrWhiteSpace(safe))events.Add(new{type,text=safe,exitCode});}
     private static string? SafeText(string? value){if(string.IsNullOrWhiteSpace(value))return null;var text=value.Trim()[..Math.Min(value.Trim().Length,4000)];return System.Text.RegularExpressions.Regex.IsMatch(text,"(?i)(password|secret|token|api[-_ ]?key|authorization)")?"[Güvenlik nedeniyle gizlendi]":text;}
     private static string? GetString(JsonElement value,string name)=>value.TryGetProperty(name,out var property)&&property.ValueKind==JsonValueKind.String?property.GetString():null;
     private static bool GetBool(JsonElement value,string name)=>value.TryGetProperty(name,out var property)&&property.ValueKind==JsonValueKind.True;
     private static int? GetInt(JsonElement value,string name)=>value.TryGetProperty(name,out var property)&&property.ValueKind==JsonValueKind.Number?property.GetInt32():null;
+    private sealed record AutonomousModeRequest(bool Enabled);
 }

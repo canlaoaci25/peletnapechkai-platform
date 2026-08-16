@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LogoutButton } from "@/components/admin/logout-button";
 import type { AdminSession } from "@/lib/admin-api";
@@ -138,7 +138,7 @@ export function AdminFrame({
   session: AdminSession;
   children: React.ReactNode;
 }) {
-  const pathname = usePathname(),
+  const pathname = usePathname(),router=useRouter(),
     copy = text[locale];
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [collapsed, setCollapsed] = useState(false);
@@ -146,6 +146,7 @@ export function AdminFrame({
   const [languageOpen, setLanguageOpen] = useState(false);
   const [automationOpen, setAutomationOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [autonomousLocked,setAutonomousLocked]=useState(false);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
   const mobileCloseButtonRef = useRef<HTMLButtonElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -161,6 +162,7 @@ export function AdminFrame({
     }, 0);
     return () => clearTimeout(timer);
   }, []);
+  useEffect(()=>{let active=true;const developmentPath=`/${locale}/admin/development`;async function check(){try{const response=await fetch("/api/admin/development/autonomous",{cache:"no-store"});if(!response.ok)return;const value=await response.json()as{enabled:boolean};if(!active)return;setAutonomousLocked(value.enabled);if(value.enabled&&pathname!==developmentPath)router.replace(developmentPath)}catch{}}const onMode=(event:Event)=>{const enabled=(event as CustomEvent<{enabled:boolean}>).detail.enabled;setAutonomousLocked(enabled);if(enabled&&pathname!==developmentPath)router.replace(developmentPath)};void check();const timer=window.setInterval(()=>void check(),3000);window.addEventListener("boecl-autonomous-mode",onMode);return()=>{active=false;window.clearInterval(timer);window.removeEventListener("boecl-autonomous-mode",onMode)}},[locale,pathname,router]);
   useEffect(() => {
     if (!mobileOpen) return;
     const previousOverflow = document.body.style.overflow;
@@ -248,6 +250,7 @@ export function AdminFrame({
       <span className="nav-label">{label}</span>
     </Link>
   );
+  if(autonomousLocked)return <div className="admin-frame autonomous-admin-lock" data-admin-theme={theme}><div className="admin-frame-content" id="main-content" tabIndex={-1}>{pathname.endsWith("/admin/development")?children:<main className="admin-shell"><section className="admin-panel"><h1>Otonom sistem çalışıyor</h1><p>Canlı geliştirme ekranına yönlendiriliyorsunuz.</p></section></main>}</div></div>;
   return (
     <div
       className="admin-frame"
