@@ -11,7 +11,7 @@ public static class HomepageEndpoints
     {
         var publicGroup = endpoints.MapGroup("/api/v1/public").WithTags("Homepage");
         publicGroup.MapGet("/{locale}/homepage", GetHomepageAsync);
-        publicGroup.MapPost("/{locale}/articles/{slug}/engagement", RecordEngagementAsync);
+        publicGroup.MapPost("/{locale}/articles/{slug}/engagement", RecordEngagementAsync).RequireRateLimiting(IdentityServiceExtensions.EngagementRateLimitPolicy);
         var admin = endpoints.MapGroup("/api/v1/admin/homepage").WithTags("Homepage management").RequireAuthorization(AuthorizationPolicies.ManageEditorial);
         admin.MapGet("/{locale}", GetAdminAsync);
         admin.MapPut("/{locale}", SaveAsync).ValidateAntiforgery();
@@ -25,8 +25,8 @@ public static class HomepageEndpoints
         var placements = await db.HomepagePlacements.AsNoTracking().Where(x => x.Locale.Code == locale).OrderBy(x => x.Position).Select(x => new { x.Section, x.ArticleLocalizationId }).ToListAsync(token);
         var byId = articles.ToDictionary(x => x.Id);
         var manualLead = placements.FirstOrDefault(x => x.Section == "Lead" && byId.ContainsKey(x.ArticleLocalizationId));
-        var lead = manualLead is null ? articles[0] : byId[manualLead.ArticleLocalizationId];
         var automatic = articles.OrderByDescending(Score).ThenByDescending(x => x.PublishedAt).ToList();
+        var lead = manualLead is null ? automatic[0] : byId[manualLead.ArticleLocalizationId];
         var editors = placements.Where(x => x.Section == "Editors" && byId.ContainsKey(x.ArticleLocalizationId)).Select(x => byId[x.ArticleLocalizationId]).ToList();
         editors.AddRange(automatic.Where(x => x.Id != lead.Id && editors.All(y => y.Id != x.Id)).Take(Math.Max(0, 4-editors.Count)));
         var secondary = articles.Where(x => x.Id != lead.Id).Take(4).ToList();
@@ -51,7 +51,7 @@ public static class HomepageEndpoints
     {
         var article=await db.ArticleLocalizations.SingleOrDefaultAsync(x=>x.Locale.Code==locale&&x.Slug==slug&&x.Status==PublicationStatus.Published,token); if(article is null)return Results.NotFound();
         var metric=await db.ArticleEngagements.SingleOrDefaultAsync(x=>x.ArticleLocalizationId==article.Id,token); if(metric is null){metric=new ArticleEngagement(article,DateTimeOffset.UtcNow);db.ArticleEngagements.Add(metric);}
-        if(request.Kind=="view")metric.RecordView(DateTimeOffset.UtcNow);else if(request.Kind=="engaged")metric.RecordEngagement(request.Seconds,DateTimeOffset.UtcNow);else return Results.BadRequest();
+        if(request.Kind=="view")metric.RecordView(DateTimeOffset.UtcNow);else if(request.Kind=="engaged"&&request.Seconds is >=5 and <=300)metric.RecordEngagement(request.Seconds,DateTimeOffset.UtcNow);else return Results.BadRequest();
         await db.SaveChangesAsync(token);return Results.NoContent();
     }
 

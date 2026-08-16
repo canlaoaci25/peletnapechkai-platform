@@ -75,6 +75,8 @@ export type SystemStatus = {
   database: string;
   articles: number;
   published: number;
+  lifecycle: Record<string, number>;
+  types: Record<string, number>;
   users: number;
   mediaFiles: number;
   mediaBytes: number;

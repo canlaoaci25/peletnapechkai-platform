@@ -11,6 +11,7 @@ namespace Peletnapechkai.Api.Infrastructure.Identity;
 public static class IdentityServiceExtensions
 {
     public const string LoginRateLimitPolicy = "login";
+    public const string EngagementRateLimitPolicy = "public-engagement";
 
     public static IServiceCollection AddApplicationIdentity(
         this IServiceCollection services,
@@ -101,6 +102,17 @@ public static class IdentityServiceExtensions
                         PermitLimit = 10,
                         Window = TimeSpan.FromMinutes(5),
                         SegmentsPerWindow = 5,
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    }));
+            options.AddPolicy(EngagementRateLimitPolicy, context =>
+                RateLimitPartition.GetSlidingWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new SlidingWindowRateLimiterOptions
+                    {
+                        PermitLimit = 30,
+                        Window = TimeSpan.FromMinutes(1),
+                        SegmentsPerWindow = 6,
                         QueueLimit = 0,
                         AutoReplenishment = true
                     }));
