@@ -24,7 +24,7 @@ public static class DevelopmentStatusEndpoints
     {
         var root=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),"Peletnapechkai","Autonomous");
         var statePath=Path.Combine(root,"state.json");
-        if(!File.Exists(statePath))return Results.Ok(new{enabled=false,cycle=0,status="NotInstalled",focus=(string?)null,lastResult=(string?)null,startedAt=(DateTimeOffset?)null,updatedAt=(DateTimeOffset?)null,events=Array.Empty<object>(),reports=Array.Empty<object>()});
+        if(!File.Exists(statePath))return Results.Ok(new{enabled=false,cycle=0,status="NotInstalled",focus=(string?)null,lastResult=(string?)null,startedAt=(DateTimeOffset?)null,updatedAt=(DateTimeOffset?)null,roadmap=Array.Empty<object>(),events=Array.Empty<object>(),reports=Array.Empty<object>()});
         JsonElement state;
         try{await using var stream=File.Open(statePath,FileMode.Open,FileAccess.Read,FileShare.ReadWrite);state=await JsonSerializer.DeserializeAsync<JsonElement>(stream,cancellationToken:token);}
         catch(JsonException){return Results.Problem("Otonom durum dosyası okunamadı.",statusCode:503);}
@@ -57,7 +57,7 @@ public static class DevelopmentStatusEndpoints
         var heartbeatAt=GetDate(state,"heartbeatAt");
         var nextRetryAt=GetDate(state,"nextRetryAt");
         var heartbeatHealthy=GetString(state,"currentStatus")!="Running"||(heartbeatAt.HasValue&&DateTimeOffset.UtcNow-heartbeatAt.Value<TimeSpan.FromMinutes(1));
-        return Results.Ok(new{enabled=GetBool(state,"enabled"),cycle=GetInt(state,"currentCycle")??GetInt(state,"cycle")??0,status=GetString(state,"currentStatus")??GetString(state,"lastResult")??"Waiting",focus=SafeText(GetString(state,"currentFocus")),lastResult=SafeText(GetString(state,"lastResult")),startedAt=GetString(state,"currentStartedAt")??GetString(state,"startedAt"),updatedAt=GetString(state,"updatedAt"),heartbeatAt,heartbeatHealthy,consecutiveFailures=GetInt(state,"consecutiveFailures")??0,automaticRecoveries=GetInt(state,"automaticRecoveries")??0,recoveredFromCycle=GetInt(state,"recoveredFromCycle"),recoveryState=GetString(state,"recoveryState")??"Unknown",nextRetryAt,events,reports});
+        return Results.Ok(new{enabled=GetBool(state,"enabled"),cycle=GetInt(state,"currentCycle")??GetInt(state,"cycle")??0,status=GetString(state,"currentStatus")??GetString(state,"lastResult")??"Waiting",focus=SafeText(GetString(state,"currentFocus")),lastResult=SafeText(GetString(state,"lastResult")),startedAt=GetString(state,"currentStartedAt")??GetString(state,"startedAt"),updatedAt=GetString(state,"updatedAt"),heartbeatAt,heartbeatHealthy,consecutiveFailures=GetInt(state,"consecutiveFailures")??0,automaticRecoveries=GetInt(state,"automaticRecoveries")??0,recoveredFromCycle=GetInt(state,"recoveredFromCycle"),recoveryState=GetString(state,"recoveryState")??"Unknown",nextRetryAt,roadmap=GetRoadmap(state),events,reports});
     }
 
     private static async Task<IResult> SetAutonomousModeAsync(AutonomousModeRequest request,CancellationToken token)
@@ -91,6 +91,18 @@ public static class DevelopmentStatusEndpoints
     }
 
     private static void AddSafeEvent(List<object> events,string type,string? text,int? exitCode){var safe=SafeText(text);if(!string.IsNullOrWhiteSpace(safe))events.Add(new{type,text=safe,exitCode});}
+    private static object[] GetRoadmap(JsonElement state)
+    {
+        if(!state.TryGetProperty("roadmap",out var roadmap)||roadmap.ValueKind!=JsonValueKind.Array)return [];
+        return roadmap.EnumerateArray().Take(30).Select((item,index)=>(object)new
+        {
+            order=index+1,
+            id=SafeText(GetString(item,"id")),
+            title=SafeText(GetString(item,"title")),
+            outcome=SafeText(GetString(item,"outcome")),
+            status=GetString(item,"status") is "active" or "queued" or "blocked" or "completed"?GetString(item,"status"):"queued"
+        }).ToArray();
+    }
     private static string? SafeText(string? value){if(string.IsNullOrWhiteSpace(value))return null;var text=value.Trim()[..Math.Min(value.Trim().Length,4000)];return System.Text.RegularExpressions.Regex.IsMatch(text,"(?i)(password|secret|token|api[-_ ]?key|authorization)")?"[Güvenlik nedeniyle gizlendi]":text;}
     private static string? GetString(JsonElement value,string name)=>value.TryGetProperty(name,out var property)&&property.ValueKind==JsonValueKind.String?property.GetString():null;
     private static bool GetBool(JsonElement value,string name)=>value.TryGetProperty(name,out var property)&&property.ValueKind==JsonValueKind.True;

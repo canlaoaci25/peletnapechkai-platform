@@ -4,6 +4,7 @@ param()
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..\windows\BoeclAutomationRecovery.ps1')
 . (Join-Path $PSScriptRoot '..\windows\AutonomousCycleRecovery.ps1')
+. (Join-Path $PSScriptRoot '..\windows\AutonomousRoadmap.ps1')
 
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) ("boecl-recovery-{0}" -f [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $testRoot | Out-Null
@@ -32,7 +33,11 @@ try {
     if (-not (Test-BoeclUtcDeadlinePending -Deadline '2026-08-16T12:01:00Z' -Now $now)) { throw 'Gelecek yeniden deneme zamani bekleme olarak algilanmadi.' }
     if (Test-BoeclUtcDeadlinePending -Deadline '2026-08-16T11:59:00Z' -Now $now) { throw 'Gecmis yeniden deneme zamani bekleme olarak algilandi.' }
     if (-not (Test-BoeclHeartbeatStale -Heartbeat '2026-08-16T11:49:59Z' -Now $now)) { throw 'Terk edilmis heartbeat algilanmadi.' }
-    if (Test-BoeclHeartbeatStale -Heartbeat '2026-08-16T11:55:00Z' -Now $now) { throw 'Saglikli heartbeat terk edilmis sayildi.' }
+if (Test-BoeclHeartbeatStale -Heartbeat '2026-08-16T11:55:00Z' -Now $now) { throw 'Saglikli heartbeat terk edilmis sayildi.' }
+
+$roadmap = @(Get-BoeclAutonomousRoadmap -Path (Join-Path $PSScriptRoot '..\..\docs\operations\autonomous-roadmap.json'))
+if ($roadmap.Count -lt 10) { throw 'Otonom yol haritasi en az 10 gelecek adim sunmuyor.' }
+if (@($roadmap | Where-Object status -eq 'active').Count -ne 1) { throw 'Otonom yol haritasinda tek aktif adim bulunmali.' }
 
     $legacy = Find-BoeclRecoveredResult -LogRoot $testRoot -JobId 'job-2' -CurrentResultPath (Join-Path $testRoot 'current.json') -RequestFingerprint $fingerprintA
     if ($null -ne $legacy) { throw 'Parmak izi metadata kaydı olmayan eski sonuç yeniden kullanıldı.' }
