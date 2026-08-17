@@ -20,11 +20,14 @@ public sealed class ArticleReadingProgress
     public int Percent { get; private set; }
     public string? Anchor { get; private set; }
     public DateTimeOffset LastReadAt { get; private set; }
+    public DateTimeOffset? CompletedAt { get; private set; }
 
     public void Update(int percent, string? anchor, DateTimeOffset now)
     {
-        Percent = Math.Clamp(percent, 0, 100);
+        var boundedPercent = Math.Clamp(percent, 0, 100);
+        Percent = CompletedAt.HasValue ? Math.Max(Percent, boundedPercent) : boundedPercent;
         Anchor = string.IsNullOrWhiteSpace(anchor) ? null : anchor.Trim()[..Math.Min(anchor.Trim().Length, 160)];
         LastReadAt = now;
+        if (boundedPercent >= 95 && !CompletedAt.HasValue) CompletedAt = now;
     }
 }

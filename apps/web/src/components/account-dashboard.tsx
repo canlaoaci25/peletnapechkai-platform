@@ -8,6 +8,7 @@ import type {
   MemberAccount,
   PersonalFeedArticle,
   SavedArticle,
+  ReadingRitual,
 } from "@/lib/admin-api";
 import type { Locale } from "@/i18n/config";
 import { memberCopy, memberHubCopy } from "@/i18n/member-copy";
@@ -19,6 +20,7 @@ export function AccountDashboard({
   initialFollowed,
   initialFeed,
   progressCount,
+  initialRitual,
 }: {
   account: MemberAccount;
   locale: Locale;
@@ -26,6 +28,7 @@ export function AccountDashboard({
   initialFollowed: FollowedCategory[];
   initialFeed: PersonalFeedArticle[];
   progressCount: number;
+  initialRitual: ReadingRitual | null;
 }) {
   const copy = memberCopy[locale],
     hub = memberHubCopy[locale],
@@ -34,7 +37,8 @@ export function AccountDashboard({
     [saved, setSaved] = useState(initialSaved),
     [followed, setFollowed] = useState(initialFollowed),
     [query, setQuery] = useState(""),
-    [type, setType] = useState("all");
+    [type, setType] = useState("all"),
+    [ritual,setRitual]=useState(initialRitual);
   const types = useMemo(
     () => [...new Set(saved.map((item) => item.type))].sort(),
     [saved],
@@ -103,8 +107,20 @@ export function AccountDashboard({
       router.refresh();
     } else setMessage(copy.failed);
   }
+  async function updateGoal(goal:number){
+    const response=await fetch("/api/admin/account/reading-ritual",{method:"PUT",headers:{"content-type":"application/json","x-csrf-token":await csrf()},body:JSON.stringify({goal})});
+    if(response.ok){setRitual(current=>current?{...current,goal}:current);setMessage(hub.ritualSaved)}else setMessage(copy.failed);
+  }
   return (
     <div className="member-dashboard">
+      {ritual&&<section className="reading-ritual" aria-labelledby="reading-ritual-title">
+        <div className="reading-ritual-copy"><p className="section-kicker">{hub.ritualKicker}</p><h1 id="reading-ritual-title">{hub.ritualTitle}</h1><p>{hub.ritualDescription}</p>
+          <div className="ritual-stats"><span><strong>{ritual.completed}/{ritual.goal}</strong>{hub.ritualCompleted}</span><span><strong>{ritual.activeDays}</strong>{hub.ritualActiveDays}</span></div>
+          <div className="ritual-meter" role="progressbar" aria-valuemin={0} aria-valuemax={ritual.goal} aria-valuenow={Math.min(ritual.completed,ritual.goal)}><i style={{width:`${Math.min(100,(ritual.completed/ritual.goal)*100)}%`}}/></div>
+          <fieldset><legend>{hub.ritualGoal}</legend>{[1,3,5].map(goal=><button key={goal} type="button" aria-pressed={ritual.goal===goal} onClick={()=>void updateGoal(goal)}>{goal}</button>)}</fieldset>
+        </div>
+        <div className="ritual-next"><p className="section-kicker">{hub.ritualNext}</p>{ritual.next?<>{ritual.next.cover&&<Link href={`/${locale}/articles/${ritual.next.slug}`} tabIndex={-1}><Image src={ritual.next.cover.url} alt="" width={640} height={360} sizes="(max-width: 760px) calc(100vw - 48px), 36vw"/></Link>}<h2><Link href={`/${locale}/articles/${ritual.next.slug}`}>{ritual.next.title}</Link></h2><p>{ritual.next.summary}</p></>:<Link className="ritual-discover" href={`/${locale}/topics`}>{hub.ritualDiscover} →</Link>}</div>
+      </section>}
       <section className="account-summary">
         <p className="section-kicker">{copy.membership}</p>
         <h1>{hub.title}</h1>

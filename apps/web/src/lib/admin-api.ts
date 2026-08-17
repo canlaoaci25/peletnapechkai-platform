@@ -305,3 +305,5 @@ export async function getFollowedCategories(locale:string){return await apiGet<F
 export async function getPersonalFeed(locale:string){return await apiGet<PersonalFeedArticle[]>(`/api/v1/account/feed?locale=${encodeURIComponent(locale)}`)??[]}
 export type ReadingProgressArticle={slug:string;title:string;summary:string;locale:string;percent:number;anchor:string|null;lastReadAt:string;cover:null|{url:string;altText:string}};
 export async function getReadingProgress(locale:string){return await apiGet<ReadingProgressArticle[]>(`/api/v1/account/reading-progress?locale=${encodeURIComponent(locale)}`)??[]}
+export type ReadingRitual={goal:number;completed:number;activeDays:number;weekStartsAt:string;next:null|{slug:string;title:string;summary:string;cover:null|{url:string;altText:string}}};
+export async function getReadingRitual(locale:string){return await apiGet<ReadingRitual>(`/api/v1/account/reading-ritual?locale=${encodeURIComponent(locale)}`)}

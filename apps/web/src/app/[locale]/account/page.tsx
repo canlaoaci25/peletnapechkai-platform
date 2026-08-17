@@ -7,6 +7,7 @@ import {
   getMemberAccount,
   getPersonalFeed,
   getReadingProgress,
+  getReadingRitual,
   getSavedArticles,
 } from "@/lib/admin-api";
 export default async function AccountPage({
@@ -16,11 +17,12 @@ export default async function AccountPage({
   if (!hasLocale(locale)) redirect("/tr-TR");
   const account = await getMemberAccount();
   if (!account) redirect(`/${locale}/account/login`);
-  const [saved, followed, feed, progress] = await Promise.all([
+  const [saved, followed, feed, progress, ritual] = await Promise.all([
     getSavedArticles(locale),
     getFollowedCategories(locale),
     getPersonalFeed(locale),
     getReadingProgress(locale),
+    getReadingRitual(locale),
   ]);
   return (
     <main className="account-dashboard-page">
@@ -32,6 +34,7 @@ export default async function AccountPage({
         initialFollowed={followed}
         initialFeed={feed}
         progressCount={progress.length}
+        initialRitual={ritual}
       />
     </main>
   );

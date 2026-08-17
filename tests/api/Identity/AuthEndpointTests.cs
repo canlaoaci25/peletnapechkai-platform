@@ -118,6 +118,20 @@ public sealed class AuthEndpointTests : IClassFixture<AuthEndpointTests.ApiFacto
     }
 
     [Fact]
+    public async Task ReadingRitual_WithoutAuthenticatedCookie_IsRejected()
+    {
+        var response = await client.GetAsync("/api/v1/account/reading-ritual?locale=tr-TR");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateReadingRitual_WithoutAuthenticatedCookie_IsRejected()
+    {
+        var response = await client.PutAsJsonAsync("/api/v1/account/reading-ritual", new { goal = 3 });
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
     public async Task CompleteInvitation_WithoutCsrfToken_IsRejected()
     {
         var response = await client.PostAsJsonAsync("/api/v1/auth/complete-invitation", new

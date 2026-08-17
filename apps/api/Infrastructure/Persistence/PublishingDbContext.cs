@@ -85,6 +85,7 @@ public sealed class PublishingDbContext(DbContextOptions<PublishingDbContext> op
             builder.Property(user => user.LockoutEnabled).HasColumnName("lockout_enabled");
             builder.Property(user => user.AccessFailedCount).HasColumnName("access_failed_count");
             builder.Property(user => user.DisplayName).HasColumnName("display_name").HasMaxLength(160);
+            builder.Property(user => user.WeeklyReadingGoal).HasColumnName("weekly_reading_goal").HasDefaultValue(3);
             builder.Property(user => user.IsActive).HasColumnName("is_active");
             builder.Property(user => user.CreatedAt).HasColumnName("created_at");
             builder.HasIndex(user => user.NormalizedEmail).IsUnique().HasDatabaseName("ux_users_normalized_email");

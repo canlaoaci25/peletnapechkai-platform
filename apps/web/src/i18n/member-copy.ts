@@ -15,6 +15,7 @@ export const memberHubCopy: Record<
     allLabel: string;
     resultsLabel: string;
     noResults: string;
+    ritualKicker:string; ritualTitle:string; ritualDescription:string; ritualCompleted:string; ritualActiveDays:string; ritualGoal:string; ritualSaved:string; ritualNext:string; ritualDiscover:string;
   }
 > = {
   "tr-TR": {
@@ -31,6 +32,7 @@ export const memberHubCopy: Record<
     allLabel: "Tümü",
     resultsLabel: "sonuç",
     noResults: "Bu arama ve türle eşleşen kayıt yok.",
+    ritualKicker:"BOECL OKUMA RİTMİ", ritualTitle:"Bu haftaki okuma ritmin", ritualDescription:"Kendi temponu seç, tamamladığın okumaları gör ve sıradaki iyi yazıya geç.", ritualCompleted:"tamamlandı", ritualActiveDays:"aktif gün", ritualGoal:"Haftalık hedef", ritualSaved:"Hedefin kaydedildi.", ritualNext:"Sıradaki okuman", ritualDiscover:"Konu haritasından bir okuma seç",
   },
   "en-US": {
     title: "Your reading hub",
@@ -46,6 +48,7 @@ export const memberHubCopy: Record<
     allLabel: "All",
     resultsLabel: "results",
     noResults: "No saved stories match this search and format.",
+    ritualKicker:"BOECL READING RHYTHM", ritualTitle:"Your reading rhythm this week", ritualDescription:"Choose your pace, see what you finished, and move to your next worthwhile read.", ritualCompleted:"completed", ritualActiveDays:"active days", ritualGoal:"Weekly goal", ritualSaved:"Your goal was saved.", ritualNext:"Your next read", ritualDiscover:"Choose a read from the topic map",
   },
   "de-DE": {
     title: "Deine Lesezentrale",
@@ -60,6 +63,7 @@ export const memberHubCopy: Record<
     allLabel: "Alle",
     resultsLabel: "Ergebnisse",
     noResults: "Keine gespeicherten Beiträge entsprechen der Suche.",
+    ritualKicker:"BOECL LESERHYTHMUS", ritualTitle:"Dein Leserhythmus diese Woche", ritualDescription:"Wähle dein Tempo, sieh deine abgeschlossenen Beiträge und lies gezielt weiter.", ritualCompleted:"abgeschlossen", ritualActiveDays:"aktive Tage", ritualGoal:"Wochenziel", ritualSaved:"Dein Ziel wurde gespeichert.", ritualNext:"Als Nächstes", ritualDiscover:"Im Themenatlas weiterlesen",
   },
   "fr-FR": {
     title: "Votre espace de lecture",
@@ -75,6 +79,7 @@ export const memberHubCopy: Record<
     allLabel: "Tous",
     resultsLabel: "résultats",
     noResults: "Aucun article enregistré ne correspond à cette recherche.",
+    ritualKicker:"BOECL RYTHME DE LECTURE", ritualTitle:"Votre rythme de lecture cette semaine", ritualDescription:"Choisissez votre rythme, suivez vos lectures terminées et passez à la prochaine.", ritualCompleted:"terminés", ritualActiveDays:"jours actifs", ritualGoal:"Objectif hebdomadaire", ritualSaved:"Votre objectif est enregistré.", ritualNext:"Votre prochaine lecture", ritualDiscover:"Choisir une lecture dans les thèmes",
   },
 };
 

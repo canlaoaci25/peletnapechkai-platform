@@ -1,5 +1,14 @@
 # Delivery roadmap
 
+## Cycle 51 — Member reading rhythm
+
+The account now turns completed reading into a user-controlled weekly return ritual: members
+choose a one-, three-, or five-story goal, see completed reads and active days, and move
+directly to an unfinished saved or followed-topic story. Completion is durable, locale-safe,
+CSRF-protected, and audited without adding notifications or new tracking signals. Verified
+consented delivery, privacy self-service, and privacy-preserving return measurement remain
+the next membership milestones.
+
 ## Cycle 50 — Hierarchical topic discovery and automotive mobility taxonomy
 
 The public topic map now presents broad editorial fields with real child-topic paths and

@@ -29,6 +29,8 @@ public static class MemberAccountEndpoints
         group.MapGet("/reading-progress", ListReadingProgressAsync);
         group.MapGet("/reading-progress/{locale}/{slug}", GetReadingProgressAsync);
         group.MapPut("/reading-progress/{locale}/{slug}", UpdateReadingProgressAsync).ValidateAntiforgery();
+        group.MapGet("/reading-ritual", GetReadingRitualAsync);
+        group.MapPut("/reading-ritual", UpdateReadingRitualAsync).ValidateAntiforgery();
         return endpoints;
     }
     private static async Task<IResult> GetAsync(System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,IConfiguration configuration)
@@ -122,7 +124,21 @@ public static class MemberAccountEndpoints
         if(progress is null){db.ArticleReadingProgress.Add(new ArticleReadingProgress(user,article,request.Percent,request.Anchor,now));db.AuditLogs.Add(new AuditLog(user.Id,"member.article_reading_started",nameof(ArticleLocalization),article.Id,null,now));}else progress.Update(request.Percent,request.Anchor,now);
         await db.SaveChangesAsync(token);return Results.NoContent();
     }
+    private static async Task<IResult> GetReadingRitualAsync(string locale,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
+        var now=DateTimeOffset.UtcNow;var daysFromMonday=((int)now.DayOfWeek+6)%7;var weekStart=now.Date.AddDays(-daysFromMonday);
+        var completed=await db.ArticleReadingProgress.AsNoTracking().Where(item=>item.UserId==user.Id&&item.CompletedAt>=weekStart&&item.ArticleLocalization.Locale.Code==locale&&item.ArticleLocalization.Status==PublicationStatus.Published).Select(item=>item.CompletedAt!.Value).ToArrayAsync(token);
+        var next=await db.ArticleLocalizations.AsNoTracking().Where(article=>article.Locale.Code==locale&&article.Status==PublicationStatus.Published&&!db.ArticleReadingProgress.Any(progress=>progress.UserId==user.Id&&progress.ArticleLocalizationId==article.Id&&progress.CompletedAt!=null)&&(article.Categories.Any(category=>db.FollowedCategories.Any(follow=>follow.UserId==user.Id&&follow.CategoryId==category.Id))||db.SavedArticles.Any(saved=>saved.UserId==user.Id&&saved.ArticleLocalizationId==article.Id))).OrderByDescending(article=>article.PublishedAt).Select(article=>new{article.Slug,article.Title,article.Summary,cover=article.CoverMediaAssetId==null?null:new{url="/api/media/"+article.CoverMediaAssetId+"?v="+article.CoverMediaAsset!.OptimizedByteLength,altText=article.CoverAltText}}).FirstOrDefaultAsync(token);
+        return Results.Ok(new{goal=user.WeeklyReadingGoal,completed=completed.Length,activeDays=completed.Select(item=>item.UtcDateTime.Date).Distinct().Count(),weekStartsAt=weekStart,next});
+    }
+    private static async Task<IResult> UpdateReadingRitualAsync(ReadingRitualRequest request,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();if(request.Goal is not (1 or 3 or 5))return Results.BadRequest(new{message="Weekly reading goal must be 1, 3, or 5."});
+        if(user.WeeklyReadingGoal==request.Goal)return Results.NoContent();user.WeeklyReadingGoal=request.Goal;db.AuditLogs.Add(new AuditLog(user.Id,"member.weekly_reading_goal_updated",nameof(ApplicationUser),user.Id,null,DateTimeOffset.UtcNow));await db.SaveChangesAsync(token);return Results.NoContent();
+    }
     public sealed record ProfileRequest(string? DisplayName);
     public sealed record PasswordRequest(string? CurrentPassword,string? NewPassword);
     public sealed record ReadingProgressRequest(int Percent,string? Anchor);
+    public sealed record ReadingRitualRequest(int Goal);
 }

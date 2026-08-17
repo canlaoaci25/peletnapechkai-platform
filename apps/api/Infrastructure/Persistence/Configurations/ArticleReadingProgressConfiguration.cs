@@ -16,8 +16,10 @@ public sealed class ArticleReadingProgressConfiguration : IEntityTypeConfigurati
         builder.Property(item => item.Percent).HasColumnName("percent");
         builder.Property(item => item.Anchor).HasColumnName("anchor").HasMaxLength(160);
         builder.Property(item => item.LastReadAt).HasColumnName("last_read_at");
+        builder.Property(item => item.CompletedAt).HasColumnName("completed_at");
         builder.HasIndex(item => new { item.UserId, item.ArticleLocalizationId }).IsUnique().HasDatabaseName("ux_reading_progress_user_article");
         builder.HasIndex(item => new { item.UserId, item.LastReadAt }).HasDatabaseName("ix_reading_progress_user_last_read");
+        builder.HasIndex(item => new { item.UserId, item.CompletedAt }).HasDatabaseName("ix_reading_progress_user_completed");
         builder.HasOne(item => item.User).WithMany().HasForeignKey(item => item.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(item => item.ArticleLocalization).WithMany().HasForeignKey(item => item.ArticleLocalizationId).OnDelete(DeleteBehavior.Cascade);
     }
