@@ -1,5 +1,9 @@
 # Delivery roadmap
 
+## Cycle 55 — Perceptual visual originality gate
+
+Visual Renewal Studio now derives originality from a server-side perceptual comparison against the optimized media archive instead of trusting an editor-entered score. The closest archive image, similarity percentage, and automatic score are visible in the responsive review surface; near-duplicates cannot pass transactional promotion. Automated vision scoring, production provider execution, and locale-specific body-image art direction remain the next visual-service milestones.
+
 ## Cycle 54 — Translation source integrity
 
 International Publishing Health now shows the source-version evidence behind every translation

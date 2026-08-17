@@ -43,10 +43,10 @@ public sealed class VisualBriefBuilderTests
     {
         var now = DateTimeOffset.UtcNow; var actor = Guid.NewGuid();
         var task = new VisualReviewTask(Guid.NewGuid(), null, 42, "missing-cover", "Batarya güvenliği", "Hero", "Concrete scene", "No text", "key-2", now);
-        task.AttachCandidate(Guid.NewGuid(), "BOECL AI", "BOECL original", null, "Bataryayı inceleyen uzman", 91, 100, 88, 84, now);
+        task.AttachCandidate(Guid.NewGuid(), "BOECL AI", "BOECL original", null, "Bataryayı inceleyen uzman", 91, 100, 88, 84, Guid.NewGuid(), 16, now);
         Assert.False(task.CandidatePasses);
         Assert.Throws<InvalidOperationException>(() => task.MarkPromoted(actor, "reviewed", now));
-        task.AttachCandidate(Guid.NewGuid(), "BOECL AI", "BOECL original", null, "Bataryayı inceleyen uzman", 91, 100, 88, 90, now);
+        task.AttachCandidate(Guid.NewGuid(), "BOECL AI", "BOECL original", null, "Bataryayı inceleyen uzman", 91, 100, 88, 90, Guid.NewGuid(), 10, now);
         Assert.True(task.CandidatePasses);
         task.MarkPromoted(actor, "Teknik ve editoryal kontrol tamamlandı", now);
         Assert.Equal(VisualReviewStatus.Approved, task.Status); Assert.Equal(now, task.PromotedAt);

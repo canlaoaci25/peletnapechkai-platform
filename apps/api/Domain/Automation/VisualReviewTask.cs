@@ -46,6 +46,8 @@ public sealed class VisualReviewTask
     public int? TextSafetyScore { get; private set; }
     public int? CropScore { get; private set; }
     public int? OriginalityScore { get; private set; }
+    public Guid? ClosestMediaAssetId { get; private set; }
+    public int? ClosestSimilarityPercent { get; private set; }
     public DateTimeOffset? PromotedAt { get; private set; }
     public Guid? ReviewedByUserId { get; private set; }
     public DateTimeOffset? ReviewedAt { get; private set; }
@@ -61,7 +63,8 @@ public sealed class VisualReviewTask
     }
 
     public void AttachCandidate(Guid mediaAssetId, string provider, string licenseName, string? attribution,
-        string altText, int topicScore, int textSafetyScore, int cropScore, int originalityScore, DateTimeOffset now)
+        string altText, int topicScore, int textSafetyScore, int cropScore, int originalityScore, Guid? closestMediaAssetId,
+        int closestSimilarityPercent, DateTimeOffset now)
     {
         if (mediaAssetId == Guid.Empty) throw new ArgumentOutOfRangeException(nameof(mediaAssetId));
         ArgumentException.ThrowIfNullOrWhiteSpace(provider); ArgumentException.ThrowIfNullOrWhiteSpace(licenseName);
@@ -70,6 +73,7 @@ public sealed class VisualReviewTask
         Attribution = string.IsNullOrWhiteSpace(attribution) ? null : attribution.Trim(); CandidateAltText = altText.Trim();
         TopicScore = ClampScore(topicScore); TextSafetyScore = ClampScore(textSafetyScore); CropScore = ClampScore(cropScore);
         OriginalityScore = ClampScore(originalityScore); Status = VisualReviewStatus.InReview; UpdatedAt = now;
+        ClosestMediaAssetId = closestMediaAssetId; ClosestSimilarityPercent = ClampScore(closestSimilarityPercent);
     }
 
     public bool CandidatePasses => CandidateMediaAssetId.HasValue && TopicScore >= 80 && TextSafetyScore >= 95 &&

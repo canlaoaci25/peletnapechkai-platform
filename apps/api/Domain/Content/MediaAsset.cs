@@ -27,6 +27,7 @@ public sealed class MediaAsset
     public int? Height { get; private set; }
     public string? OptimizedStorageKey { get; private set; }
     public long? OptimizedByteLength { get; private set; }
+    public string? PerceptualHash { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
     public void SetImageMetadata(int width, int height, string optimizedStorageKey, long optimizedByteLength)
@@ -34,5 +35,12 @@ public sealed class MediaAsset
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width); ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
         ArgumentException.ThrowIfNullOrWhiteSpace(optimizedStorageKey); ArgumentOutOfRangeException.ThrowIfNegativeOrZero(optimizedByteLength);
         Width=width; Height=height; OptimizedStorageKey=optimizedStorageKey.Trim(); OptimizedByteLength=optimizedByteLength;
+    }
+
+    public void SetPerceptualHash(string hash)
+    {
+        if (string.IsNullOrWhiteSpace(hash) || hash.Length != 16 || !hash.All(Uri.IsHexDigit))
+            throw new ArgumentException("Perceptual hash must contain 16 hexadecimal characters.", nameof(hash));
+        PerceptualHash = hash.ToUpperInvariant();
     }
 }

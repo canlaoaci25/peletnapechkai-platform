@@ -65,6 +65,7 @@ public static class AutomationEndpoints
                 visualTask = tasks.TryGetValue(row.Id, out var task) ? new { task.Id, status = task.Status.ToString(), task.SectionContext, task.VisualPurpose, task.ProposedPrompt, task.NegativePrompt, task.AttemptCount, task.ReviewerNote, task.UpdatedAt,
                     task.CandidateMediaAssetId, candidateUrl = task.CandidateMediaAssetId == null ? null : "/api/media/" + task.CandidateMediaAssetId,
                     task.Provider, task.LicenseName, task.Attribution, task.CandidateAltText, task.TopicScore, task.TextSafetyScore, task.CropScore, task.OriginalityScore,
+                    task.ClosestMediaAssetId, task.ClosestSimilarityPercent, closestMediaUrl = task.ClosestMediaAssetId == null ? null : "/api/media/" + task.ClosestMediaAssetId,
                     task.CandidatePasses, task.PromotedAt } : null };
         }).OrderBy(item => item.score).ThenByDescending(item => item.PublishedAt).ToArray();
         return Results.Ok(new
@@ -150,7 +151,8 @@ public static class AutomationEndpoints
     }
 
     private static async Task<IResult> ChangeVisualReviewAsync(Guid taskId, string action, VisualReviewActionRequest request,
-        System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
+        System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database,
+        IConfiguration configuration, CancellationToken token)
     {
         var actor = await users.GetUserAsync(principal); if (actor is null) return Results.Unauthorized();
         var task = await database.VisualReviewTasks.SingleOrDefaultAsync(candidate => candidate.Id == taskId, token);
@@ -158,14 +160,33 @@ public static class AutomationEndpoints
         if (action.Equals("candidate", StringComparison.OrdinalIgnoreCase))
         {
             if (request.MediaAssetId is null) return Results.ValidationProblem(new Dictionary<string, string[]> { ["mediaAssetId"] = ["A candidate media asset is required."] });
-            var media = await database.MediaAssets.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.MediaAssetId, token);
+            var media = await database.MediaAssets.SingleOrDefaultAsync(x => x.Id == request.MediaAssetId, token);
             if (media is null) return Results.NotFound();
             if (media.Width is null || media.Height is null || media.OptimizedStorageKey is null || media.OptimizedByteLength > 500_000 || media.Width < 1200 || Math.Abs(media.Width.Value / (double)media.Height.Value - 16d / 9d) > .12)
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["mediaAssetId"] = ["Candidate must be optimized, at least 1200px wide, under 500KB, and approximately 16:9."] });
-            try { task.AttachCandidate(media.Id, request.Provider ?? "", request.LicenseName ?? "", request.Attribution, request.AltText ?? "", request.TopicScore, request.TextSafetyScore, request.CropScore, request.OriginalityScore, DateTimeOffset.UtcNow); }
+            VisualSimilarityResult similarity;
+            try
+            {
+                var mediaRoot = Path.GetFullPath(configuration["Media:StoragePath"] ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BOECL", "Media"));
+                var candidatePath = ResolveMediaPath(mediaRoot, media.OptimizedStorageKey);
+                var candidateHash = VisualSimilarityAnalyzer.ComputeDifferenceHash(candidatePath);
+                media.SetPerceptualHash(candidateHash);
+                var archive = await database.MediaAssets.Where(x => x.Id != media.Id && x.OptimizedStorageKey != null).ToListAsync(token);
+                foreach (var asset in archive.Where(x => x.PerceptualHash == null))
+                {
+                    try { asset.SetPerceptualHash(VisualSimilarityAnalyzer.ComputeDifferenceHash(ResolveMediaPath(mediaRoot, asset.OptimizedStorageKey))); }
+                    catch (Exception error) when (error is IOException or InvalidDataException) { }
+                }
+                similarity = VisualSimilarityAnalyzer.Assess(candidateHash, archive.Where(x => x.PerceptualHash != null).Select(x => (x.Id, x.PerceptualHash!)));
+            }
+            catch (Exception error) when (error is IOException or InvalidDataException)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["mediaAssetId"] = [$"Candidate similarity analysis failed: {error.Message}"] });
+            }
+            try { task.AttachCandidate(media.Id, request.Provider ?? "", request.LicenseName ?? "", request.Attribution, request.AltText ?? "", request.TopicScore, request.TextSafetyScore, request.CropScore, similarity.OriginalityScore, similarity.ClosestMediaAssetId, similarity.ClosestSimilarityPercent, DateTimeOffset.UtcNow); }
             catch (ArgumentException error) { return Results.ValidationProblem(new Dictionary<string, string[]> { ["candidate"] = [error.Message] }); }
             database.AuditLogs.Add(new AuditLog(actor.Id, "visual-review.candidate_attached", nameof(VisualReviewTask), task.Id,
-                JsonSerializer.Serialize(new { media.Id, request.Provider, request.LicenseName, request.TopicScore, request.TextSafetyScore, request.CropScore, request.OriginalityScore }), DateTimeOffset.UtcNow));
+                JsonSerializer.Serialize(new { media.Id, request.Provider, request.LicenseName, request.TopicScore, request.TextSafetyScore, request.CropScore, similarity.OriginalityScore, similarity.ClosestMediaAssetId, similarity.ClosestSimilarityPercent }), DateTimeOffset.UtcNow));
             await database.SaveChangesAsync(token); return Results.Ok(new { task.Id, task.CandidatePasses, task.UpdatedAt });
         }
         if (action.Equals("promote", StringComparison.OrdinalIgnoreCase))
@@ -197,7 +218,17 @@ public static class AutomationEndpoints
 
     private sealed record VisualReviewActionRequest(string? Note, Guid? MediaAssetId = null, string? Provider = null,
         string? LicenseName = null, string? Attribution = null, string? AltText = null, int TopicScore = 0,
-        int TextSafetyScore = 0, int CropScore = 0, int OriginalityScore = 0);
+        int TextSafetyScore = 0, int CropScore = 0);
+
+    private static string ResolveMediaPath(string root, string? storageKey)
+    {
+        if (string.IsNullOrWhiteSpace(storageKey)) throw new InvalidDataException("Optimized media path is missing.");
+        var path = Path.GetFullPath(Path.Combine(root, storageKey.Replace('/', Path.DirectorySeparatorChar)));
+        if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Media path is outside the configured storage root.");
+        if (!File.Exists(path)) throw new FileNotFoundException("Optimized media file is missing.", path);
+        return path;
+    }
 
     private static async Task<IResult> ListAsync(PublishingDbContext database, CancellationToken token) =>
         Results.Ok(await database.AutomationJobs

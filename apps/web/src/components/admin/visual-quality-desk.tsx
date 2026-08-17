@@ -25,6 +25,9 @@ type VisualTask = {
   textSafetyScore: number | null;
   cropScore: number | null;
   originalityScore: number | null;
+  closestMediaAssetId: string | null;
+  closestSimilarityPercent: number | null;
+  closestMediaUrl: string | null;
   candidatePasses: boolean;
   promotedAt: string | null;
 };
@@ -96,6 +99,8 @@ const base = {
   textGate: "Text-free",
   cropGate: "Mobile crop",
   originalityGate: "Originality",
+  similarityEvidence: "Automatic archive similarity",
+  closestMatch: "closest archive match",
   submitCandidate: "Send candidate to gates",
   promoteCandidate: "Approve and publish",
   operation: "Archive renewal operation",
@@ -161,6 +166,8 @@ const copy = {
     textGate: "Yazısız",
     cropGate: "Mobil crop",
     originalityGate: "Özgünlük",
+    similarityEvidence: "Otomatik arşiv benzerliği",
+    closestMatch: "en yakın arşiv eşleşmesi",
     submitCandidate: "Adayı kapılara gönder",
     promoteCandidate: "Onayla ve yayına al",
     operation: "Arşiv yenileme operasyonu",
@@ -204,6 +211,8 @@ const copy = {
       "Jeder riskante Beitrag erhält ein konkretes Briefing; gute Bilder werden nie automatisch ersetzt.",
     open: "Beitrag öffnen",
     edit: "Im Editor prüfen",
+    similarityEvidence: "Automatischer Archivvergleich",
+    closestMatch: "ähnlichster Archivtreffer",
     sync: "Riskante Beiträge einreihen",
     syncing: "Warteschlange wird erstellt…",
     context: "Abschnittskontext",
@@ -242,6 +251,8 @@ const copy = {
       "Chaque article à risque reçoit un brief concret ; une image saine n’est jamais remplacée automatiquement.",
     open: "Ouvrir l’article",
     edit: "Vérifier dans l’éditeur",
+    similarityEvidence: "Similarité d’archive automatique",
+    closestMatch: "correspondance d’archive la plus proche",
     sync: "Mettre les articles à risque en file",
     syncing: "Préparation de la file…",
     context: "Contexte de section",
@@ -303,7 +314,6 @@ export function VisualQualityDesk({
       topicScore: Number(field(`topic-${id}`)),
       textSafetyScore: Number(field(`text-${id}`)),
       cropScore: Number(field(`crop-${id}`)),
-      originalityScore: Number(field(`original-${id}`)),
     };
   }
   async function send(
@@ -481,6 +491,12 @@ export function VisualQualityDesk({
                           </div>
                         </div>
                       )}
+                      {item.visualTask.closestMediaUrl && (
+                        <div className="visual-similarity-evidence">
+                          <Image src={item.visualTask.closestMediaUrl} alt="" width={160} height={90} unoptimized />
+                          <div><strong>{c.similarityEvidence}</strong><span>{item.visualTask.closestSimilarityPercent}% {c.closestMatch}</span><small>{c.originalityGate}: {item.visualTask.originalityScore}/100</small></div>
+                        </div>
+                      )}
                       <div className="visual-fields">
                         <input
                           id={`media-${item.visualTask.id}`}
@@ -522,11 +538,6 @@ export function VisualQualityDesk({
                           ["topic", c.topicGate, item.visualTask.topicScore],
                           ["text", c.textGate, item.visualTask.textSafetyScore],
                           ["crop", c.cropGate, item.visualTask.cropScore],
-                          [
-                            "original",
-                            c.originalityGate,
-                            item.visualTask.originalityScore,
-                          ],
                         ].map(([key, label, value]) => (
                           <label key={String(key)}>
                             {label}
@@ -539,6 +550,11 @@ export function VisualQualityDesk({
                             />
                           </label>
                         ))}
+                        <output className="visual-originality-score">
+                          <span>{c.originalityGate}</span>
+                          <strong>{item.visualTask.originalityScore ?? "—"}/100</strong>
+                          <small>{c.similarityEvidence}</small>
+                        </output>
                       </div>
                       <div className="visual-actions">
                         <button

@@ -30,6 +30,8 @@ internal sealed class VisualReviewTaskConfiguration : IEntityTypeConfiguration<V
         b.Property(x => x.CandidateAltText).HasColumnName("candidate_alt_text").HasMaxLength(500);
         b.Property(x => x.TopicScore).HasColumnName("topic_score"); b.Property(x => x.TextSafetyScore).HasColumnName("text_safety_score");
         b.Property(x => x.CropScore).HasColumnName("crop_score"); b.Property(x => x.OriginalityScore).HasColumnName("originality_score");
+        b.Property(x => x.ClosestMediaAssetId).HasColumnName("closest_media_asset_id");
+        b.Property(x => x.ClosestSimilarityPercent).HasColumnName("closest_similarity_percent");
         b.Property(x => x.PromotedAt).HasColumnName("promoted_at");
         b.Property(x => x.ReviewedByUserId).HasColumnName("reviewed_by_user_id");
         b.Property(x => x.ReviewedAt).HasColumnName("reviewed_at");
@@ -40,6 +42,7 @@ internal sealed class VisualReviewTaskConfiguration : IEntityTypeConfiguration<V
         b.HasOne<Domain.Content.ArticleLocalization>().WithMany().HasForeignKey(x => x.ArticleLocalizationId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne<Domain.Content.MediaAsset>().WithMany().HasForeignKey(x => x.CurrentMediaAssetId).OnDelete(DeleteBehavior.SetNull);
         b.HasOne<Domain.Content.MediaAsset>().WithMany().HasForeignKey(x => x.CandidateMediaAssetId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Domain.Content.MediaAsset>().WithMany().HasForeignKey(x => x.ClosestMediaAssetId).OnDelete(DeleteBehavior.SetNull);
         b.HasOne<AutomationJob>().WithMany().HasForeignKey(x => x.AutomationJobId).OnDelete(DeleteBehavior.SetNull);
     }
 }
