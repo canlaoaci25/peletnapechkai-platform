@@ -2,6 +2,13 @@
 
 ## Execution status
 
+Cycle 36 turns the article detail into a publication-readiness cockpit: editors now see
+the shared tasks, comments, and eight-step quality checklist beside a visible readiness
+meter, while scheduling, direct publishing, and normal publishing are rejected by the
+API until every gate is complete. Checklist changes are audited. Queue-wide readiness
+filters, evidence-assisted checks, workload balancing, and editorial SLA trends remain
+the next admin milestones.
+
 Cycle 35 launches account-bound reading continuity: signed-in readers now retain article
 progress and the last meaningful section across devices, see a localized live progress rail,
 and receive an image-led “continue reading” shelf in their account. Ownership, published

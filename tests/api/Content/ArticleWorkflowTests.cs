@@ -74,6 +74,17 @@ public sealed class ArticleWorkflowTests
     }
 
     [Fact]
+    public void Publication_gate_reports_missing_controls_and_requires_a_checklist()
+    {
+        Assert.Equal(8, PublicationQualityGate.Missing(null).Count);
+        var article = CreateArticle(DateTimeOffset.UtcNow);
+        var checklist = new ArticleQualityChecklist(article);
+        checklist.Update(true, true, true, false, true, true, true, false, Guid.NewGuid(), DateTimeOffset.UtcNow);
+
+        Assert.Equal(["seoMetadata", "legalEditorialReview"], PublicationQualityGate.Missing(checklist));
+    }
+
+    [Fact]
     public void Editorial_task_tracks_assignment_due_date_and_status()
     {
         var now=DateTimeOffset.UtcNow;var article=CreateArticle(now);var assignee=Guid.NewGuid();

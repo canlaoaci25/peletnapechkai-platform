@@ -121,12 +121,14 @@ public static partial class EditorialEndpoints
     private static Task<IResult> ReturnToDraftAsync(Guid articleId, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token) =>
         TransitionAsync(articleId, "editorial.returned_to_draft", principal, users, database, x => x.ReturnToDraft(DateTimeOffset.UtcNow), token);
     private static Task<IResult> PublishAsync(Guid articleId, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token) =>
-        TransitionAsync(articleId, "editorial.published", principal, users, database, x => x.Publish(DateTimeOffset.UtcNow), token);
+        PublicationTransitionAsync(articleId, "editorial.published", principal, users, database, x => x.Publish(DateTimeOffset.UtcNow), token);
     private static async Task<IResult> PublishDirectAsync(Guid articleId, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
     {
         var article = await database.ArticleLocalizations.SingleOrDefaultAsync(x => x.Id == articleId, token);
         var actor = await users.GetUserAsync(principal);
         if (article is null || actor is null) return Results.NotFound();
+        var qualityFailure = await PublicationQualityFailureAsync(articleId, database, token);
+        if (qualityFailure is not null) return qualityFailure;
         var now = DateTimeOffset.UtcNow;
         try
         {
@@ -144,7 +146,7 @@ public static partial class EditorialEndpoints
         TransitionAsync(articleId, "editorial.archived", principal, users, database, x => x.Archive(DateTimeOffset.UtcNow), token);
 
     private static Task<IResult> ScheduleAsync(Guid articleId, ScheduleRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token) =>
-        TransitionAsync(articleId, "editorial.scheduled", principal, users, database, x => x.Schedule(request.ScheduledAt, DateTimeOffset.UtcNow), token);
+        PublicationTransitionAsync(articleId, "editorial.scheduled", principal, users, database, x => x.Schedule(request.ScheduledAt, DateTimeOffset.UtcNow), token);
 
     private static async Task<IResult> UpdateRelationshipsAsync(Guid articleId, RelationshipsRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
     {
@@ -182,6 +184,19 @@ public static partial class EditorialEndpoints
         database.AuditLogs.Add(Audit(actor.Id, action, article.Id, new { status = article.Status.ToString() }));
         await database.SaveChangesAsync(token);
         return Results.Ok(new { article.Id, status = article.Status.ToString(), article.UpdatedAt, article.ScheduledAt, article.PublishedAt });
+    }
+
+    private static async Task<IResult> PublicationTransitionAsync(Guid articleId, string action, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, Action<ArticleLocalization> transition, CancellationToken token)
+    {
+        var qualityFailure = await PublicationQualityFailureAsync(articleId, database, token);
+        return qualityFailure ?? await TransitionAsync(articleId, action, principal, users, database, transition, token);
+    }
+
+    private static async Task<IResult?> PublicationQualityFailureAsync(Guid articleId, PublishingDbContext database, CancellationToken token)
+    {
+        var checklist = await database.ArticleQualityChecklists.AsNoTracking().SingleOrDefaultAsync(x => x.ArticleLocalizationId == articleId, token);
+        var missing = PublicationQualityGate.Missing(checklist);
+        return missing.Count == 0 ? null : Results.Conflict(new { message = "Publication quality gates are incomplete.", code = "publication_quality_incomplete", missing });
     }
 
     private static AuditLog Audit(Guid actorId, string action, Guid entityId, object? details) =>
