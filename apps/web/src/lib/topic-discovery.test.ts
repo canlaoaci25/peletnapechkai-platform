@@ -7,6 +7,7 @@ const archive = readFileSync(new URL("../app/[locale]/[collection]/[slug]/page.t
 const migration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260816190000_AddMobileTechnologyTaxonomy.cs", import.meta.url), "utf8");
 const softwareMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260816203000_AddSoftwareApplicationsTaxonomy.cs", import.meta.url), "utf8");
 const privacyMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260816220000_AddPrivacyDigitalRightsTaxonomy.cs", import.meta.url), "utf8");
+const smartHomeMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260817030000_AddSmartHomeConnectedLivingTaxonomy.cs", import.meta.url), "utf8");
 const publicApi = readFileSync(new URL("../../../api/Endpoints/PublicContentEndpoints.cs", import.meta.url), "utf8");
 const supportingApi = readFileSync(new URL("../../../api/Endpoints/SupportingContentEndpoints.cs", import.meta.url), "utf8");
 const proxy = readFileSync(new URL("../proxy.ts", import.meta.url), "utf8");
@@ -17,6 +18,22 @@ test("konu merkezi locale-aware canonical, hreflang ve gerçek yayın kapakları
   assert.match(page, /category\.articleCount/);
   assert.match(page, /category\.featured\.find/);
   assert.match(page, /alt=""/);
+});
+
+test("konu merkezi öne çıkan konu ve doğrudan makale keşif yolları sunar",()=>{
+  assert.match(page,/topic-lead/);
+  assert.match(page,/lead\.featured\.map/);
+  assert.match(page,/category\.featured\.slice\(0,2\)/);
+  assert.ok(page.includes('href={`/${locale}/articles/${article.slug}`}'));
+  assert.doesNotMatch(publicApi,/foreach \(var item in categoryRows\)/);
+});
+
+test("akıllı ev taxonomy migrationı dört locale, audit, idempotency ve rollback içerir",()=>{
+  for(const locale of ["tr-TR","en-US","de-DE","fr-FR"]) assert.match(smartHomeMigration,new RegExp(locale));
+  assert.match(smartHomeMigration,/ON CONFLICT DO NOTHING/);
+  assert.match(smartHomeMigration,/migration\.smart_home_connected_living_taxonomy_added/);
+  assert.match(smartHomeMigration,/article_group_id/);
+  assert.match(smartHomeMigration,/protected override void Down/);
 });
 
 test("kategori arşivi yayın kapağını yinelenen klavye durağı oluşturmadan gösterir", () => {

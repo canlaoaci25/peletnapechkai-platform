@@ -2,6 +2,14 @@
 
 ## Execution status
 
+Cycle 42 transforms the public topic directory into an editorial discovery desk: readers
+now enter through the deepest locale-specific archive topic, can open three current stories
+directly, and see two concrete story paths inside every remaining topic card. The proven
+Smart Home and Connected Living cluster joins all four locales through an idempotent,
+audited migration, while archive-index retrieval no longer performs one query per category.
+Search/engagement evidence for topic ordering and explicit parent-child taxonomy remain the
+next discovery milestones.
+
 Cycle 41 turns the public homepage into a navigable daily edition: readers now see the
 localized edition date, unique live-story depth, and direct routes to the lead, popular,
 topic-atlas, editor-pick, and latest layers, while global desktop navigation exposes real
