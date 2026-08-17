@@ -24,12 +24,22 @@ $payload = [ordered]@{
     heartbeatAt = $state.heartbeatAt
     lastFailureAt = $state.lastFailureAt
     nextRetryAt = if ($Action -eq 'Start') { $null } else { $state.nextRetryAt }
+    currentStatus = if ($Action -eq 'Start') { 'Queued' } elseif ($Action -eq 'Stop') { 'Stopping' } else { $state.currentStatus }
+    currentCycle = $state.currentCycle
+    currentFocus = $state.currentFocus
+    currentStartedAt = $state.currentStartedAt
+    currentEventLog = $state.currentEventLog
+    currentResultLog = $state.currentResultLog
+    roadmap = $state.roadmap
     updatedAt = [DateTimeOffset]::UtcNow.ToString('o')
 }
 if ($Action -ne 'Status') {
     $temporary = "$statePath.tmp"
-    $payload | ConvertTo-Json | Set-Content -LiteralPath $temporary -Encoding UTF8
+    $payload | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $temporary -Encoding UTF8
     Move-Item -LiteralPath $temporary -Destination $statePath -Force
 }
-if ($Action -eq 'Start') { Start-ScheduledTask -TaskName 'BOECL Autonomous Improvement' -ErrorAction SilentlyContinue }
+if ($Action -eq 'Start') {
+    Enable-ScheduledTask -TaskName 'BOECL Autonomous Improvement' -ErrorAction SilentlyContinue | Out-Null
+    Start-ScheduledTask -TaskName 'BOECL Autonomous Improvement' -ErrorAction SilentlyContinue
+}
 [pscustomobject]$payload
