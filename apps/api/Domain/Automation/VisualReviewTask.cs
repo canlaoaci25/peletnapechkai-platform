@@ -26,6 +26,7 @@ public sealed class VisualReviewTask
     public Guid Id { get; private set; }
     public Guid ArticleLocalizationId { get; private set; }
     public Guid? CurrentMediaAssetId { get; private set; }
+    public Guid? CandidateMediaAssetId { get; private set; }
     public int QualityScore { get; private set; }
     public string Risks { get; private set; } = "";
     public string SectionContext { get; private set; } = "";
@@ -36,6 +37,15 @@ public sealed class VisualReviewTask
     public VisualReviewStatus Status { get; private set; }
     public int AttemptCount { get; private set; }
     public string? ReviewerNote { get; private set; }
+    public string? Provider { get; private set; }
+    public string? LicenseName { get; private set; }
+    public string? Attribution { get; private set; }
+    public string? CandidateAltText { get; private set; }
+    public int? TopicScore { get; private set; }
+    public int? TextSafetyScore { get; private set; }
+    public int? CropScore { get; private set; }
+    public int? OriginalityScore { get; private set; }
+    public DateTimeOffset? PromotedAt { get; private set; }
     public Guid? ReviewedByUserId { get; private set; }
     public DateTimeOffset? ReviewedAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
@@ -48,4 +58,27 @@ public sealed class VisualReviewTask
         Status = status; ReviewerNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
         ReviewedByUserId = actorUserId; ReviewedAt = now; UpdatedAt = now;
     }
+
+    public void AttachCandidate(Guid mediaAssetId, string provider, string licenseName, string? attribution,
+        string altText, int topicScore, int textSafetyScore, int cropScore, int originalityScore, DateTimeOffset now)
+    {
+        if (mediaAssetId == Guid.Empty) throw new ArgumentOutOfRangeException(nameof(mediaAssetId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(provider); ArgumentException.ThrowIfNullOrWhiteSpace(licenseName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(altText);
+        CandidateMediaAssetId = mediaAssetId; Provider = provider.Trim(); LicenseName = licenseName.Trim();
+        Attribution = string.IsNullOrWhiteSpace(attribution) ? null : attribution.Trim(); CandidateAltText = altText.Trim();
+        TopicScore = ClampScore(topicScore); TextSafetyScore = ClampScore(textSafetyScore); CropScore = ClampScore(cropScore);
+        OriginalityScore = ClampScore(originalityScore); Status = VisualReviewStatus.InReview; UpdatedAt = now;
+    }
+
+    public bool CandidatePasses => CandidateMediaAssetId.HasValue && TopicScore >= 80 && TextSafetyScore >= 95 &&
+        CropScore >= 80 && OriginalityScore >= 85 && !string.IsNullOrWhiteSpace(LicenseName) && !string.IsNullOrWhiteSpace(CandidateAltText);
+
+    public void MarkPromoted(Guid actorUserId, string note, DateTimeOffset now)
+    {
+        if (!CandidatePasses) throw new InvalidOperationException("Candidate has not passed every publication gate.");
+        ChangeStatus(VisualReviewStatus.Approved, actorUserId, note, now); PromotedAt = now;
+    }
+
+    private static int ClampScore(int value) => Math.Clamp(value, 0, 100);
 }

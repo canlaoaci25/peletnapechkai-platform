@@ -56,7 +56,10 @@ public static class AutomationEndpoints
             return new { row.Id, row.locale, row.Slug, row.Title, row.PublishedAt, score = result.Score, grade = result.Grade,
                 risks = result.Risks, result.BodyImageCount, coverUrl = row.coverId is null ? null : "/api/media/" + row.coverId,
                 row.CoverAltText, row.width, row.height, row.optimizedBytes,
-                visualTask = tasks.TryGetValue(row.Id, out var task) ? new { task.Id, status = task.Status.ToString(), task.SectionContext, task.VisualPurpose, task.ProposedPrompt, task.NegativePrompt, task.AttemptCount, task.ReviewerNote, task.UpdatedAt } : null };
+                visualTask = tasks.TryGetValue(row.Id, out var task) ? new { task.Id, status = task.Status.ToString(), task.SectionContext, task.VisualPurpose, task.ProposedPrompt, task.NegativePrompt, task.AttemptCount, task.ReviewerNote, task.UpdatedAt,
+                    task.CandidateMediaAssetId, candidateUrl = task.CandidateMediaAssetId == null ? null : "/api/media/" + task.CandidateMediaAssetId,
+                    task.Provider, task.LicenseName, task.Attribution, task.CandidateAltText, task.TopicScore, task.TextSafetyScore, task.CropScore, task.OriginalityScore,
+                    task.CandidatePasses, task.PromotedAt } : null };
         }).OrderBy(item => item.score).ThenByDescending(item => item.PublishedAt).ToArray();
         return Results.Ok(new
         {
@@ -100,6 +103,34 @@ public static class AutomationEndpoints
         var actor = await users.GetUserAsync(principal); if (actor is null) return Results.Unauthorized();
         var task = await database.VisualReviewTasks.SingleOrDefaultAsync(candidate => candidate.Id == taskId, token);
         if (task is null) return Results.NotFound();
+        if (action.Equals("candidate", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.MediaAssetId is null) return Results.ValidationProblem(new Dictionary<string, string[]> { ["mediaAssetId"] = ["A candidate media asset is required."] });
+            var media = await database.MediaAssets.AsNoTracking().SingleOrDefaultAsync(x => x.Id == request.MediaAssetId, token);
+            if (media is null) return Results.NotFound();
+            if (media.Width is null || media.Height is null || media.OptimizedStorageKey is null || media.OptimizedByteLength > 500_000 || media.Width < 1200 || Math.Abs(media.Width.Value / (double)media.Height.Value - 16d / 9d) > .12)
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["mediaAssetId"] = ["Candidate must be optimized, at least 1200px wide, under 500KB, and approximately 16:9."] });
+            try { task.AttachCandidate(media.Id, request.Provider ?? "", request.LicenseName ?? "", request.Attribution, request.AltText ?? "", request.TopicScore, request.TextSafetyScore, request.CropScore, request.OriginalityScore, DateTimeOffset.UtcNow); }
+            catch (ArgumentException error) { return Results.ValidationProblem(new Dictionary<string, string[]> { ["candidate"] = [error.Message] }); }
+            database.AuditLogs.Add(new AuditLog(actor.Id, "visual-review.candidate_attached", nameof(VisualReviewTask), task.Id,
+                JsonSerializer.Serialize(new { media.Id, request.Provider, request.LicenseName, request.TopicScore, request.TextSafetyScore, request.CropScore, request.OriginalityScore }), DateTimeOffset.UtcNow));
+            await database.SaveChangesAsync(token); return Results.Ok(new { task.Id, task.CandidatePasses, task.UpdatedAt });
+        }
+        if (action.Equals("promote", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(request.Note)) return Results.ValidationProblem(new Dictionary<string, string[]> { ["note"] = ["Promotion requires an editorial note."] });
+            if (!task.CandidatePasses || task.CandidateMediaAssetId is null) return Results.Conflict(new { message = "Candidate has not passed every quality gate." });
+            var article = await database.ArticleLocalizations.SingleOrDefaultAsync(x => x.Id == task.ArticleLocalizationId, token);
+            var candidate = await database.MediaAssets.SingleOrDefaultAsync(x => x.Id == task.CandidateMediaAssetId, token);
+            if (article is null || candidate is null) return Results.NotFound();
+            await using var transaction = await database.Database.BeginTransactionAsync(token); var now = DateTimeOffset.UtcNow;
+            article.PromoteReviewedCover(candidate, task.CandidateAltText!, task.Attribution ?? task.LicenseName!, now);
+            task.MarkPromoted(actor.Id, request.Note, now);
+            database.AuditLogs.Add(new AuditLog(actor.Id, "visual-review.promoted", nameof(VisualReviewTask), task.Id,
+                JsonSerializer.Serialize(new { task.ArticleLocalizationId, previousMediaAssetId = task.CurrentMediaAssetId, candidateMediaAssetId = candidate.Id, task.Provider, task.LicenseName }), now));
+            await database.SaveChangesAsync(token); await transaction.CommitAsync(token);
+            return Results.Ok(new { task.Id, status = task.Status.ToString(), task.PromotedAt });
+        }
         var status = action.ToLowerInvariant() switch { "review" => VisualReviewStatus.InReview, "approve" => VisualReviewStatus.Approved,
             "reject" => VisualReviewStatus.Rejected, "retry" => VisualReviewStatus.RetryRequested, _ => (VisualReviewStatus?)null };
         if (status is null) return Results.ValidationProblem(new Dictionary<string, string[]> { ["action"] = ["Unsupported visual review action."] });
@@ -112,7 +143,9 @@ public static class AutomationEndpoints
         return Results.Ok(new { task.Id, status = task.Status.ToString(), task.AttemptCount, task.UpdatedAt });
     }
 
-    private sealed record VisualReviewActionRequest(string? Note);
+    private sealed record VisualReviewActionRequest(string? Note, Guid? MediaAssetId = null, string? Provider = null,
+        string? LicenseName = null, string? Attribution = null, string? AltText = null, int TopicScore = 0,
+        int TextSafetyScore = 0, int CropScore = 0, int OriginalityScore = 0);
 
     private static async Task<IResult> ListAsync(PublishingDbContext database, CancellationToken token) =>
         Results.Ok(await database.AutomationJobs

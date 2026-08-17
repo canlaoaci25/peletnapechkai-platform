@@ -2,6 +2,14 @@
 
 ## Execution status
 
+Cycle 39 closes the unsafe gap between visual briefs and publication: Visual Renewal
+Studio now accepts an optimized candidate media asset with provider, licence, attribution,
+natural locale alt text, and explicit topic/text/crop/originality evidence; shows a responsive
+before/after comparison; and refuses transactional promotion until every server-side gate
+passes. The previous cover remains addressable in the append-only audit trail. Automated
+provider execution, computer-vision scoring, perceptual hashes, and resumable archive-wide
+generation remain the next visual-service milestones.
+
 Cycle 38 turns International Publishing Health into an accountable localization operations
 desk: missing, stale, and human-review translation debt is now a prioritized work queue with
 one durable owner and SLA per article group and target locale. Assignments are idempotent,

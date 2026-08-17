@@ -126,6 +126,14 @@ public sealed class ArticleLocalization
         UpdatedAt = updatedAt;
     }
 
+    public void PromoteReviewedCover(MediaAsset asset, string altText, string credit, DateTimeOffset updatedAt)
+    {
+        if (Status != PublicationStatus.Published) throw new InvalidOperationException("Only published articles can receive reviewed covers.");
+        ArgumentNullException.ThrowIfNull(asset); ArgumentException.ThrowIfNullOrWhiteSpace(altText); ArgumentException.ThrowIfNullOrWhiteSpace(credit);
+        CoverMediaAsset = asset; CoverMediaAssetId = asset.Id; CoverAltText = altText.Trim(); CoverCaption = null;
+        CoverCredit = credit.Trim(); UpdatedAt = updatedAt;
+    }
+
     public void ApproveEditorialReview(DateTimeOffset updatedAt) =>
         Transition(PublicationStatus.InEditorialReview, PublicationStatus.InSeoReview, updatedAt);
 
