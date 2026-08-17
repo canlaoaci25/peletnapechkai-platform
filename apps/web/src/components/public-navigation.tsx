@@ -64,7 +64,7 @@ export function PublicNavigation({ locale, localeHrefs, homeActive, copy, catego
         <span aria-hidden="true"><i/><i/><i/></span><b>{copy.menu}</b>
       </button>
       <Link className="mobile-brand" href={`/${locale}`}>{siteConfig.name}</Link>
-      <Link className="mobile-search" href={`/${locale}/search`} aria-label={copy.search}><SearchIcon /></Link>
+      <Link className="mobile-search" href={`/${locale}/search`} aria-label={copy.search}><SearchIcon /><span>{copy.search}</span></Link>
     </header>
     {open && <button className="drawer-backdrop" type="button" aria-label={copy.menu} onClick={() => setOpen(false)} />}
     <aside ref={drawerRef} id={drawerId} className="public-sidebar" data-open={open} aria-label={copy.sections} onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setOpen(false); }}>
