@@ -1,0 +1,127 @@
+# BOECL otonom mimari ve ürün teklifleri
+
+Son güncelleme: 17 Ağustos 2026 — Çevrim 69. Bu kayıt moda odaklı yeniden yazım listesi değil; depo, canlı sağlık ve ürün kanıtına dayalı kalıcı karar defteridir.
+
+## 1. Görsel sağlayıcı ve vision adaptör katmanı
+
+- **Durum / öncelik:** Araştırılacak / P1
+- **Problem ve kanıt:** Görsel kuyruğu, brief, benzerlik ve terfi var; production üretim/vision sağlayıcısı ve sağlık telemetrisi yok.
+- **Değişiklik ve fayda:** Değiştirilebilir provider sözleşmesi, kota/timeout, provenance ve fail-closed vision sonucu; konu dışı görsel riski azalır.
+- **Yüzey / kapsam:** API worker, admin Visual Studio, runtime secret store ve operasyon metriği.
+- **Risk / veri etkisi:** Ücret, lisans, dış veri aktarımı; kalıcı sonuç modeli migration ister.
+- **Geri dönüş:** Feature flag kapatılır, manuel aday incelemesi korunur.
+- **Kabul:** Owner provider/bütçe kararı, staging hata senaryoları, sağlık bandı, otomatik yayın olmaması ve örneklem kalite PASS.
+
+## 2. Production yedek ve izole geri-yükleme kanıtı
+
+- **Durum / öncelik:** Uygulanacak / P0
+- **Problem ve kanıt:** Zamanlanmış iş varsayılan geliştirme veritabanını hedefliyor; production dump ve restore-test kanıtı yok.
+- **Değişiklik ve fayda:** Açık DB hedefi, checksum, günlük restore testi ve off-site kopya durumu; migration güvenliği sağlar.
+- **Yüzey / kapsam:** PowerShell, Task Scheduler, PostgreSQL, admin operasyon görünümü.
+- **Risk / veri etkisi:** Disk ve erişim yetkisi; production verisi değişmez.
+- **Geri dönüş:** Eski görev tanımı dışa aktarılıp geri yüklenir.
+- **Kabul:** Production adı loga sır sızdırmadan doğrulanır, restore izole DB’de geçer, alarm ve retention kanıtlanır.
+
+## 3. İddia düzeyi kaynak bağlantısı
+
+- **Durum / öncelik:** Araştırılacak / P2
+- **Problem ve kanıt:** Makale kaynak listesi var fakat gövde iddiası ile kaynak ilişkisi yok.
+- **Değişiklik ve fayda:** Editörde erişilebilir dipnot/atıf modeli ve public satır içi kanıt; güven ve güncelleme hızı artar.
+- **Yüzey / kapsam:** İçerik veri modeli, editör, public makale, Article citation.
+- **Risk / veri etkisi:** Eski içerik backfill’i ve kötü dipnot UX’i.
+- **Geri dönüş:** İlişkiler kaldırılmadan sunum feature flag ile kapanır.
+- **Kabul:** Her kritik iddia tekil kaynağa gider; klavye/mobil, canonical ve schema görünür içerikle uyumludur.
+
+## 4. Türkçe pillar ve konu kümesi yenilemesi
+
+- **Durum / öncelik:** Uygulanacak / P2
+- **Problem ve kanıt:** Starter içeriklerde ortak altı bölümlü şablon ve tek kaynak kullanımı derinlik riskidir.
+- **Değişiklik ve fayda:** Bir pillar + 4–6 destek içerikte benzersiz niyet, resmi kaynak ve çift yönlü iç link; trafik ve otorite artışı hedeflenir.
+- **Yüzey / kapsam:** İçerik, taxonomy, editör, homepage keşfi, SEO ölçümü.
+- **Risk / veri etkisi:** Cannibalization; yalnız substantive güncellemede tarih değişir.
+- **Geri dönüş:** Revision geçmişinden önceki sürüm geri alınır.
+- **Kabul:** Editoryal review, en az iki uygun domain, mobil/dark render ve 28 günlük ölçüm tabanı.
+
+## 5. Yapılandırılmış keşif kapsam matrisi
+
+- **Durum / öncelik:** Uygulanacak / P2
+- **Problem ve kanıt:** Article/Breadcrumb güçlü; sayfa türü × locale regresyon kapısı merkezi değil.
+- **Değişiklik ve fayda:** Canonical, hreflang, robots ve schema sözleşme testi; indeksleme regresyonunu release öncesi yakalar.
+- **Yüzey / kapsam:** Next metadata, sitemap, CI/local release gate.
+- **Risk / veri etkisi:** Yanlış katı test; veri migration’ı yok.
+- **Geri dönüş:** Matris testi gevşetilir, runtime davranış korunur.
+- **Kabul:** Dört locale ve tüm indexlenebilir türlerde self-canonical, gerçek alternatif ve görünür içerikle eş schema.
+
+## 6. Arama sorgusu ve içerik boşluğu ölçümü
+
+- **Durum / öncelik:** Kullanıcı kararı gerekli / P2
+- **Problem ve kanıt:** Search Console bağlı değil; trafik fırsatı sayısal kanıt yerine proxy ile seçiliyor.
+- **Değişiklik ve fayda:** Salt okunur GSC entegrasyonu ve privacy-safe query gap panosu.
+- **Yüzey / kapsam:** OAuth bağlantısı, admin trafik, periyodik veri alma.
+- **Risk / veri etkisi:** Üçüncü taraf hesap yetkisi; kullanıcı onayı gerekir.
+- **Geri dönüş:** Token iptal edilir, dahili ölçüm çalışmaya devam eder.
+- **Kabul:** Doğrulanmış property, minimum yetki, token secret store, sayı uydurmayan boş durum.
+
+## 7. Locale yayın bütünlüğü kapısı
+
+- **Durum / öncelik:** Uygulanacak / P2
+- **Problem ve kanıt:** Dört locale mevcut; çeviri kaynak snapshot’ı olsa da kalite ve kültürel görsel uygunluğu tam otomatik kapı değil.
+- **Değişiklik ve fayda:** TranslationReviewed, kaynak snapshot, taxonomy ve locale-görsel kontrolünü tek yayın sözleşmesinde birleştirir.
+- **Yüzey / kapsam:** API quality gate, language manager, SEO metadata.
+- **Risk / veri etkisi:** Eski taslakların bloklanması; yayınlanmış içeriğe otomatik fallback yok.
+- **Geri dönüş:** Yeni kapı yalnız yeni revision’larda uygulanır.
+- **Kabul:** Eksik gerçek çeviri indexlenmez; canonical/hreflang yalnız gerçek eşleri gösterir.
+
+## 8. Arama ve öneri kalite servisi
+
+- **Durum / öncelik:** Araştırılacak / P2
+- **Problem ve kanıt:** Yazım toleransı ve boş sonuç kurtarma roadmap borcu; içerik genişledikçe keşif kaybı büyür.
+- **Değişiklik ve fayda:** Türkçe normalizasyon, kontrollü typo toleransı, topic-cluster önerisi ve açıklanabilir boş sonuçlar.
+- **Yüzey / kapsam:** API sorguları/indexler, public arama, analytics.
+- **Risk / veri etkisi:** Pahalı sorgu ve alakasız öneri; index migration gerekebilir.
+- **Geri dönüş:** Eski exact/prefix arama feature flag ile korunur.
+- **Kabul:** Sabit relevancy corpus’u, p95 bütçesi, XSS-safe terimler ve sıfır sonuç iyileşmesi ölçülür.
+
+## 9. Canary sürüm kohortu ve tek eylem geri alma
+
+- **Durum / öncelik:** Araştırılacak / P2
+- **Problem ve kanıt:** Atomik deploy/rollback var; sınırlı trafik kohortu yok.
+- **Değişiklik ve fayda:** Web+API uyumlu canary, health karşılaştırması ve yetkili rollback; değişiklik yarıçapını küçültür.
+- **Yüzey / kapsam:** IIS/reverse proxy, release ledger, admin operasyon.
+- **Risk / veri etkisi:** Session ve cache tutarlılığı; DB migration canary’den ayrılmalı.
+- **Geri dönüş:** Trafik yüzde 100 son sağlıklı release’e döner.
+- **Kabul:** Sentetik akışlar, kohort sürüm başlığı, hata eşiği ve otomatik rollback tatbikatı.
+
+## 10. Üyelik bildirim merkezi ve Web Push
+
+- **Durum / öncelik:** Kullanıcı kararı gerekli / P3
+- **Problem ve kanıt:** Takip/kaydetme var; izinli geri dönüş kanalı yok.
+- **Değişiklik ve fayda:** Açık opt-in, konu tercihleri, sessiz saatler ve tek tık çıkış; geri dönüşü artırabilir.
+- **Yüzey / kapsam:** Service worker, push subscription API/verisi, admin gönderim ve ölçüm.
+- **Risk / veri etkisi:** Bildirim izni, VAPID secret, spam ve gizlilik; ürün/iletişim kararı gerekir.
+- **Geri dönüş:** Gönderim kapatılır, abonelikler güvenli biçimde pasifleştirilir.
+- **Kabul:** Varsayılan kapalı, locale doğal metin, rate limit, unsubscribe ve teslim/etkileşim metriği.
+
+## 11. Düzeltme ve şeffaflık iş akışı
+
+- **Durum / öncelik:** Uygulanacak / P2
+- **Problem ve kanıt:** Revision/audit var; okura görünür düzeltme özeti için bütünleşik akış yok.
+- **Değişiklik ve fayda:** Editoryal onaylı correction note ve değişiklik özeti; yayın güvenini artırır.
+- **Yüzey / kapsam:** Veri modeli, editör, public makale, feed/schema tarihleri.
+- **Risk / veri etkisi:** Küçük yazım düzeltmelerinde gürültü.
+- **Geri dönüş:** Not geri çekilmez; yeni auditli düzeltme ile düzeltilir.
+- **Kabul:** Kim/ne/zaman kaydı, substantive eşik, locale doğrulaması ve public erişilebilir zaman çizgisi.
+
+## 12. Rollback artefaktı retention politikası
+
+- **Durum / öncelik:** Uygulanacak / P3
+- **Problem ve kanıt:** Staging ve production’da çok sayıda rollback dizini birikmiş; disk tüketimi büyüyor.
+- **Değişiklik ve fayda:** Son sağlıklı N release + yaş/kapasite eşiği ve dry-run raporu.
+- **Yüzey / kapsam:** Deploy scriptleri, disk health ve operasyon raporu.
+- **Risk / veri etkisi:** Gerekli rollback’in erken silinmesi.
+- **Geri dönüş:** İlk faz yalnız raporlar; silme açık retention politikası sonrası açılır.
+- **Kabul:** Doğrulanmış absolute path, aktif/son sağlıklı release koruması, dry-run ve disk alarmı.
+
+## Ertelenen yaklaşım
+
+- **Reddedildi/ertelendi:** Platformu yeni framework ile baştan yazmak. Kanıtlanmış ölçülebilir fayda yok; mevcut Next.js/ASP.NET/PostgreSQL mimarisi build, test, locale SEO ve atomik deploy kapılarını karşılıyor.

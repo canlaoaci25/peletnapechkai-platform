@@ -65,6 +65,7 @@ public static class AutomationEndpoints
                 visualTask = tasks.TryGetValue(row.Id, out var task) ? new { task.Id, status = task.Status.ToString(), task.SectionContext, task.VisualPurpose, visualType = InferVisualType(task.ProposedPrompt), task.ProposedPrompt, task.NegativePrompt, task.AttemptCount, task.ReviewerNote, task.UpdatedAt,
                     task.CandidateMediaAssetId, candidateUrl = task.CandidateMediaAssetId == null ? null : "/api/media/" + task.CandidateMediaAssetId,
                     task.Provider, task.LicenseName, task.Attribution, task.CandidateAltText, task.TopicScore, task.TextSafetyScore, task.CropScore, task.OriginalityScore,
+                    candidateEvidenceVersion = task.CandidateMediaAssetId == null ? null : "editorial-attestation-v1", candidateAttestedAt = task.CandidateMediaAssetId == null ? null : task.ReviewedAt,
                     task.ClosestMediaAssetId, task.ClosestSimilarityPercent, closestMediaUrl = task.ClosestMediaAssetId == null ? null : "/api/media/" + task.ClosestMediaAssetId,
                     task.CandidatePasses, task.PromotedAt } : null };
         }).OrderBy(item => item.score).ThenByDescending(item => item.PublishedAt).ToArray();
@@ -183,10 +184,12 @@ public static class AutomationEndpoints
             {
                 return Results.ValidationProblem(new Dictionary<string, string[]> { ["mediaAssetId"] = [$"Candidate similarity analysis failed: {error.Message}"] });
             }
-            try { task.AttachCandidate(media.Id, request.Provider ?? "", request.LicenseName ?? "", request.Attribution, request.AltText ?? "", request.TopicScore, request.TextSafetyScore, request.CropScore, similarity.OriginalityScore, similarity.ClosestMediaAssetId, similarity.ClosestSimilarityPercent, DateTimeOffset.UtcNow); }
+            var ratio = media.Width!.Value / (double)media.Height!.Value;
+            var cropScore = Math.Abs(ratio - 16d / 9d) <= .04 ? 100 : 80;
+            try { task.AttachCandidate(media.Id, request.Provider ?? "", request.LicenseName ?? "", request.Attribution, request.AltText ?? "", request.TopicConfirmed, request.TextAndLogoFreeConfirmed, actor.Id, cropScore, similarity.OriginalityScore, similarity.ClosestMediaAssetId, similarity.ClosestSimilarityPercent, DateTimeOffset.UtcNow); }
             catch (ArgumentException error) { return Results.ValidationProblem(new Dictionary<string, string[]> { ["candidate"] = [error.Message] }); }
             database.AuditLogs.Add(new AuditLog(actor.Id, "visual-review.candidate_attached", nameof(VisualReviewTask), task.Id,
-                JsonSerializer.Serialize(new { media.Id, request.Provider, request.LicenseName, request.TopicScore, request.TextSafetyScore, request.CropScore, similarity.OriginalityScore, similarity.ClosestMediaAssetId, similarity.ClosestSimilarityPercent }), DateTimeOffset.UtcNow));
+                JsonSerializer.Serialize(new { media.Id, request.Provider, request.LicenseName, evidence = "editorial-attestation-v1", candidateAttestedAt = task.ReviewedAt, task.TopicScore, task.TextSafetyScore, task.CropScore, similarity.OriginalityScore, similarity.ClosestMediaAssetId, similarity.ClosestSimilarityPercent }), DateTimeOffset.UtcNow));
             await database.SaveChangesAsync(token); return Results.Ok(new { task.Id, task.CandidatePasses, task.UpdatedAt });
         }
         if (action.Equals("promote", StringComparison.OrdinalIgnoreCase))
@@ -217,8 +220,8 @@ public static class AutomationEndpoints
     }
 
     private sealed record VisualReviewActionRequest(string? Note, Guid? MediaAssetId = null, string? Provider = null,
-        string? LicenseName = null, string? Attribution = null, string? AltText = null, int TopicScore = 0,
-        int TextSafetyScore = 0, int CropScore = 0);
+        string? LicenseName = null, string? Attribution = null, string? AltText = null,
+        bool TopicConfirmed = false, bool TextAndLogoFreeConfirmed = false);
 
     private static string InferVisualType(string prompt)
     {

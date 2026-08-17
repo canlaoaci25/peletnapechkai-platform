@@ -26,6 +26,8 @@ type VisualTask = {
   textSafetyScore: number | null;
   cropScore: number | null;
   originalityScore: number | null;
+  candidateEvidenceVersion: string | null;
+  candidateAttestedAt: string | null;
   closestMediaAssetId: string | null;
   closestSimilarityPercent: number | null;
   closestMediaUrl: string | null;
@@ -104,6 +106,11 @@ const base = {
   similarityEvidence: "Automatic archive similarity",
   closestMatch: "closest archive match",
   submitCandidate: "Send candidate to gates",
+  attestation: "Editorial evidence",
+  attestationHelp: "Topic fit and text/logo safety require an identified editorial confirmation. Crop and originality are measured by the server.",
+  topicConfirmed: "I confirmed that the image matches the article and section",
+  textConfirmed: "I confirmed that the image has no text, logo, watermark, or fake UI",
+  evidencePending: "Evidence not yet recorded",
   promoteCandidate: "Approve and publish",
   operation: "Archive renewal operation",
   processed: "Processed",
@@ -122,6 +129,11 @@ const copy = {
     ...base,
     eyebrow: "GÖRSEL ÜRETİM SERVİSİ",
     title: "Görsel Yenileme Stüdyosu",
+    attestation: "Editoryal kanıt",
+    attestationHelp: "Konu uyumu ile yazı/logo güvenliği, kimliği kaydedilen editör onayı ister. Kırpma ve özgünlük sunucuda ölçülür.",
+    topicConfirmed: "Görselin makale ve bölümle eşleştiğini doğruladım",
+    textConfirmed: "Görselde yazı, logo, filigran veya sahte arayüz olmadığını doğruladım",
+    evidencePending: "Kanıt henüz kaydedilmedi",
     lead: "Her makaleyi tam metin ve bölüm bağlamıyla; konu eşleşmesi, yazısız tasarım, mobil kırpma, performans ve kullanım hakkı kapılarında tarar.",
     total: "Yayındaki makale",
     passing: "Kapıdan geçen",
@@ -189,6 +201,11 @@ const copy = {
     ...base,
     eyebrow: "VISUAL GENERATION SERVICE",
     title: "Visual Renewal Studio",
+    attestation: "Editorial evidence",
+    attestationHelp: "Topic fit and text/logo safety require an identified editorial confirmation. Crop and originality are measured by the server.",
+    topicConfirmed: "I confirmed that the image matches the article and section",
+    textConfirmed: "I confirmed that the image has no text, logo, watermark, or fake UI",
+    evidencePending: "Evidence not yet recorded",
     lead: "Audits every story using its full text and section context for topic fit, text-free design, mobile crop, performance, and rights.",
     total: "Published stories",
     passing: "Passing",
@@ -204,6 +221,11 @@ const copy = {
     ...base,
     eyebrow: "BILDERZEUGUNGSDIENST",
     title: "Studio für Bilderneuerung",
+    attestation: "Redaktioneller Nachweis",
+    attestationHelp: "Themenbezug sowie Text- und Logosicherheit erfordern eine namentlich protokollierte Bestätigung. Beschnitt und Originalität misst der Server.",
+    topicConfirmed: "Ich bestätige den Bezug zu Beitrag und Abschnitt",
+    textConfirmed: "Ich bestätige: kein Text, Logo, Wasserzeichen oder erfundenes UI",
+    evidencePending: "Nachweis noch nicht erfasst",
     lead: "Prüft Beiträge mit Volltext und Abschnittskontext auf Themenbezug, textfreie Gestaltung, mobilen Beschnitt, Leistung und Rechte.",
     total: "Veröffentlichte Beiträge",
     passing: "Bestanden",
@@ -245,6 +267,11 @@ const copy = {
     ...base,
     eyebrow: "SERVICE DE GÉNÉRATION VISUELLE",
     title: "Studio de renouvellement visuel",
+    attestation: "Preuve éditoriale",
+    attestationHelp: "La pertinence et l’absence de texte ou logo exigent une confirmation éditoriale identifiée. Le serveur mesure le cadrage et l’originalité.",
+    topicConfirmed: "Je confirme la pertinence pour l’article et la section",
+    textConfirmed: "Je confirme l’absence de texte, logo, filigrane ou fausse interface",
+    evidencePending: "Preuve pas encore enregistrée",
     lead: "Contrôle chaque article avec son texte intégral et sa section : pertinence, création sans texte, recadrage mobile, performance et droits.",
     total: "Articles publiés",
     passing: "Conformes",
@@ -309,6 +336,8 @@ export function VisualQualityDesk({
   };
   const field = (id: string) =>
     (document.getElementById(id) as HTMLInputElement)?.value;
+  const checked = (id: string) =>
+    (document.getElementById(id) as HTMLInputElement)?.checked;
   function candidatePayload(id: string) {
     return {
       mediaAssetId: field(`media-${id}`),
@@ -316,9 +345,8 @@ export function VisualQualityDesk({
       licenseName: field(`license-${id}`),
       attribution: field(`credit-${id}`),
       altText: field(`alt-${id}`),
-      topicScore: Number(field(`topic-${id}`)),
-      textSafetyScore: Number(field(`text-${id}`)),
-      cropScore: Number(field(`crop-${id}`)),
+      topicConfirmed: checked(`topic-${id}`),
+      textAndLogoFreeConfirmed: checked(`text-${id}`),
     };
   }
   async function send(
@@ -518,7 +546,7 @@ export function VisualQualityDesk({
                           aria-label={c.provider}
                           placeholder={c.provider}
                           defaultValue={
-                            item.visualTask.provider ?? "BOECL Original"
+                            item.visualTask.provider ?? ""
                           }
                         />
                         <input
@@ -526,7 +554,7 @@ export function VisualQualityDesk({
                           aria-label={c.license}
                           placeholder={c.license}
                           defaultValue={
-                            item.visualTask.licenseName ?? "BOECL original"
+                            item.visualTask.licenseName ?? ""
                           }
                         />
                         <input
@@ -541,22 +569,14 @@ export function VisualQualityDesk({
                           placeholder={c.altText}
                           defaultValue={item.visualTask.candidateAltText ?? ""}
                         />
-                        {[
-                          ["topic", c.topicGate, item.visualTask.topicScore],
-                          ["text", c.textGate, item.visualTask.textSafetyScore],
-                          ["crop", c.cropGate, item.visualTask.cropScore],
-                        ].map(([key, label, value]) => (
-                          <label key={String(key)}>
-                            {label}
-                            <input
-                              id={`${key}-${item.visualTask!.id}`}
-                              type="number"
-                              min="0"
-                              max="100"
-                              defaultValue={value ?? 0}
-                            />
-                          </label>
-                        ))}
+                        <fieldset className="visual-attestation">
+                          <legend>{c.attestation}</legend>
+                          <p>{c.attestationHelp}</p>
+                          <label><input id={`topic-${item.visualTask.id}`} type="checkbox" defaultChecked={item.visualTask.topicScore===100}/>{c.topicConfirmed}</label>
+                          <label><input id={`text-${item.visualTask.id}`} type="checkbox" defaultChecked={item.visualTask.textSafetyScore===100}/>{c.textConfirmed}</label>
+                          <small>{item.visualTask.candidateAttestedAt ? `${item.visualTask.candidateEvidenceVersion} · ${new Intl.DateTimeFormat(locale,{dateStyle:"medium",timeStyle:"short"}).format(new Date(item.visualTask.candidateAttestedAt))}` : c.evidencePending}</small>
+                        </fieldset>
+                        <output className="visual-originality-score"><span>{c.cropGate}</span><strong>{item.visualTask.cropScore ?? "—"}/100</strong><small>{c.similarityEvidence}</small></output>
                         <output className="visual-originality-score">
                           <span>{c.originalityGate}</span>
                           <strong>{item.visualTask.originalityScore ?? "—"}/100</strong>

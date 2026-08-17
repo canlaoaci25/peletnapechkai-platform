@@ -63,21 +63,24 @@ public sealed class VisualReviewTask
     }
 
     public void AttachCandidate(Guid mediaAssetId, string provider, string licenseName, string? attribution,
-        string altText, int topicScore, int textSafetyScore, int cropScore, int originalityScore, Guid? closestMediaAssetId,
-        int closestSimilarityPercent, DateTimeOffset now)
+        string altText, bool topicConfirmed, bool textAndLogoFreeConfirmed, Guid actorUserId, int cropScore,
+        int originalityScore, Guid? closestMediaAssetId, int closestSimilarityPercent, DateTimeOffset now)
     {
         if (mediaAssetId == Guid.Empty) throw new ArgumentOutOfRangeException(nameof(mediaAssetId));
         ArgumentException.ThrowIfNullOrWhiteSpace(provider); ArgumentException.ThrowIfNullOrWhiteSpace(licenseName);
         ArgumentException.ThrowIfNullOrWhiteSpace(altText);
+        if (actorUserId == Guid.Empty) throw new ArgumentOutOfRangeException(nameof(actorUserId));
         CandidateMediaAssetId = mediaAssetId; Provider = provider.Trim(); LicenseName = licenseName.Trim();
         Attribution = string.IsNullOrWhiteSpace(attribution) ? null : attribution.Trim(); CandidateAltText = altText.Trim();
-        TopicScore = ClampScore(topicScore); TextSafetyScore = ClampScore(textSafetyScore); CropScore = ClampScore(cropScore);
+        TopicScore = topicConfirmed ? 100 : 0; TextSafetyScore = textAndLogoFreeConfirmed ? 100 : 0; CropScore = ClampScore(cropScore);
         OriginalityScore = ClampScore(originalityScore); Status = VisualReviewStatus.InReview; UpdatedAt = now;
         ClosestMediaAssetId = closestMediaAssetId; ClosestSimilarityPercent = ClampScore(closestSimilarityPercent);
+        ReviewedByUserId = actorUserId; ReviewedAt = now;
     }
 
     public bool CandidatePasses => CandidateMediaAssetId.HasValue && TopicScore >= 80 && TextSafetyScore >= 95 &&
-        CropScore >= 80 && OriginalityScore >= 85 && !string.IsNullOrWhiteSpace(LicenseName) && !string.IsNullOrWhiteSpace(CandidateAltText);
+        CropScore >= 80 && OriginalityScore >= 85 && ReviewedByUserId.HasValue && ReviewedAt.HasValue &&
+        !string.IsNullOrWhiteSpace(LicenseName) && !string.IsNullOrWhiteSpace(CandidateAltText);
 
     public void MarkPromoted(Guid actorUserId, string note, DateTimeOffset now)
     {
