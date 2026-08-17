@@ -32,9 +32,17 @@ public static partial class AutomationWorkerEndpoints
     private static async Task<IResult> ClaimAsync(HttpContext context, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
     {
         if (!IsAuthorized(context, configuration)) return Results.Unauthorized();
+        var now = DateTimeOffset.UtcNow;
+        var staleBefore = now.AddMinutes(-30);
+        var staleJobs = await database.AutomationJobs
+            .Where(candidate => candidate.Status == AutomationJobStatus.Running && candidate.UpdatedAt < staleBefore)
+            .ToListAsync(token);
+        foreach (var staleJob in staleJobs)
+            staleJob.Fail("Worker heartbeat 30 dakikadan uzun süre alınamadı; kuyruk kilidini açmak için iş güvenli biçimde zaman aşımına alındı.", now);
+        if (staleJobs.Count > 0) await database.SaveChangesAsync(token);
         var job = await database.AutomationJobs.Where(candidate => candidate.Status == AutomationJobStatus.Queued).OrderBy(candidate => candidate.CreatedAt).FirstOrDefaultAsync(token);
         if (job is null) return Results.NoContent();
-        job.Start(job.CurrentPhase + 1, DateTimeOffset.UtcNow);
+        job.Start(job.CurrentPhase + 1, now);
         await database.SaveChangesAsync(token);
         return Results.Ok(new { job.Id, type=job.Type.ToString(), job.TargetLocales, job.TotalItems, job.CurrentPhase, job.CategoryId, job.RequestedArticleType, job.IncludeImages, job.AutoTranslate, job.AutoSeo, prompt=BuildPrompt(job) });
     }
