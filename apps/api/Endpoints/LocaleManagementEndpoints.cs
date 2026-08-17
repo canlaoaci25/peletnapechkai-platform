@@ -30,19 +30,29 @@ public static class LocaleManagementEndpoints
     private static async Task<IResult> WorkAsync(PublishingDbContext database, CancellationToken token)
     {
         var now = DateTimeOffset.UtcNow;
-        var source = database.ArticleLocalizations.AsNoTracking().Where(x => x.Locale.IsDefault && x.Status == PublicationStatus.Published);
+        var sources = await database.ArticleLocalizations.AsNoTracking().Include(x => x.Locale)
+            .Where(x => x.Locale.IsDefault && x.Status == PublicationStatus.Published).OrderByDescending(x => x.UpdatedAt).ToListAsync(token);
         var targets = await database.Locales.AsNoTracking().Where(x => x.IsEnabled && !x.IsDefault).OrderBy(x => x.Code).Select(x => new { x.Id, x.Code }).ToListAsync(token);
         var users = await database.Users.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.DisplayName).Select(x => new { x.Id, x.DisplayName }).ToListAsync(token);
         var items = new List<object>();
         foreach (var target in targets)
         {
-            var debt = await source.Select(x => new { x.ArticleGroupId, sourceTitle = x.Title, sourceUpdatedAt = x.UpdatedAt,
-                translation = database.ArticleLocalizations.Where(t => t.ArticleGroupId == x.ArticleGroupId && t.LocaleId == target.Id && t.Status != PublicationStatus.Archived).Select(t => new { t.Id, t.Title, t.UpdatedAt }).FirstOrDefault(),
-                reviewed = database.ArticleLocalizations.Where(t => t.ArticleGroupId == x.ArticleGroupId && t.LocaleId == target.Id).Select(t => database.ArticleQualityChecklists.Any(q => q.ArticleLocalizationId == t.Id && q.TranslationReviewed)).FirstOrDefault(),
-                assignment = database.LocalizationAssignments.Where(a => a.ArticleGroupId == x.ArticleGroupId && a.TargetLocaleId == target.Id).Select(a => new { a.AssigneeUserId, a.DueAt, status = a.Status.ToString(), assignee = database.Users.Where(u => u.Id == a.AssigneeUserId).Select(u => u.DisplayName).FirstOrDefault() }).FirstOrDefault()
-            }).Where(x => x.translation == null || x.sourceUpdatedAt > x.translation.UpdatedAt || !x.reviewed).Take(40).ToListAsync(token);
-            items.AddRange(debt.Select(x => new { x.ArticleGroupId, targetLocaleId = target.Id, targetLocale = target.Code, x.sourceTitle, translationTitle = x.translation == null ? null : x.translation.Title,
-                kind = x.translation == null ? "Missing" : x.sourceUpdatedAt > x.translation.UpdatedAt ? "Stale" : "Review", x.assignment, sla = x.assignment == null ? "Unassigned" : x.assignment.DueAt < now ? "Overdue" : x.assignment.DueAt < now.AddHours(48) ? "DueSoon" : "OnTrack" }));
+            var translations = await database.ArticleLocalizations.AsNoTracking().Where(t => t.LocaleId == target.Id && t.Status != PublicationStatus.Archived).ToDictionaryAsync(t => t.ArticleGroupId, token);
+            var reviewedIds = await database.ArticleQualityChecklists.AsNoTracking().Where(q => q.TranslationReviewed && translations.Values.Select(t => t.Id).Contains(q.ArticleLocalizationId)).Select(q => q.ArticleLocalizationId).ToHashSetAsync(token);
+            var assignments = await database.LocalizationAssignments.AsNoTracking().Where(a => a.TargetLocaleId == target.Id).Select(a => new { a.ArticleGroupId, a.AssigneeUserId, a.DueAt, status = a.Status.ToString(), assignee = database.Users.Where(u => u.Id == a.AssigneeUserId).Select(u => u.DisplayName).FirstOrDefault() }).ToDictionaryAsync(a => a.ArticleGroupId, token);
+            foreach (var source in sources)
+            {
+                translations.TryGetValue(source.ArticleGroupId, out var translation);
+                var reviewed = translation is not null && reviewedIds.Contains(translation.Id);
+                if (translation is not null && translation.SourceSnapshotUpdatedAt is not null && source.UpdatedAt <= translation.SourceSnapshotUpdatedAt && reviewed) continue;
+                assignments.TryGetValue(source.ArticleGroupId, out var assignment);
+                items.Add(new { source.ArticleGroupId, targetLocaleId = target.Id, targetLocale = target.Code, sourceTitle = source.Title, translationTitle = translation?.Title,
+                    kind = translation is null ? "Missing" : translation.SourceSnapshotUpdatedAt is null ? "Untracked" : source.UpdatedAt > translation.SourceSnapshotUpdatedAt ? "Stale" : "Review",
+                    sourceSnapshotAt = translation?.SourceSnapshotUpdatedAt,
+                    changedFields = translation?.ChangedSourceFields(source) ?? [], assignment,
+                    sla = assignment == null ? "Unassigned" : assignment.DueAt < now ? "Overdue" : assignment.DueAt < now.AddHours(48) ? "DueSoon" : "OnTrack" });
+                if (items.Count >= 80) break;
+            }
         }
         return Results.Ok(new { checkedAt = now, users, items = items.Take(80) });
     }
@@ -105,7 +115,8 @@ public static class LocaleManagementEndpoints
                 staleTranslationCount = locale.IsDefault ? 0 : locale.ArticleLocalizations.Count(translation =>
                     (translation.Status == PublicationStatus.Draft || translation.Status == PublicationStatus.Published) &&
                     database.ArticleLocalizations.Any(source => source.ArticleGroupId == translation.ArticleGroupId &&
-                        source.Locale.IsDefault && source.Status == PublicationStatus.Published && source.UpdatedAt > translation.UpdatedAt)),
+                        source.Locale.IsDefault && source.Status == PublicationStatus.Published &&
+                        (translation.SourceSnapshotUpdatedAt == null || source.UpdatedAt > translation.SourceSnapshotUpdatedAt))),
                 linkedCategoryCount = locale.IsDefault ? sourceCategoryCount : database.Categories.Count(category =>
                     category.LocaleId == locale.Id && category.SourceCategoryId != null &&
                     category.SourceCategory!.Articles.Any(article => article.Status == PublicationStatus.Published)),

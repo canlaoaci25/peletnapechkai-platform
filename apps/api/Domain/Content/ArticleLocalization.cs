@@ -1,4 +1,6 @@
 using Peletnapechkai.Api.Domain.Localization;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Peletnapechkai.Api.Domain.Content;
 
@@ -77,6 +79,11 @@ public sealed class ArticleLocalization
 
     public DateTimeOffset UpdatedAt { get; private set; }
     public Guid? GeneratedByAutomationJobId { get; private set; }
+    public DateTimeOffset? SourceSnapshotUpdatedAt { get; private set; }
+    public string? SourceTitleHash { get; private set; }
+    public string? SourceSummaryHash { get; private set; }
+    public string? SourceBodyHash { get; private set; }
+    public string? SourceSeoHash { get; private set; }
 
     public SeoMetadata? SeoMetadata { get; private set; }
 
@@ -216,6 +223,31 @@ public sealed class ArticleLocalization
         if (Locale.IsDefault || jobId == Guid.Empty) throw new InvalidOperationException("Only translated content can be linked to a generation job.");
         GeneratedByAutomationJobId = jobId;
     }
+
+    public void CaptureSourceSnapshot(ArticleLocalization source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (Locale.IsDefault || !source.Locale.IsDefault || source.ArticleGroupId != ArticleGroupId)
+            throw new InvalidOperationException("A translation snapshot requires its default-locale source.");
+        SourceSnapshotUpdatedAt = source.UpdatedAt;
+        SourceTitleHash = Hash(source.Title);
+        SourceSummaryHash = Hash(source.Summary);
+        SourceBodyHash = Hash(source.Body);
+        SourceSeoHash = Hash($"{source.SeoTitle}\n{source.SeoDescription}");
+    }
+
+    public IReadOnlyList<string> ChangedSourceFields(ArticleLocalization source)
+    {
+        if (SourceSnapshotUpdatedAt is null) return ["Untracked"];
+        var fields = new List<string>(4);
+        if (SourceTitleHash != Hash(source.Title)) fields.Add("Title");
+        if (SourceSummaryHash != Hash(source.Summary)) fields.Add("Summary");
+        if (SourceBodyHash != Hash(source.Body)) fields.Add("Body");
+        if (SourceSeoHash != Hash($"{source.SeoTitle}\n{source.SeoDescription}")) fields.Add("Seo");
+        return fields;
+    }
+
+    private static string Hash(string? value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value ?? string.Empty)));
 
     public void UpdateAutomatedSeo(string seoTitle, string seoDescription, DateTimeOffset updatedAt)
     {

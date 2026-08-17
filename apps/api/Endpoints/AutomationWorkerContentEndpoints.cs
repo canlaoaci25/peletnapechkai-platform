@@ -131,6 +131,7 @@ public static partial class AutomationWorkerEndpoints
             if (await database.ArticleLocalizations.AnyAsync(article => article.LocaleId == locale.Id && article.Slug == slug, token))
                 slug = $"{slug[..Math.Min(slug.Length, 230)]}-{source.ArticleGroupId.ToString("N")[..8]}";
             var article = new ArticleLocalization(source.ArticleGroup, locale, slug, item.Title, item.Summary, SanitizeBody(item.Body), now);
+            article.CaptureSourceSnapshot(source);
             var sourceCategoryIds = source.Categories.Select(category => category.Id).ToArray();
             if (sourceCategoryIds.Length > 0)
             {

@@ -1,5 +1,14 @@
 # Delivery roadmap
 
+## Cycle 54 — Translation source integrity
+
+International Publishing Health now shows the source-version evidence behind every translation
+and identifies whether title, summary, body, or SEO changed after that snapshot. New automated
+translations capture bounded hashes and the source revision time transactionally; legacy records
+remain explicitly untracked rather than receiving invented history. Authorized retranslation with
+atomic snapshot refresh, revision-to-revision inline comparison, culturally adapted visual review,
+and locale search-intent measurement remain the next international-publishing milestones.
+
 ## Cycle 53 — Source authority and editorial review
 
 The public Sources & Trust Center now distinguishes official institutions, primary research,

@@ -38,6 +38,18 @@ test("localization debt has locale-complete ownership and SLA controls", () => {
   assert.ok(css.includes(".localization-work-card form{grid-template-columns:1fr}"));
 });
 
+test("localization debt exposes durable source snapshots and field-level differences", () => {
+  const manager = read("../components/admin/language-manager.tsx");
+  const endpoint = read("../../../api/Endpoints/LocaleManagementEndpoints.cs");
+  const model = read("../../../api/Domain/Content/ArticleLocalization.cs");
+  assert.match(manager, /localization-source-evidence/);
+  assert.match(manager, /sourceSnapshotAt/);
+  assert.match(manager, /changedFields/);
+  assert.match(endpoint, /ChangedSourceFields/);
+  assert.match(model, /CaptureSourceSnapshot/);
+  assert.match(model, /SHA256\.HashData/);
+});
+
 test("localized tag archives expose reciprocal locale routes and parity debt", () => {
   const endpoint = read("../../../api/Endpoints/PublicContentEndpoints.cs");
   const manager = read("../components/admin/language-manager.tsx");

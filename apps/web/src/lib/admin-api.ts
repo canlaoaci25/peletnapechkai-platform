@@ -201,7 +201,7 @@ export type ManagedLocale = {
     isPrimary: boolean;
   }[];
 };
-export type LocalizationWork = { checkedAt:string; users:{id:string;displayName:string}[]; items:{articleGroupId:string;targetLocaleId:string;targetLocale:string;sourceTitle:string;translationTitle:string|null;kind:"Missing"|"Stale"|"Review";sla:"Unassigned"|"Overdue"|"DueSoon"|"OnTrack";assignment:null|{assigneeUserId:string;assignee:string|null;dueAt:string;status:string}}[] };
+export type LocalizationWork = { checkedAt:string; users:{id:string;displayName:string}[]; items:{articleGroupId:string;targetLocaleId:string;targetLocale:string;sourceTitle:string;translationTitle:string|null;kind:"Missing"|"Untracked"|"Stale"|"Review";sourceSnapshotAt:string|null;changedFields:("Title"|"Summary"|"Body"|"Seo"|"Untracked")[];sla:"Unassigned"|"Overdue"|"DueSoon"|"OnTrack";assignment:null|{assigneeUserId:string;assignee:string|null;dueAt:string;status:string}}[] };
 export type LocaleCatalogItem = {
   code: string;
   displayName: string;

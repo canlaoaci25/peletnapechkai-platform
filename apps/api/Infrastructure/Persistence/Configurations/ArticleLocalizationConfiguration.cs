@@ -40,6 +40,11 @@ public sealed class ArticleLocalizationConfiguration : IEntityTypeConfiguration<
         builder.Property(article => article.CreatedAt).HasColumnName("created_at");
         builder.Property(article => article.UpdatedAt).HasColumnName("updated_at").IsConcurrencyToken();
         builder.Property(article => article.GeneratedByAutomationJobId).HasColumnName("generated_by_automation_job_id");
+        builder.Property(article => article.SourceSnapshotUpdatedAt).HasColumnName("source_snapshot_updated_at");
+        builder.Property(article => article.SourceTitleHash).HasColumnName("source_title_hash").HasMaxLength(64);
+        builder.Property(article => article.SourceSummaryHash).HasColumnName("source_summary_hash").HasMaxLength(64);
+        builder.Property(article => article.SourceBodyHash).HasColumnName("source_body_hash").HasMaxLength(64);
+        builder.Property(article => article.SourceSeoHash).HasColumnName("source_seo_hash").HasMaxLength(64);
 
         builder.HasIndex(article => new { article.LocaleId, article.Slug })
             .IsUnique()
