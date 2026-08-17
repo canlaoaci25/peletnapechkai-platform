@@ -60,6 +60,28 @@ public static class EditorialCommandCenterEndpoints
                     item.SeoMetadata, item.CoverAccessibility, item.CommercialDisclosure,
                     item.TranslationReviewed, item.LegalEditorialReview)))
             .Take(24).ToListAsync(token);
+        var freshnessCandidates = await database.ArticleLocalizations.AsNoTracking()
+            .Where(article => article.Status == PublicationStatus.Published)
+            .OrderBy(article => article.UpdatedAt)
+            .Take(200)
+            .Select(article => new {
+                article.Id, article.Title, Locale = article.Locale.Code, article.UpdatedAt,
+                SourceCount = article.ArticleGroup.Sources.Count,
+                UnreviewedSources = article.ArticleGroup.Sources.Count(source => source.LastReviewedAt == null),
+                OldestSourceReview = article.ArticleGroup.Sources.Min(source => (DateTimeOffset?)source.LastReviewedAt)
+            }).ToListAsync(token);
+        var freshnessItems = freshnessCandidates.Select(article => new {
+                Article = article,
+                Reasons = EditorialFreshnessPolicy.Assess(now, article.UpdatedAt, article.SourceCount,
+                    article.UnreviewedSources, article.OldestSourceReview)
+            })
+            .Where(item => item.Reasons.Length > 0)
+            .OrderByDescending(item => EditorialFreshnessPolicy.Score(item.Reasons))
+            .ThenBy(item => item.Article.UpdatedAt)
+            .Take(24)
+            .Select(item => new EditorialCommandItem(item.Article.Id, item.Article.Title, item.Article.Locale,
+                "FreshnessDebt", item.Article.UpdatedAt, null, null, null, null, null, null, false,
+                null, item.Reasons)).ToList();
         var activeUsers = await database.Users.AsNoTracking().Where(user => user.IsActive).OrderBy(user => user.DisplayName)
             .Select(user => new { user.Id, user.DisplayName }).ToListAsync(token);
         var workloadCounts = await openTasks.GroupBy(task => task.AssigneeUserId).Select(group => new {
@@ -71,14 +93,14 @@ public static class EditorialCommandCenterEndpoints
         }).OrderByDescending(item => item.Overdue).ThenByDescending(item => item.Open).ThenBy(item => item.DisplayName).ToArray();
         var activeIds = activeUsers.Select(user => user.Id).ToHashSet();
         var unassigned = workloadCounts.Where(item => !activeIds.Contains(item.UserId)).Sum(item => item.Open);
-        var items = taskItems.Concat(reviewItems).Concat(qualityItems).OrderByDescending(item => item.IsMine)
+        var items = taskItems.Concat(reviewItems).Concat(qualityItems).Concat(freshnessItems).OrderByDescending(item => item.IsMine)
             .ThenByDescending(item => EditorialCommandPriority.Score(item.Kind, item.Priority))
             .ThenBy(item => item.DueAt).Take(60).ToArray();
         return Results.Ok(new { checkedAt = now, summary = new {
             overdue = taskItems.Count(item => item.Kind == "OverdueTask"),
             dueSoon = taskItems.Count(item => item.Kind == "Task" && item.DueAt <= now.AddDays(2)),
             inReview = reviewItems.Count, incompleteQuality, personalOpen, personalOverdue, personalDueSoon,
-            unassigned, teamMembers = workloads.Length }, workloads, users = activeUsers, items });
+            freshnessDebt = freshnessItems.Count, unassigned, teamMembers = workloads.Length }, workloads, users = activeUsers, items });
     }
 
     private static async Task<IResult> ReassignAsync(Guid taskId, ReassignRequest request,
@@ -160,7 +182,7 @@ public static class EditorialCommandCenterEndpoints
 
 public sealed record EditorialCommandItem(Guid ArticleId, string Title, string Locale, string Kind,
     DateTimeOffset DueAt, string? TaskTitle, string? Assignee, Guid? AssigneeUserId, string? Priority, Guid? TaskId, string? Status, bool IsMine,
-    string[]? MissingGates = null);
+    string[]? MissingGates = null, string[]? FreshnessReasons = null);
 public sealed record EditorialWorkload(Guid UserId, string DisplayName, int Open, int Overdue, int DueSoon);
 public sealed record ReassignRequest(Guid AssigneeUserId);
 public sealed record BulkReassignRequest(Guid[] TaskIds, Guid AssigneeUserId);
@@ -197,7 +219,26 @@ public static class EditorialCommandPriority
     public static int Score(string kind, string? priority) => kind switch {
         "OverdueTask" when priority == "Urgent" => 500, "OverdueTask" => 400,
         "Task" when priority == "Urgent" => 300, "EditorialReview" => 220,
-        "SeoReview" => 210, "QualityGate" => 200, "Task" => 100, _ => 0 };
+        "SeoReview" => 210, "QualityGate" => 200, "FreshnessDebt" => 190, "Task" => 100, _ => 0 };
+}
+
+public static class EditorialFreshnessPolicy
+{
+    public static string[] Assess(DateTimeOffset now, DateTimeOffset updatedAt, int sourceCount,
+        int unreviewedSources, DateTimeOffset? oldestSourceReview)
+    {
+        var reasons = new List<string>(3);
+        if (updatedAt <= now.AddDays(-365)) reasons.Add("ContentOverOneYear");
+        else if (updatedAt <= now.AddDays(-180)) reasons.Add("ContentOverSixMonths");
+        if (sourceCount == 0 || unreviewedSources > 0) reasons.Add("SourcesUnreviewed");
+        else if (oldestSourceReview <= now.AddDays(-180)) reasons.Add("SourcesReviewStale");
+        return [.. reasons];
+    }
+
+    public static int Score(IEnumerable<string> reasons) => reasons.Sum(reason => reason switch {
+        "ContentOverOneYear" => 4, "SourcesUnreviewed" => 3, "SourcesReviewStale" => 2,
+        "ContentOverSixMonths" => 1, _ => 0
+    });
 }
 
 public static class EditorialQualityDebt

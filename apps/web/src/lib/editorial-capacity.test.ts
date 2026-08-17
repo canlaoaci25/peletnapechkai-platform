@@ -27,3 +27,12 @@ test("quality debt is actionable, localized, and uses the real command queue", (
   assert.match(component, /CoverAccessibility/);
   assert.match(styles, /\.quality-debt-gates/);
 });
+
+test("published content freshness debt explains its evidence in every locale", () => {
+  assert.match(component, /filter === "freshness"/);
+  assert.match(component, /summary\.freshnessDebt/);
+  assert.match(component, /item\.freshnessReasons\.map/);
+  assert.match(component, /ContentOverOneYear/);
+  assert.match(component, /SourcesReviewStale/);
+  assert.match(styles, /\.freshness-debt-reasons/);
+});

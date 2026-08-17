@@ -16,7 +16,7 @@ const copy = {
     soon: "48 saatte",
     review: "İncelemede",
     quality: "Eksik kalite kapısı",
-    qualityFilter: "Kalite borcu", QualityGate: "Kalite kapısı", missing: "Eksik kontroller",
+    qualityFilter: "Kalite borcu", QualityGate: "Kalite kapısı", missing: "Eksik kontroller", freshnessFilter:"Tazelik borcu",FreshnessDebt:"Tazelik incelemesi",freshness:"Güncellenmesi gereken",freshnessReasons:"İnceleme nedenleri",ContentOverOneYear:"Bir yıldan uzun süredir güncellenmedi",ContentOverSixMonths:"Altı aydan uzun süredir güncellenmedi",SourcesUnreviewed:"Doğrulanmamış kaynak var",SourcesReviewStale:"Kaynak incelemesi altı aydan eski",
     openTasks: "Açık görevim",
     empty: "Bu görünüm temiz",
     emptyBody: "Seçili filtrede bekleyen iş bulunmuyor.",
@@ -48,7 +48,7 @@ const copy = {
     soon: "Due in 48h",
     review: "In review",
     quality: "Quality gates open",
-    qualityFilter: "Quality debt", QualityGate: "Quality gate", missing: "Missing checks",
+    qualityFilter: "Quality debt", QualityGate: "Quality gate", missing: "Missing checks", freshnessFilter:"Freshness debt",FreshnessDebt:"Freshness review",freshness:"Needs updating",freshnessReasons:"Review reasons",ContentOverOneYear:"Not updated for over a year",ContentOverSixMonths:"Not updated for over six months",SourcesUnreviewed:"Contains unreviewed sources",SourcesReviewStale:"Source review is over six months old",
     openTasks: "My open tasks",
     empty: "This view is clear",
     emptyBody: "There is no pending work in this filter.",
@@ -80,7 +80,7 @@ const copy = {
     soon: "In 48 Std.",
     review: "In Prüfung",
     quality: "Offene Qualitätsprüfungen",
-    qualityFilter: "Qualitätslücken", QualityGate: "Qualitätsprüfung", missing: "Fehlende Prüfungen",
+    qualityFilter: "Qualitätslücken", QualityGate: "Qualitätsprüfung", missing: "Fehlende Prüfungen", freshnessFilter:"Aktualitätsbedarf",FreshnessDebt:"Aktualitätsprüfung",freshness:"Zu aktualisieren",freshnessReasons:"Prüfgründe",ContentOverOneYear:"Seit über einem Jahr nicht aktualisiert",ContentOverSixMonths:"Seit über sechs Monaten nicht aktualisiert",SourcesUnreviewed:"Enthält ungeprüfte Quellen",SourcesReviewStale:"Quellenprüfung ist über sechs Monate alt",
     openTasks: "Meine offenen Aufgaben",
     empty: "Diese Ansicht ist leer",
     emptyBody: "Für diesen Filter gibt es keine offenen Arbeiten.",
@@ -112,7 +112,7 @@ const copy = {
     soon: "Sous 48 h",
     review: "En révision",
     quality: "Contrôles ouverts",
-    qualityFilter: "Dette qualité", QualityGate: "Contrôle qualité", missing: "Contrôles manquants",
+    qualityFilter: "Dette qualité", QualityGate: "Contrôle qualité", missing: "Contrôles manquants", freshnessFilter:"Dette de fraîcheur",FreshnessDebt:"Révision de fraîcheur",freshness:"À actualiser",freshnessReasons:"Motifs de révision",ContentOverOneYear:"Non actualisé depuis plus d’un an",ContentOverSixMonths:"Non actualisé depuis plus de six mois",SourcesUnreviewed:"Contient des sources non vérifiées",SourcesReviewStale:"Vérification des sources de plus de six mois",
     openTasks: "Mes tâches ouvertes",
     empty: "Cette vue est vide",
     emptyBody: "Aucun travail en attente pour ce filtre.",
@@ -134,7 +134,7 @@ const copy = {
   },
 } as const;
 type Scope = "mine" | "team";
-type Filter = "all" | "overdue" | "soon" | "review" | "quality";
+type Filter = "all" | "overdue" | "soon" | "review" | "quality" | "freshness";
 const gateCopy={
   "tr-TR":{TitleAndSummary:"Başlık ve özet",SourcesVerified:"Kaynak doğrulama",AuthorAndTaxonomy:"Yazar ve kategori",SeoMetadata:"SEO metadata",CoverAccessibility:"Kapak ve alt metin",CommercialDisclosure:"Ticari açıklama",TranslationReviewed:"Çeviri incelemesi",LegalEditorialReview:"Hukuk/editoryal inceleme"},
   "en-US":{TitleAndSummary:"Title and summary",SourcesVerified:"Source verification",AuthorAndTaxonomy:"Author and taxonomy",SeoMetadata:"SEO metadata",CoverAccessibility:"Cover and alt text",CommercialDisclosure:"Commercial disclosure",TranslationReviewed:"Translation review",LegalEditorialReview:"Legal/editorial review"},
@@ -174,6 +174,7 @@ export function EditorialCommandCenterView({
         if (filter === "review")
           return item.kind === "EditorialReview" || item.kind === "SeoReview";
         if (filter === "quality") return item.kind === "QualityGate";
+        if (filter === "freshness") return item.kind === "FreshnessDebt";
         return true;
       }),
     [data.checkedAt, data.items, filter, scope],
@@ -241,6 +242,7 @@ export function EditorialCommandCenterView({
     ],
     ["review", c.review, scope === "mine" ? 0 : data.summary.inReview],
     ["quality", c.qualityFilter, scope === "mine" ? 0 : data.summary.incompleteQuality],
+    ["freshness", c.freshnessFilter, scope === "mine" ? 0 : data.summary.freshnessDebt],
   ];
   return (
     <section
@@ -294,6 +296,10 @@ export function EditorialCommandCenterView({
           <strong>{data.summary.incompleteQuality}</strong>
           <span>{c.quality}</span>
         </article>
+        <article>
+          <strong>{data.summary.freshnessDebt}</strong>
+          <span>{c.freshness}</span>
+        </article>
       </div>
       <section className="editorial-capacity" aria-labelledby="editorial-capacity-title">
         <header><div><p className="section-kicker">{c.teamMembers}: {data.summary.teamMembers}</p><h3 id="editorial-capacity-title">{c.capacity}</h3><p>{c.capacityIntro}</p></div><strong data-alert={data.summary.unassigned>0}>{data.summary.unassigned} <span>{c.noOwner}</span></strong></header>
@@ -343,6 +349,7 @@ export function EditorialCommandCenterView({
                 <h3>{item.taskTitle ?? item.title}</h3>
                 {item.taskTitle && <p>{item.title}</p>}
                 {item.kind==="QualityGate"&&item.missingGates&&<div className="quality-debt-gates" aria-label={c.missing}>{item.missingGates.map(gate=><span key={gate}>{gateCopy[locale as keyof typeof gateCopy]?.[gate as keyof typeof gateCopy["tr-TR"]]??gate}</span>)}</div>}
+                {item.kind==="FreshnessDebt"&&item.freshnessReasons&&<div className="freshness-debt-reasons" aria-label={c.freshnessReasons}>{item.freshnessReasons.map(reason=><span key={reason}>{c[reason as keyof typeof c]??reason}</span>)}</div>}
                 <small>
                   {item.locale}
                   {item.assignee ? ` · ${c.assigned}: ${item.assignee}` : ""}

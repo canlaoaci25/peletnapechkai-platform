@@ -154,6 +154,7 @@ export type EditorialCommandCenter = {
     dueSoon: number;
     inReview: number;
     incompleteQuality: number;
+    freshnessDebt: number;
     personalOpen: number;
     personalOverdue: number;
     personalDueSoon: number;
@@ -182,6 +183,7 @@ export type EditorialCommandCenter = {
     status: string | null;
     isMine: boolean;
     missingGates: string[] | null;
+    freshnessReasons: string[] | null;
   }[];
 };
 export type KnowledgeLink = {

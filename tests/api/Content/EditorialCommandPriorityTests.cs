@@ -56,4 +56,15 @@ public sealed class EditorialCommandPriorityTests
             System.Text.Json.JsonSerializer.Serialize(new{batchId,previousAssigneeUserId=previous,assigneeUserId=next}),DateTimeOffset.UtcNow);
         Assert.Equal(new BulkAssignmentAudit(batchId,taskId,previous,next),EditorialBulkAssignment.Read(log));
     }
+
+    [Fact]
+    public void Freshness_policy_explains_content_and_source_risk_without_hiding_the_cause()
+    {
+        var now = new DateTimeOffset(2026, 8, 17, 0, 0, 0, TimeSpan.Zero);
+        Assert.Equal(["ContentOverOneYear", "SourcesUnreviewed"],
+            EditorialFreshnessPolicy.Assess(now, now.AddDays(-400), 2, 1, null));
+        Assert.Equal(["ContentOverSixMonths", "SourcesReviewStale"],
+            EditorialFreshnessPolicy.Assess(now, now.AddDays(-200), 2, 0, now.AddDays(-190)));
+        Assert.Empty(EditorialFreshnessPolicy.Assess(now, now.AddDays(-20), 1, 0, now.AddDays(-20)));
+    }
 }

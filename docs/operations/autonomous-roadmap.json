@@ -11,13 +11,13 @@
                       "id":  "browser-push",
                       "title":  "Tarayıcı ve telefon push bildirimleri",
                       "outcome":  "İzin veren üyeye yeni Türkçe içerik ve doğrulanmış site güncellemelerini Web Push ile gönder; konu tercihleri, sessiz saatler ve abonelikten çıkma ekle.",
-                      "status":  "active"
+                      "status":  "queued"
                   },
                   {
                       "id":  "visual-service",
                       "title":  "Bağımsız görsel üretim servisi",
                       "outcome":  "Makale bağlamından yazısız, konuya uygun kapak ve gövde görselleri üret; kalite kapıları ve sağlayıcı yedeği ekle.",
-                      "status":  "queued"
+                      "status":  "active"
                   },
                   {
                       "id":  "visual-backfill",
@@ -87,9 +87,9 @@
                   },
                   {
                       "id":  "content-freshness",
-                      "title":  "Ä°Ã§erik tazelik ve gÃ¼ncelleme merkezi",
-                      "outcome":  "Eskiyen yayÄ±nlarÄ± kaynak, trafik ve deÄŸiÅŸen bilgi sinyalleriyle bul; revizyon, SEO ve yeniden daÄŸÄ±tÄ±m akÄ±ÅŸÄ±nÄ± tamamla.",
-                      "status":  "queued"
+                      "title":  "İçerik tazelik ve güncelleme merkezi",
+                      "outcome":  "Eskiyen yayınları içerik yaşı ve kaynak doğrulama sinyalleriyle bul; editöre gerekçeli ve doğrudan çalışılabilir bir kuyruk sun.",
+                      "status":  "completed"
                   },
                   {
                       "id":  "source-trust",
@@ -104,9 +104,15 @@
                       "status":  "queued"
                   },
                   {
-                      "id":  "content-freshness-next-1",
-                      "title":  "Ä°Ã§erik tazelik ve gÃ¼ncelleme merkezi",
-                      "outcome":  "Eskiyen yayÄ±nlarÄ± kaynak, trafik ve deÄŸiÅŸen bilgi sinyalleriyle bul; revizyon, SEO ve yeniden daÄŸÄ±tÄ±m akÄ±ÅŸÄ±nÄ± tamamla.",
+                      "id":  "corrections-workflow",
+                      "title":  "Düzeltme ve şeffaflık iş akışı",
+                      "outcome":  "Yayın sonrası düzeltmeleri editoryal onay, değişiklik özeti, audit izi ve okura görünür şeffaflık notuyla yönet.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "editorial-calendar",
+                      "title":  "Editoryal takvim ve yayın dengesi",
+                      "outcome":  "Planlanan yayınları locale, kategori, sorumlu ve tarih ekseninde çakışma uyarılarıyla yönetilebilir bir takvimde birleştir.",
                       "status":  "queued"
                   }
               ]
