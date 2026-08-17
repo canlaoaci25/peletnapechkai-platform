@@ -4,7 +4,8 @@ import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
-import type { LocaleCatalogItem, ManagedLocale } from "@/lib/admin-api";
+import type { LocaleCatalogItem, ManagedLocale, LocalizationWork } from "@/lib/admin-api";
+import type { Locale } from "@/i18n/config";
 
 async function mutate(path: string, method: "POST" | "PUT", body: object) {
   const csrf = await fetch("/api/admin/auth/csrf", { cache: "no-store" });
@@ -20,6 +21,20 @@ async function mutate(path: string, method: "POST" | "PUT", body: object) {
     } | null;
     throw new Error(problem?.message ?? "İşlem tamamlanamadı.");
   }
+}
+
+const workCopy={
+  "tr-TR":{kicker:"YERELLEŞTİRME OPERASYONU",title:"Sahiplik ve SLA kuyruğu",description:"Eksik, güncelliğini yitirmiş ve insan incelemesi bekleyen işleri sorumlu ve son tarihle güvenceye alın.",owner:"Sorumlu",due:"Son tarih",assign:"Ata",all:"Tüm diller",failed:"Atama kaydedilemedi.",empty:"Açık yerelleştirme borcu yok",Missing:"Eksik çeviri",Stale:"Güncel değil",Review:"İnceleme bekliyor",Unassigned:"Sahipsiz",Overdue:"Gecikmiş",DueSoon:"Yaklaşıyor",OnTrack:"Planlı"},
+  "en-US":{kicker:"LOCALIZATION OPERATIONS",title:"Ownership and SLA queue",description:"Secure missing, stale and human-review work with an accountable owner and deadline.",owner:"Owner",due:"Due date",assign:"Assign",all:"All locales",failed:"Assignment could not be saved.",empty:"No open localization debt",Missing:"Missing translation",Stale:"Out of date",Review:"Review pending",Unassigned:"Unassigned",Overdue:"Overdue",DueSoon:"Due soon",OnTrack:"On track"},
+  "de-DE":{kicker:"LOKALISIERUNGSBETRIEB",title:"Verantwortungs- und SLA-Warteschlange",description:"Fehlende, veraltete und zu prüfende Übersetzungen erhalten Verantwortliche und Fristen.",owner:"Verantwortlich",due:"Fällig",assign:"Zuweisen",all:"Alle Sprachen",failed:"Zuweisung konnte nicht gespeichert werden.",empty:"Keine offene Lokalisierungsschuld",Missing:"Übersetzung fehlt",Stale:"Veraltet",Review:"Prüfung offen",Unassigned:"Nicht zugewiesen",Overdue:"Überfällig",DueSoon:"Bald fällig",OnTrack:"Im Plan"},
+  "fr-FR":{kicker:"OPÉRATIONS DE LOCALISATION",title:"File de responsabilité et SLA",description:"Attribuez un responsable et une échéance aux traductions manquantes, obsolètes ou à réviser.",owner:"Responsable",due:"Échéance",assign:"Attribuer",all:"Toutes les langues",failed:"L’attribution n’a pas pu être enregistrée.",empty:"Aucune dette de localisation ouverte",Missing:"Traduction manquante",Stale:"Obsolète",Review:"Révision requise",Unassigned:"Non attribué",Overdue:"En retard",DueSoon:"Bientôt dû",OnTrack:"Planifié"}
+} as const;
+
+export function LocalizationWorkQueue({locale,work}:{locale:Locale;work:LocalizationWork}){
+  const c=workCopy[locale],router=useRouter(),[pending,setPending]=useState<string|null>(null),[filter,setFilter]=useState("All"),[error,setError]=useState("");
+  const items=filter==="All"?work.items:work.items.filter(item=>item.targetLocale===filter);
+  async function assign(event:FormEvent<HTMLFormElement>,item:LocalizationWork["items"][number]){event.preventDefault();setPending(item.articleGroupId+item.targetLocale);setError("");const data=new FormData(event.currentTarget);try{await mutate(`/work/${item.articleGroupId}/${item.targetLocaleId}`,"PUT",{assigneeUserId:data.get("owner"),dueAt:new Date(`${data.get("due")}T12:00:00Z`).toISOString()});router.refresh()}catch{setError(c.failed)}finally{setPending(null)}}
+  return <section className="localization-work"><header><div><p className="section-kicker">{c.kicker}</p><h2>{c.title}</h2><p>{c.description}</p></div><select aria-label="Locale" value={filter} onChange={e=>setFilter(e.target.value)}><option value="All">{c.all}</option>{[...new Set(work.items.map(x=>x.targetLocale))].map(code=><option key={code}>{code}</option>)}</select></header>{error&&<p className="form-error" role="alert">{error}</p>}{items.length===0?<div className="admin-panel localization-empty">✓ {c.empty}</div>:<div className="localization-work-list">{items.map(item=><article className={`admin-panel localization-work-card ${item.sla.toLowerCase()}`} key={`${item.articleGroupId}-${item.targetLocale}`}><div><span className="language-state">{item.targetLocale}</span><span className="localization-kind">{c[item.kind]}</span><span className="localization-sla">{c[item.sla]}</span></div><h3>{item.translationTitle??item.sourceTitle}</h3>{item.translationTitle&&<small>{item.sourceTitle}</small>}<form onSubmit={e=>void assign(e,item)}><label>{c.owner}<select name="owner" required defaultValue={item.assignment?.assigneeUserId??""}><option value="" disabled>—</option>{work.users.map(user=><option value={user.id} key={user.id}>{user.displayName}</option>)}</select></label><label>{c.due}<input name="due" type="date" required defaultValue={item.assignment?.dueAt.slice(0,10)}/></label><button disabled={pending===item.articleGroupId+item.targetLocale}>{c.assign}</button></form></article>)}</div>}</section>
 }
 
 export function LanguageList({

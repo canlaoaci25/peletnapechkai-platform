@@ -195,6 +195,7 @@ export type ManagedLocale = {
     isPrimary: boolean;
   }[];
 };
+export type LocalizationWork = { checkedAt:string; users:{id:string;displayName:string}[]; items:{articleGroupId:string;targetLocaleId:string;targetLocale:string;sourceTitle:string;translationTitle:string|null;kind:"Missing"|"Stale"|"Review";sla:"Unassigned"|"Overdue"|"DueSoon"|"OnTrack";assignment:null|{assigneeUserId:string;assignee:string|null;dueAt:string;status:string}}[] };
 export type LocaleCatalogItem = {
   code: string;
   displayName: string;
@@ -281,6 +282,7 @@ export async function getLocaleCatalog() {
     (await apiGet<LocaleCatalogItem[]>("/api/v1/admin/locales/catalog")) ?? []
   );
 }
+export async function getLocalizationWork(){return (await apiGet<LocalizationWork>("/api/v1/admin/locales/work"))??{checkedAt:new Date().toISOString(),users:[],items:[]}}
 export function getHomepageAdmin(locale:string){return apiGet<HomepageAdminData>(`/api/v1/admin/homepage/${encodeURIComponent(locale)}`)}
 type AuthorityRisk="missing_sources"|"single_source"|"single_domain"|"insecure_source"|"missing_seo"|"missing_cover"|"missing_category"|"missing_tags";
 export type TrafficDashboard={locale:string;checkedAt:string;published:number;totalViews:number;totalEngagedSeconds:number;averageEngagedSeconds:number;authority:{strong:number;needsWork:number;critical:number;averageScore:number;withoutSources:number;singleSource:number};sourceDomains:{domain:string;articles:number;citations:number}[];measurement:{internalAnalytics:boolean;ga4:boolean;clarity:boolean;searchConsole:boolean};searchConsole:null|{startDate:string;endDate:string;clicks:number;impressions:number;ctr:number;averagePosition:number;queries:{query:string;clicks:number;impressions:number;ctr:number;position:number}[]};top:{slug:string;title:string;views:number;engagedSeconds:number}[];opportunities:{id:string;slug:string;title:string;views:number;engagedSeconds:number;hasSeo:boolean;hasCover:boolean;tagCount:number;sourceCount:number;domainCount:number;authorityScore:number;risks:AuthorityRisk[]}[];clusters:{name:string;articles:number;views:number;engagedSeconds:number}[]};

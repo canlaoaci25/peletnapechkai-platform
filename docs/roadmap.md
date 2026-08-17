@@ -2,6 +2,13 @@
 
 ## Execution status
 
+Cycle 38 turns International Publishing Health into an accountable localization operations
+desk: missing, stale, and human-review translation debt is now a prioritized work queue with
+one durable owner and SLA per article group and target locale. Assignments are idempotent,
+CSRF-protected, audited, indexed for owner/SLA retrieval, and visible in all four interface
+locales across desktop and mobile. Field-level source diffs, tag translation relationships,
+locale quality scoring, and culturally adapted visual review remain the next milestones.
+
 Cycle 37 transforms the traffic dashboard into a multilingual Content Authority Center:
 administrators now see evidence-based source/SEO/taxonomy coverage, the most-used source
 domains, and a risk-ranked improvement queue weighted by existing traffic impact. Scores

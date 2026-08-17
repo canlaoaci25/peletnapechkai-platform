@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LanguageList } from "@/components/admin/language-manager";
+import { LanguageList, LocalizationWorkQueue } from "@/components/admin/language-manager";
 import { hasLocale } from "@/i18n/config";
-import { getAdminSession, getManagedLocales } from "@/lib/admin-api";
+import { getAdminSession, getManagedLocales, getLocalizationWork } from "@/lib/admin-api";
 
 export default async function LanguagesPage({
   params,
@@ -13,7 +13,7 @@ export default async function LanguagesPage({
   if (!session) redirect(`/${locale}/admin/login`);
   if (!session.roles.some((role) => ["Owner", "Admin"].includes(role)))
     redirect(`/${locale}/admin`);
-  const locales = await getManagedLocales();
+  const [locales, work] = await Promise.all([getManagedLocales(), getLocalizationWork()]);
   return (
     <main className="admin-shell admin-dashboard-shell">
       <header className="admin-command-header">
@@ -27,6 +27,7 @@ export default async function LanguagesPage({
         </Link>
       </header>
       <LanguageList locale={locale} locales={locales} />
+      <LocalizationWorkQueue locale={locale} work={work} />
     </main>
   );
 }

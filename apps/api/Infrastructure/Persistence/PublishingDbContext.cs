@@ -17,6 +17,7 @@ public sealed class PublishingDbContext(DbContextOptions<PublishingDbContext> op
 
     public DbSet<Locale> Locales => Set<Locale>();
     public DbSet<LocaleCountry> LocaleCountries => Set<LocaleCountry>();
+    public DbSet<LocalizationAssignment> LocalizationAssignments => Set<LocalizationAssignment>();
 
     public DbSet<ArticleGroup> ArticleGroups => Set<ArticleGroup>();
 

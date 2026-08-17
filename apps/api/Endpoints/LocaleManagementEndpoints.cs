@@ -22,7 +22,41 @@ public static class LocaleManagementEndpoints
         group.MapPost("/", CreateAsync).ValidateAntiforgery();
         group.MapPut("/{localeId:guid}", UpdateAsync).ValidateAntiforgery();
         group.MapPut("/{localeId:guid}/countries/{countryCode}", UpdateCountryAsync).ValidateAntiforgery();
+        group.MapGet("/work", WorkAsync);
+        group.MapPut("/work/{articleGroupId:guid}/{targetLocaleId:guid}", AssignWorkAsync).ValidateAntiforgery();
         return endpoints;
+    }
+
+    private static async Task<IResult> WorkAsync(PublishingDbContext database, CancellationToken token)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var source = database.ArticleLocalizations.AsNoTracking().Where(x => x.Locale.IsDefault && x.Status == PublicationStatus.Published);
+        var targets = await database.Locales.AsNoTracking().Where(x => x.IsEnabled && !x.IsDefault).OrderBy(x => x.Code).Select(x => new { x.Id, x.Code }).ToListAsync(token);
+        var users = await database.Users.AsNoTracking().Where(x => x.IsActive).OrderBy(x => x.DisplayName).Select(x => new { x.Id, x.DisplayName }).ToListAsync(token);
+        var items = new List<object>();
+        foreach (var target in targets)
+        {
+            var debt = await source.Select(x => new { x.ArticleGroupId, sourceTitle = x.Title, sourceUpdatedAt = x.UpdatedAt,
+                translation = database.ArticleLocalizations.Where(t => t.ArticleGroupId == x.ArticleGroupId && t.LocaleId == target.Id && t.Status != PublicationStatus.Archived).Select(t => new { t.Id, t.Title, t.UpdatedAt }).FirstOrDefault(),
+                reviewed = database.ArticleLocalizations.Where(t => t.ArticleGroupId == x.ArticleGroupId && t.LocaleId == target.Id).Select(t => database.ArticleQualityChecklists.Any(q => q.ArticleLocalizationId == t.Id && q.TranslationReviewed)).FirstOrDefault(),
+                assignment = database.LocalizationAssignments.Where(a => a.ArticleGroupId == x.ArticleGroupId && a.TargetLocaleId == target.Id).Select(a => new { a.AssigneeUserId, a.DueAt, status = a.Status.ToString(), assignee = database.Users.Where(u => u.Id == a.AssigneeUserId).Select(u => u.DisplayName).FirstOrDefault() }).FirstOrDefault()
+            }).Where(x => x.translation == null || x.sourceUpdatedAt > x.translation.UpdatedAt || !x.reviewed).Take(40).ToListAsync(token);
+            items.AddRange(debt.Select(x => new { x.ArticleGroupId, targetLocaleId = target.Id, targetLocale = target.Code, x.sourceTitle, translationTitle = x.translation == null ? null : x.translation.Title,
+                kind = x.translation == null ? "Missing" : x.sourceUpdatedAt > x.translation.UpdatedAt ? "Stale" : "Review", x.assignment, sla = x.assignment == null ? "Unassigned" : x.assignment.DueAt < now ? "Overdue" : x.assignment.DueAt < now.AddHours(48) ? "DueSoon" : "OnTrack" }));
+        }
+        return Results.Ok(new { checkedAt = now, users, items = items.Take(80) });
+    }
+
+    private static async Task<IResult> AssignWorkAsync(Guid articleGroupId, Guid targetLocaleId, AssignmentRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
+    {
+        var actor = await users.GetUserAsync(principal); if (actor is null) return Results.Unauthorized(); var now = DateTimeOffset.UtcNow;
+        if (request.DueAt <= now || !await database.Users.AnyAsync(x => x.Id == request.AssigneeUserId && x.IsActive, token) ||
+            !await database.Locales.AnyAsync(x => x.Id == targetLocaleId && x.IsEnabled && !x.IsDefault, token) ||
+            !await database.ArticleLocalizations.AnyAsync(x => x.ArticleGroupId == articleGroupId && x.Locale.IsDefault && x.Status == PublicationStatus.Published, token)) return Results.BadRequest();
+        var item = await database.LocalizationAssignments.SingleOrDefaultAsync(x => x.ArticleGroupId == articleGroupId && x.TargetLocaleId == targetLocaleId, token);
+        if (item is null) { item = new LocalizationAssignment(articleGroupId, targetLocaleId, request.AssigneeUserId, request.DueAt, actor.Id, now); database.Add(item); } else item.Assign(request.AssigneeUserId, request.DueAt, now);
+        database.AuditLogs.Add(new AuditLog(actor.Id, "localization.assignment_updated", nameof(LocalizationAssignment), item.Id, JsonSerializer.Serialize(new { articleGroupId, targetLocaleId, request.AssigneeUserId, request.DueAt }), now));
+        await database.SaveChangesAsync(token); return Results.Ok(new { item.Id, item.AssigneeUserId, item.DueAt });
     }
 
     private static IResult Catalog()
@@ -161,4 +195,5 @@ public static class LocaleManagementEndpoints
     private sealed record CreateLocaleRequest(string Code, string? DisplayName, string? NativeName);
     private sealed record UpdateLocaleRequest(string DisplayName, string NativeName, bool IsEnabled);
     private sealed record UpdateCountryRequest(bool IsEnabled);
+    private sealed record AssignmentRequest(Guid AssigneeUserId, DateTimeOffset DueAt);
 }

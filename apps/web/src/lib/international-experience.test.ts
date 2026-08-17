@@ -23,3 +23,17 @@ test("international publishing dashboard exposes coverage and editorial debt", (
   assert.match(manager, /missingCategoryCount/);
   assert.match(manager, /linkedCategoryCount/);
 });
+
+test("localization debt has locale-complete ownership and SLA controls", () => {
+  const manager = read("../components/admin/language-manager.tsx");
+  const endpoint = read("../../../api/Endpoints/LocaleManagementEndpoints.cs");
+  const css = read("../app/globals.css");
+  for (const locale of ["tr-TR", "en-US", "de-DE", "fr-FR"]) assert.match(manager, new RegExp(`"${locale}"`));
+  assert.match(manager, /LocalizationWorkQueue/);
+  assert.match(manager, /assigneeUserId/);
+  assert.match(manager, /x-csrf-token/);
+  assert.match(endpoint, /localization\.assignment_updated/);
+  assert.match(endpoint, /ValidateAntiforgery/);
+  assert.ok(css.includes("@media(max-width:600px){.localization-work>header"));
+  assert.ok(css.includes(".localization-work-card form{grid-template-columns:1fr}"));
+});
