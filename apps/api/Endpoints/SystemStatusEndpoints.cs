@@ -15,7 +15,8 @@ public static class SystemStatusEndpoints
             var types=await db.ArticleLocalizations.AsNoTracking().GroupBy(x=>x.ArticleGroup.Type).Select(group=>new{type=group.Key.ToString(),count=group.Count()}).ToDictionaryAsync(x=>x.type,x=>x.count,token);
             var articles=lifecycle.Values.Sum();var published=lifecycle.GetValueOrDefault(Domain.Content.PublicationStatus.Published.ToString());
             var deploymentHistory=deploymentReader.ReadHistory(50);
-            return Results.Ok(new {checkedAt=DateTimeOffset.UtcNow,database="healthy",articles,published,lifecycle,types,users=await db.Users.CountAsync(token),mediaFiles,mediaBytes,diskFreeBytes=drive.AvailableFreeSpace,productionHealth=healthReader.Read(),deployments=deploymentReader.ReadLatest(),deploymentHistory=deploymentHistory.Take(12),deploymentReliability=DeploymentSnapshotReader.Measure(deploymentHistory)});
+            var deployments=deploymentReader.ReadLatest();
+            return Results.Ok(new {checkedAt=DateTimeOffset.UtcNow,database="healthy",articles,published,lifecycle,types,users=await db.Users.CountAsync(token),mediaFiles,mediaBytes,diskFreeBytes=drive.AvailableFreeSpace,productionHealth=healthReader.Read(),deployments,deploymentConsistency=DeploymentSnapshotReader.MeasureConsistency(deployments),deploymentHistory=deploymentHistory.Take(12),deploymentReliability=DeploymentSnapshotReader.Measure(deploymentHistory)});
         }).RequireAuthorization(AuthorizationPolicies.ManageUsers).WithTags("Operations");return endpoints;
     }
 }

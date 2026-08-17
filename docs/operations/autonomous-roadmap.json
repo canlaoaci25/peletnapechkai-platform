@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-18T01:05:00Z",
+  "updatedAt": "2026-08-18T02:20:00Z",
   "items": [
     { "id": "public-sidebar", "title": "Yayın sidebar navigasyonu", "outcome": "Masaüstü ve mobilde kategori, arama, üyelik ve tema akışlarını tek erişilebilir navigasyonda birleştir.", "status": "completed" },
     { "id": "browser-push", "title": "Tarayıcı ve telefon push bildirimleri", "outcome": "İzin veren üyeye yeni Türkçe içerik ve doğrulanmış site güncellemelerini Web Push ile gönder; konu tercihleri, sessiz saatler ve abonelikten çıkma ekle.", "status": "queued" },
@@ -13,6 +13,7 @@
     { "id": "locale-coverage", "title": "Çok dilli yayın bütünlüğü", "outcome": "Çeviri, kategori eşlemesi, locale SEO ve ülke yönlendirmesi açıklarını otomatik kalite kapılarıyla kapat.", "status": "queued" },
     { "id": "seo-authority", "title": "SEO otoritesi ve iç bağlantılar", "outcome": "Ana sayfada kaynak derinliği kanıtlanan yayınları görünür kıl; konu kümeleri ve iç bağlantıları güçlendir.", "status": "completed" },
     { "id": "performance-budget", "title": "Core Web Vitals bütçesi", "outcome": "Mobil LCP, CLS ve INP metriklerini ölçülen bütçeler ve release kapılarıyla koru.", "status": "queued" },
-    { "id": "resilience-operations", "title": "Operasyonel dayanıklılık", "outcome": "Watchdog, yedek, geri alma, hata sınıflandırma ve canlı gözlemlenebilirlik katmanlarını tamamla.", "status": "queued" }
+    { "id": "resilience-operations", "title": "Operasyonel dayanıklılık", "outcome": "Web ve API sürümlerini kilitli staging→production terfisiyle birlikte dağıt; bileşen uyumunu admin ekranında görünür kıl.", "status": "completed" },
+    { "id": "canary-cohort-rollback", "title": "Canary ve sürüm kohortu geri alma", "outcome": "Yeni sürümü sınırlı trafikle doğrula; Web ve API kohortunu yetkili operatörün tek eylemiyle önceki sağlıklı sürüme döndür.", "status": "queued" }
   ]
 }

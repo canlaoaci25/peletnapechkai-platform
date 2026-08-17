@@ -6,6 +6,7 @@ public sealed record DeploymentSnapshot(string DeploymentId, string Environment,
     string Message, DateTimeOffset StartedAt, DateTimeOffset UpdatedAt, int DurationSeconds);
 public sealed record DeploymentReliability(int SampleSize, int Successful, int Recovered, int Failed, int SuccessRate,
     int MedianDurationSeconds, int P95DurationSeconds, int HealthyStreak, int Stalled, string State);
+public sealed record DeploymentConsistency(string Environment, string State, string? Commit, string Message);
 
 public sealed class DeploymentSnapshotReader(IConfiguration configuration)
 {
@@ -15,6 +16,18 @@ public sealed class DeploymentSnapshotReader(IConfiguration configuration)
 
     public DeploymentSnapshot[] ReadLatest() => new[] { "staging-web", "staging-api", "production-web", "production-api" }
         .Select(Read).Where(x => x is not null).Cast<DeploymentSnapshot>().OrderByDescending(x => x.UpdatedAt).ToArray();
+
+    public static DeploymentConsistency[] MeasureConsistency(IEnumerable<DeploymentSnapshot> snapshots) =>
+        new[] { "Staging", "Production" }.Select<string, DeploymentConsistency>(environment =>
+        {
+            var items = snapshots.Where(x => x.Environment == environment).ToArray();
+            if (items.Length != 2) return new(environment, "Incomplete", null, "Web ve API dağıtım kanıtı birlikte bulunmuyor.");
+            if (items.Any(x => x.Status != "Succeeded")) return new(environment, "AtRisk", null, "Bileşenlerden en az biri doğrulanmış yayında değil.");
+            var commits = items.Select(x => x.Commit).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            return commits.Length == 1
+                ? new(environment, "Aligned", commits[0], "Web ve API aynı doğrulanmış sürümde.")
+                : new(environment, "Drifted", null, "Web ve API farklı commitlerde; terfi tamamlanmamış olabilir.");
+        }).ToArray();
 
     public DeploymentSnapshot[] ReadHistory(int limit = 12)
     {

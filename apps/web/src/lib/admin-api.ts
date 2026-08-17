@@ -121,6 +121,7 @@ export type SystemStatus = {
     failures: string[];
   };
   deployments: DeploymentSnapshot[];
+  deploymentConsistency: { environment: "Staging" | "Production"; state: "Aligned" | "Drifted" | "Incomplete" | "AtRisk"; commit: string | null; message: string }[];
   deploymentHistory: DeploymentSnapshot[];
   deploymentReliability: {
     sampleSize: number;

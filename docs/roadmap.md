@@ -1,5 +1,14 @@
 # Delivery roadmap
 
+## Cycle 64 — Cohesive release promotion and drift visibility
+
+The Release Recovery Center now shows whether the latest Web and API evidence is aligned on
+one verified commit in staging and production, making partial promotion visible instead of
+presenting four unrelated green checks. A single clean-tree promotion command serializes
+rollouts with a machine-wide mutex, advances API and Web through staging first, and requires
+environment health gates before production. Component-level automatic rollback remains in
+place; a future phase can add operator-authorized whole-cohort rollback and canary traffic.
+
 ## Cycle 57 — Public publication sidebar and theme integrity
 
 The public publication now uses a dedicated desktop navigation rail instead of a horizontal

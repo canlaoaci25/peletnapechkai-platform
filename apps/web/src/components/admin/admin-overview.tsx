@@ -274,6 +274,16 @@ export function AdminOverview({
             </div>
             <span>{status.deployments.length}/4</span>
           </header>
+          <div className="release-consistency" aria-label="Sürüm bütünlüğü">
+            {status.deploymentConsistency.map((item) => (
+              <article className={`consistency-${item.state.toLowerCase()}`} key={item.environment}>
+                <span>{item.environment}</span>
+                <strong>{item.state === "Aligned" ? "Web + API uyumlu" : item.state === "Drifted" ? "Sürüm ayrışması" : item.state === "AtRisk" ? "Terfi tamamlanmadı" : "Kanıt eksik"}</strong>
+                <code>{item.commit ?? "—"}</code>
+                <small>{item.message}</small>
+              </article>
+            ))}
+          </div>
           {reliability && reliability.sampleSize > 0 && (
             <div className="release-slo" aria-label={deployText.title}>
               <article><span>{reliabilityText.score}</span><strong>%{reliability.successRate}</strong><small>{reliability.sampleSize} {reliabilityText.sample}</small></article>
