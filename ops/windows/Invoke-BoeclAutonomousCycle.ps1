@@ -33,7 +33,7 @@ try {
     if (@(& git.exe -C $repository status --porcelain).Count -gt 0) { throw 'Çalışma ağacı temiz değil; kullanıcı değişikliklerini korumak için çevrim atlandı.' }
     $baselineCommit = (& git.exe -C $repository rev-parse HEAD).Trim()
     $roadmapPath = Join-Path $repository 'docs\operations\autonomous-roadmap.json'
-    $roadmap = @(Get-BoeclAutonomousRoadmap -Path $roadmapPath)
+    $roadmap = @(Repair-BoeclAutonomousRoadmap -Path $roadmapPath)
     $masterInstructionsPath = 'C:\Users\Administrator\Desktop\New Text Document.txt'
     if (-not (Test-Path -LiteralPath $masterInstructionsPath -PathType Leaf)) { throw 'Kullanici master otonom talimat dosyasi bulunamadi.' }
     $masterInstructionsInfo = Get-Item -LiteralPath $masterInstructionsPath
@@ -100,7 +100,7 @@ Yeni icerik fikirleri uygulama yetkin de tamdir. Canli trend, arama niyeti, mevc
 
 Sistem kullanici durdurana kadar gelismeyi surdurur. Her cevrimde canli urun envanterini ve onceki raporlari okuyup kalici bir iyilestirme backlog'u olustur/guncelle; en yuksek etkili tamamlanmamis fazi sec. Ayni isi tekrarlama, anlamsiz commit sayisi uretme ve mevcut kaliteyi geriye goturme. Bir hedef tamamlaninca siradaki en yuksek etkili hedefe gec; yapilacak is kalmadigini varsayma, global rakipler, kullanici deneyimi, veri ve performans kanitlariyla yeni firsat ara.
 
-Kalici ve kullaniciya gorunen yol haritasi `docs/operations/autonomous-roadmap.json` dosyasidir. Calismaya baslarken mevcut `active` maddeyi dogrula; bu cevrimin gercek isi farkliysa durumu guncelle. Tamamlanan maddeyi `completed` yap, siradaki tek maddeyi `active` yap ve `active`, `queued` veya `blocked` durumunda en az 10 gelecek maddeyi her zaman koru. Her madde benzersiz kisa kimlik, Turkce baslik, kullanicinin gorecegi somut sonuc ve durum tasir. Yol haritasini mikro teknik gorevlerle doldurma; her madde uctan uca gorunur urun fazi olmali. Oncelikler canli kanitla degisirse listeyi yeniden sirala ve ayni committe kaydet.
+Kalici ve kullaniciya gorunen yol haritasi `docs/operations/autonomous-roadmap.json` dosyasidir. Calismaya baslarken mevcut `active` maddeyi dogrula; bu cevrimin gercek isi farkliysa durumu guncelle. Tamamlanan maddeyi `completed` yap, siradaki tek maddeyi `active` yap ve `active`, `queued` veya `blocked` durumunda en az 12 gelecek maddeyi her zaman koru. Her madde benzersiz kisa kimlik, Turkce baslik, kullanicinin gorecegi somut sonuc ve durum tasir. Yol haritasini mikro teknik gorevlerle doldurma; her madde uctan uca gorunur urun fazi olmali. Oncelikler canli kanitla degisirse listeyi yeniden sirala ve ayni committe kaydet. Liste gecici olarak bu tamponun altina inerse runner kalite kapisindan once guvenli urun fazlariyla otomatik tamamlar; bu nedenle eksik sayi yuzunden cevrimi sonlandirma.
 
 Her cevrimin zorunlu akisi:
 1. Canli siteyi, admini, son 20 commit'i ve kalici yol haritasini incele; tekrar eden mikro isi secme.
@@ -133,7 +133,7 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
                 break
             }
         }
-        $roadmap = @(Get-BoeclAutonomousRoadmap -Path $roadmapPath)
+        $roadmap = @(Repair-BoeclAutonomousRoadmap -Path $roadmapPath)
         Set-StateValue 'roadmap' $roadmap
         Set-StateValue 'heartbeatAt' ([DateTimeOffset]::UtcNow.ToString('o'))
         $state.updatedAt = $state.heartbeatAt
@@ -195,7 +195,7 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
     $state | Add-Member -NotePropertyName 'masterAuditCompleted' -NotePropertyValue $true -Force
     Set-StateValue 'currentStatus' 'Completed'
     $state.updatedAt = $state.lastRunAt
-    Set-StateValue 'roadmap' @(Get-BoeclAutonomousRoadmap -Path $roadmapPath)
+    Set-StateValue 'roadmap' @(Repair-BoeclAutonomousRoadmap -Path $roadmapPath)
     $state | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
     Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
 }

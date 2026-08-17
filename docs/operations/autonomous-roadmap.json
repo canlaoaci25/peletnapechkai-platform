@@ -1,19 +1,107 @@
-{
-  "updatedAt": "2026-08-18T02:20:00Z",
-  "items": [
-    { "id": "public-sidebar", "title": "Yayın sidebar navigasyonu", "outcome": "Masaüstü ve mobilde kategori, arama, üyelik ve tema akışlarını tek erişilebilir navigasyonda birleştir.", "status": "completed" },
-    { "id": "browser-push", "title": "Tarayıcı ve telefon push bildirimleri", "outcome": "İzin veren üyeye yeni Türkçe içerik ve doğrulanmış site güncellemelerini Web Push ile gönder; konu tercihleri, sessiz saatler ve abonelikten çıkma ekle.", "status": "queued" },
-    { "id": "visual-service", "title": "Bağımsız görsel üretim servisi", "outcome": "Makale bağlamından yazısız, konuya uygun kapak ve gövde görselleri üret; kalite kapıları ve sağlayıcı yedeği ekle.", "status": "active" },
-    { "id": "visual-backfill", "title": "Mevcut yayınların görsel yenilemesi", "outcome": "Eksik veya alakasız yayın görsellerini checkpoint ve geri dönüş korumasıyla yeniden üret.", "status": "queued" },
-    { "id": "home-discovery", "title": "Ana sayfa keşif mimarisi", "outcome": "Manşet, güncel akış, editör seçkisi, kategori şeritleri ve evergreen merkezlerini dinamik verilerle zenginleştir.", "status": "completed" },
-    { "id": "taxonomy-growth", "title": "Kategori ve konu genişlemesi", "outcome": "Arşiv ve arama niyeti boşluklarından yeni Türkçe kategori, etiket ve seri fırsatlarını belirleyip yerelleştir.", "status": "queued" },
-    { "id": "membership-retention", "title": "Üyelik ve geri dönüş deneyimi", "outcome": "Kaydetme, takip, kişisel akış ve bildirim tercihleriyle ziyaretçinin geri dönmesini sağlayan akışları tamamla.", "status": "queued" },
-    { "id": "search-recommendation", "title": "Arama ve öneri kalitesi", "outcome": "Yazım toleransı, ilgili içerik, konu kümeleri ve boş sonuç kurtarmasıyla keşfi geliştir.", "status": "queued" },
-    { "id": "editorial-console", "title": "Editoryal operasyon merkezi", "outcome": "İçerik, yayın, kategori, etiket ve kalite borçlarını tek yönetilebilir admin iş akışında birleştir.", "status": "completed" },
-    { "id": "locale-coverage", "title": "Çok dilli yayın bütünlüğü", "outcome": "Çeviri, kategori eşlemesi, locale SEO ve ülke yönlendirmesi açıklarını otomatik kalite kapılarıyla kapat.", "status": "queued" },
-    { "id": "seo-authority", "title": "SEO otoritesi ve iç bağlantılar", "outcome": "Ana sayfada kaynak derinliği kanıtlanan yayınları görünür kıl; konu kümeleri ve iç bağlantıları güçlendir.", "status": "completed" },
-    { "id": "performance-budget", "title": "Core Web Vitals bütçesi", "outcome": "Mobil LCP, CLS ve INP metriklerini ölçülen bütçeler ve release kapılarıyla koru.", "status": "queued" },
-    { "id": "resilience-operations", "title": "Operasyonel dayanıklılık", "outcome": "Web ve API sürümlerini kilitli staging→production terfisiyle birlikte dağıt; bileşen uyumunu admin ekranında görünür kıl.", "status": "completed" },
-    { "id": "canary-cohort-rollback", "title": "Canary ve sürüm kohortu geri alma", "outcome": "Yeni sürümü sınırlı trafikle doğrula; Web ve API kohortunu yetkili operatörün tek eylemiyle önceki sağlıklı sürüme döndür.", "status": "queued" }
-  ]
+﻿{
+    "updatedAt":  "2026-08-17T19:06:01.5012165+00:00",
+    "items":  [
+                  {
+                      "id":  "public-sidebar",
+                      "title":  "Yayın sidebar navigasyonu",
+                      "outcome":  "Masaüstü ve mobilde kategori, arama, üyelik ve tema akışlarını tek erişilebilir navigasyonda birleştir.",
+                      "status":  "completed"
+                  },
+                  {
+                      "id":  "browser-push",
+                      "title":  "Tarayıcı ve telefon push bildirimleri",
+                      "outcome":  "İzin veren üyeye yeni Türkçe içerik ve doğrulanmış site güncellemelerini Web Push ile gönder; konu tercihleri, sessiz saatler ve abonelikten çıkma ekle.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "visual-service",
+                      "title":  "Bağımsız görsel üretim servisi",
+                      "outcome":  "Makale bağlamından yazısız, konuya uygun kapak ve gövde görselleri üret; kalite kapıları ve sağlayıcı yedeği ekle.",
+                      "status":  "active"
+                  },
+                  {
+                      "id":  "visual-backfill",
+                      "title":  "Mevcut yayınların görsel yenilemesi",
+                      "outcome":  "Eksik veya alakasız yayın görsellerini checkpoint ve geri dönüş korumasıyla yeniden üret.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "home-discovery",
+                      "title":  "Ana sayfa keşif mimarisi",
+                      "outcome":  "Manşet, güncel akış, editör seçkisi, kategori şeritleri ve evergreen merkezlerini dinamik verilerle zenginleştir.",
+                      "status":  "completed"
+                  },
+                  {
+                      "id":  "taxonomy-growth",
+                      "title":  "Kategori ve konu genişlemesi",
+                      "outcome":  "Arşiv ve arama niyeti boşluklarından yeni Türkçe kategori, etiket ve seri fırsatlarını belirleyip yerelleştir.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "membership-retention",
+                      "title":  "Üyelik ve geri dönüş deneyimi",
+                      "outcome":  "Kaydetme, takip, kişisel akış ve bildirim tercihleriyle ziyaretçinin geri dönmesini sağlayan akışları tamamla.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "search-recommendation",
+                      "title":  "Arama ve öneri kalitesi",
+                      "outcome":  "Yazım toleransı, ilgili içerik, konu kümeleri ve boş sonuç kurtarmasıyla keşfi geliştir.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "editorial-console",
+                      "title":  "Editoryal operasyon merkezi",
+                      "outcome":  "İçerik, yayın, kategori, etiket ve kalite borçlarını tek yönetilebilir admin iş akışında birleştir.",
+                      "status":  "completed"
+                  },
+                  {
+                      "id":  "locale-coverage",
+                      "title":  "Çok dilli yayın bütünlüğü",
+                      "outcome":  "Çeviri, kategori eşlemesi, locale SEO ve ülke yönlendirmesi açıklarını otomatik kalite kapılarıyla kapat.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "seo-authority",
+                      "title":  "SEO otoritesi ve iç bağlantılar",
+                      "outcome":  "Ana sayfada kaynak derinliği kanıtlanan yayınları görünür kıl; konu kümeleri ve iç bağlantıları güçlendir.",
+                      "status":  "completed"
+                  },
+                  {
+                      "id":  "performance-budget",
+                      "title":  "Core Web Vitals bütçesi",
+                      "outcome":  "Mobil LCP, CLS ve INP metriklerini ölçülen bütçeler ve release kapılarıyla koru.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "resilience-operations",
+                      "title":  "Operasyonel dayanıklılık",
+                      "outcome":  "Web ve API sürümlerini kilitli staging→production terfisiyle birlikte dağıt; bileşen uyumunu admin ekranında görünür kıl.",
+                      "status":  "completed"
+                  },
+                  {
+                      "id":  "canary-cohort-rollback",
+                      "title":  "Canary ve sürüm kohortu geri alma",
+                      "outcome":  "Yeni sürümü sınırlı trafikle doğrula; Web ve API kohortunu yetkili operatörün tek eylemiyle önceki sağlıklı sürüme döndür.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "content-freshness",
+                      "title":  "Ä°Ã§erik tazelik ve gÃ¼ncelleme merkezi",
+                      "outcome":  "Eskiyen yayÄ±nlarÄ± kaynak, trafik ve deÄŸiÅŸen bilgi sinyalleriyle bul; revizyon, SEO ve yeniden daÄŸÄ±tÄ±m akÄ±ÅŸÄ±nÄ± tamamla.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "source-trust",
+                      "title":  "Kaynak gÃ¼veni ve kanÄ±t gÃ¶rÃ¼nÃ¼rlÃ¼ÄŸÃ¼",
+                      "outcome":  "Kaynak otoritesi, gÃ¼ncellik ve iddia baÄŸlantÄ±larÄ±nÄ± Ã¶lÃ§; okura gÃ¶rÃ¼nÃ¼r kanÄ±t ve dÃ¼zeltme yollarÄ± sun.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "structured-discovery",
+                      "title":  "YapÄ±landÄ±rÄ±lmÄ±ÅŸ veri ve keÅŸif kapsamÄ±",
+                      "outcome":  "Ä°Ã§erik tÃ¼rlerine uygun schema, breadcrumb, canonical, hreflang ve dahili keÅŸif baÄŸlantÄ±larÄ±nÄ± uÃ§tan uca doÄŸrula.",
+                      "status":  "queued"
+                  }
+              ]
 }

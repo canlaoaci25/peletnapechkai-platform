@@ -35,9 +35,17 @@ try {
     if (-not (Test-BoeclHeartbeatStale -Heartbeat '2026-08-16T11:49:59Z' -Now $now)) { throw 'Terk edilmis heartbeat algilanmadi.' }
 if (Test-BoeclHeartbeatStale -Heartbeat '2026-08-16T11:55:00Z' -Now $now) { throw 'Saglikli heartbeat terk edilmis sayildi.' }
 
-$roadmap = @(Get-BoeclAutonomousRoadmap -Path (Join-Path $PSScriptRoot '..\..\docs\operations\autonomous-roadmap.json'))
+$roadmap = @(Repair-BoeclAutonomousRoadmap -Path (Join-Path $PSScriptRoot '..\..\docs\operations\autonomous-roadmap.json'))
 if ($roadmap.Count -lt 10) { throw 'Otonom yol haritasi en az 10 gelecek adim sunmuyor.' }
 if (@($roadmap | Where-Object status -eq 'active').Count -ne 1) { throw 'Otonom yol haritasinda tek aktif adim bulunmali.' }
+
+$repairPath = Join-Path $testRoot 'roadmap.json'
+@{ updatedAt='2026-08-17T00:00:00Z'; items=@(@{id='only-item';title='Tek faz';outcome='Yetersiz yol haritasini otomatik tamamlayan test fazi.';status='active'}) } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $repairPath -Encoding UTF8
+$repaired = @(Repair-BoeclAutonomousRoadmap -Path $repairPath)
+if (@($repaired | Where-Object { $_.status -in @('active','queued','blocked') }).Count -lt 12) { throw 'Yol haritasi tamponu 12 gelecek adima tamamlanmadi.' }
+$firstRepairHash = (Get-FileHash -LiteralPath $repairPath).Hash
+$null = @(Repair-BoeclAutonomousRoadmap -Path $repairPath)
+if ((Get-FileHash -LiteralPath $repairPath).Hash -ne $firstRepairHash) { throw 'Yol haritasi onarimi idempotent degil.' }
 
 $eventLog = Join-Path $testRoot 'events.jsonl'
 '{"type":"item.completed"}' | Set-Content -LiteralPath $eventLog -Encoding UTF8
