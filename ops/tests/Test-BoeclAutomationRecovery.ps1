@@ -39,6 +39,12 @@ $roadmap = @(Get-BoeclAutonomousRoadmap -Path (Join-Path $PSScriptRoot '..\..\do
 if ($roadmap.Count -lt 10) { throw 'Otonom yol haritasi en az 10 gelecek adim sunmuyor.' }
 if (@($roadmap | Where-Object status -eq 'active').Count -ne 1) { throw 'Otonom yol haritasinda tek aktif adim bulunmali.' }
 
+$eventLog = Join-Path $testRoot 'events.jsonl'
+'{"type":"item.completed"}' | Set-Content -LiteralPath $eventLog -Encoding UTF8
+if (Test-BoeclTurnCompletedEvent -EventPath $eventLog) { throw 'Normal olay tamamlanmis tur sayilmamali.' }
+'{"type":"turn.completed"}' | Add-Content -LiteralPath $eventLog -Encoding UTF8
+if (-not (Test-BoeclTurnCompletedEvent -EventPath $eventLog)) { throw 'Tamamlanmis tur olayi algilanamadi.' }
+
     $legacy = Find-BoeclRecoveredResult -LogRoot $testRoot -JobId 'job-2' -CurrentResultPath (Join-Path $testRoot 'current.json') -RequestFingerprint $fingerprintA
     if ($null -ne $legacy) { throw 'Parmak izi metadata kaydı olmayan eski sonuç yeniden kullanıldı.' }
 

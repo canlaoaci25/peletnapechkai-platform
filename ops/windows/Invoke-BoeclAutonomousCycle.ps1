@@ -113,7 +113,18 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
     $process = Start-Process -FilePath ([string]$config.codexPath) -ArgumentList $argumentLine -NoNewWindow -PassThru `
         -RedirectStandardInput $inputPath -RedirectStandardOutput $events -RedirectStandardError $errors
     $null = $process.Handle
+    $completedObservedAt = $null
+    $completedProcessRecovered = $false
     while (-not $process.WaitForExit(15000)) {
+        if (Test-BoeclTurnCompletedEvent -EventPath $events) {
+            if ($null -eq $completedObservedAt) { $completedObservedAt = [DateTimeOffset]::UtcNow }
+            elseif (([DateTimeOffset]::UtcNow - $completedObservedAt).TotalMinutes -ge 2) {
+                Stop-Process -Id $process.Id -Force -ErrorAction Stop
+                $process.WaitForExit()
+                $completedProcessRecovered = $true
+                break
+            }
+        }
         $roadmap = @(Get-BoeclAutonomousRoadmap -Path $roadmapPath)
         Set-StateValue 'roadmap' $roadmap
         Set-StateValue 'heartbeatAt' ([DateTimeOffset]::UtcNow.ToString('o'))
@@ -122,7 +133,7 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
         Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
     }
     $process.Refresh()
-    $exitCode = $process.ExitCode
+    $exitCode = if ($completedProcessRecovered -and (Test-Path -LiteralPath $output -PathType Leaf) -and (Get-Item -LiteralPath $output).Length -gt 0) { 0 } else { $process.ExitCode }
     Remove-Item -LiteralPath $inputPath -Force -ErrorAction SilentlyContinue
     if ($exitCode -ne 0) { throw "Codex çevrimi başarısız oldu (exit $exitCode)." }
 

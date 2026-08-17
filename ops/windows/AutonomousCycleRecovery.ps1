@@ -18,3 +18,13 @@ function Test-BoeclHeartbeatStale {
     if ([string]::IsNullOrWhiteSpace($Heartbeat) -or -not [DateTimeOffset]::TryParse($Heartbeat, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::RoundtripKind, [ref]$parsed)) { return $true }
     return ($Now - $parsed).TotalMinutes -ge $StaleAfterMinutes
 }
+
+function Test-BoeclTurnCompletedEvent {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$EventPath)
+    if (-not (Test-Path -LiteralPath $EventPath -PathType Leaf)) { return $false }
+    foreach ($line in @(Get-Content -LiteralPath $EventPath -Tail 20 -ErrorAction SilentlyContinue)) {
+        try { if ((ConvertFrom-Json -InputObject $line -ErrorAction Stop).type -eq 'turn.completed') { return $true } } catch { }
+    }
+    return $false
+}
