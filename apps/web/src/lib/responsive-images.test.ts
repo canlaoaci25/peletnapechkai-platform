@@ -15,26 +15,26 @@ test("ana sayfa görselleri gerçek mobil kart genişliklerini bildirir", () => 
 
 test("ana sayfa konu atlasi gercek taxonomy yollarini ve arsiv derinligini sunar", () => {
   const homePage = readFileSync(fileURLToPath(new URL("../app/[locale]/page.tsx", import.meta.url)), "utf8");
-  const header = readFileSync(fileURLToPath(new URL("../components/site-header.tsx", import.meta.url)), "utf8");
+  const header = readFileSync(fileURLToPath(new URL("../components/public-navigation.tsx", import.meta.url)), "utf8");
 
   assert.match(homePage, /className="topic-atlas"/);
   assert.match(homePage, /category\.articleCount/);
   assert.match(homePage, /categories\/\$\{category\.slug\}/);
   assert.match(homePage, /category\.featured\.find\(article => !atlasFeatureSlugs\.has\(article\.slug\)\)/);
   assert.match(homePage, /<SiteHeader locale=\{locale\} homeActive/);
-  assert.match(header, /aria-current=\{homeActive \? "page" : undefined\}/);
+  assert.match(header, /homeActive \|\| pathname === href/);
 });
 
 test("gunluk edisyon rotasi gercek bolumleri ve global kategori kapsamlarini gosterir", () => {
   const homePage = readFileSync(fileURLToPath(new URL("../app/[locale]/page.tsx", import.meta.url)), "utf8");
-  const header = readFileSync(fileURLToPath(new URL("../components/site-header.tsx", import.meta.url)), "utf8");
+  const header = readFileSync(fileURLToPath(new URL("../components/public-navigation.tsx", import.meta.url)), "utf8");
   const styles = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
 
   assert.match(homePage, /className="edition-route"/);
   assert.match(homePage, /href: "#popular"/);
   assert.match(homePage, /href: "#topic-atlas"/);
   assert.match(homePage, /articles\.length/);
-  assert.match(header, /<small aria-label=\{`\$\{category\.articleCount\}`\}>\{category\.articleCount\}<\/small>/);
+  assert.match(header, /<small>\{category\.articleCount\}<\/small>/);
   assert.match(styles, /\.edition-route nav\s*\{[^}]*grid-template-columns:repeat\(5/);
   assert.match(styles, /scroll-snap-type:x proximity/);
   assert.match(styles, /@media\(max-width:560px\)[\s\S]*?\.primary-navigation a small\{display:none\}/);
@@ -42,15 +42,15 @@ test("gunluk edisyon rotasi gercek bolumleri ve global kategori kapsamlarini gos
 
 test("ana vitrin manset, kronolojik akis ve gorsel ikincil dosyalari birlikte sunar", () => {
   const homePage = readFileSync(fileURLToPath(new URL("../app/[locale]/page.tsx", import.meta.url)), "utf8");
-  const header = readFileSync(fileURLToPath(new URL("../components/site-header.tsx", import.meta.url)), "utf8");
+  const header = readFileSync(fileURLToPath(new URL("../components/public-navigation.tsx", import.meta.url)), "utf8");
   const styles = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
 
   assert.match(homePage, /className="front-page"/);
   assert.match(homePage, /className="live-desk" id="latest"/);
   assert.match(homePage, /latest\.slice\(0, 5\)/);
   assert.match(homePage, /Intl\.DateTimeFormat\(locale,\{hour:"2-digit",minute:"2-digit"\}\)/);
-  assert.match(header, /className="trust-link"[\s\S]*?\{copy\.sources\}/);
-  assert.match(header, /site-menu-panel[\s\S]*?href=\{`\/\$\{locale\}\/sources`\}>\{copy\.sources\}/);
+  assert.match(header, /href: `\/\$\{locale\}\/sources`, label: copy\.sources/);
+  assert.match(header, /className="sidebar-primary"/);
   assert.match(styles, /\.front-page-grid\{[^}]*grid-template-columns:minmax\(0,1\.72fr\)/);
   assert.match(styles, /@media\(max-width:700px\)[\s\S]*?scroll-snap-type:x proximity/);
 });
@@ -68,7 +68,8 @@ test("yayın görselleri Next.js optimizasyon hattını kullanır", () => {
 });
 
 test("genel yayın kabuğu yerelleştirilmiş navigasyon ve ekran altı render sözleşmesini korur", () => {
-  const header = readFileSync(fileURLToPath(new URL("../components/site-header.tsx", import.meta.url)), "utf8");
+  const serverHeader = readFileSync(fileURLToPath(new URL("../components/site-header.tsx", import.meta.url)), "utf8");
+  const header = readFileSync(fileURLToPath(new URL("../components/public-navigation.tsx", import.meta.url)), "utf8");
   const styles = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
 
   for (const locale of ["tr-TR", "en-US", "de-DE", "fr-FR"]) {
@@ -76,12 +77,29 @@ test("genel yayın kabuğu yerelleştirilmiş navigasyon ve ekran altı render s
     assert.match(dictionary, /"account":\s*".+"/);
     assert.match(dictionary, /"sections":\s*".+"/);
   }
-  assert.match(header, /aria-label=\{copy\.account\}/);
+  assert.match(header, /className="sidebar-account"/);
   assert.doesNotMatch(header, /aria-label=\"Account\"/);
-  assert.match(header, /getPublicArchiveIndex\(locale\)/);
+  assert.match(serverHeader, /getPublicArchiveIndex\(locale\)/);
   assert.match(header, /categories\/\$\{category\.slug\}/);
   assert.match(styles, /\.picks-section,[\s\S]*content-visibility:\s*auto/);
   assert.match(styles, /contain-intrinsic-block-size:\s*auto 700px/);
+});
+
+test("public sidebar masaustunde gercek taxonomy, mobilde erisilebilir drawer sunar", () => {
+  const navigation = readFileSync(fileURLToPath(new URL("../components/public-navigation.tsx", import.meta.url)), "utf8");
+  const styles = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
+
+  assert.match(navigation, /aria-expanded=\{open\}/);
+  assert.match(navigation, /event\.key === "Escape"/);
+  assert.match(navigation, /event\.key !== "Tab"/);
+  assert.match(navigation, /document\.body\.style\.overflow = "hidden"/);
+  assert.match(navigation, /trigger\?\.focus\(\)/);
+  assert.match(navigation, /categories\.map\(category/);
+  assert.match(styles, /@media\(min-width:1024px\)[\s\S]*?\.site-shell/);
+  assert.match(styles, /@media\(max-width:1023px\)[\s\S]*?\.public-sidebar\[data-open=true\]/);
+  assert.match(styles, /\.drawer-trigger[^}]*min-height:44px/);
+  assert.match(styles, /--overlay:/);
+  assert.match(styles, /:where\(a,button,summary,input,select,textarea\):focus-visible/);
 });
 
 test("dar ekran basligi eylemleri ayri satira alir ve pahali bulanikligi kapatir", () => {

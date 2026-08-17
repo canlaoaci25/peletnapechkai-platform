@@ -1,5 +1,15 @@
 # Delivery roadmap
 
+## Cycle 57 — Public publication sidebar and theme integrity
+
+The public publication now uses a dedicated desktop navigation rail instead of a horizontal
+global navbar. BOECL search, real localized taxonomy depth, trust discovery, membership,
+edition choice, and theme control share one hierarchy without narrowing the newsroom at compact
+widths. At tablet and mobile sizes the same system becomes a closed accessible drawer with
+focus containment, Escape dismissal, scroll locking, overlay dismissal, and focus return.
+Central light/dark surface, overlay, focus, and shadow tokens cover the new shell. Consented
+route measurement and traffic-informed category ordering remain later discovery milestones.
+
 ## Cycle 56 — Autonomous recovery and retry safety
 
 The live Codex operations desk now exposes heartbeat health, consecutive failures,

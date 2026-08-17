@@ -6,9 +6,9 @@ const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf
 
 test("article language menu links only published equivalents and explains missing translations", () => {
   const article = read("../app/[locale]/articles/[slug]/page.tsx");
-  const header = read("../components/site-header.tsx");
+  const header = read("../components/public-navigation.tsx");
   assert.match(article, /localeHrefs=\{Object\.fromEntries\(article\.translations/);
-  assert.match(header, /localeHrefs && !localeHrefs\[supportedLocale\]/);
+  assert.match(header, /localeHrefs && !localeHrefs\[item\]/);
   assert.match(header, /aria-disabled="true"/);
   assert.match(header, /translationUnavailable/);
 });
