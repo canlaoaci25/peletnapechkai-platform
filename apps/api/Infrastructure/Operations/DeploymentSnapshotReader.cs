@@ -5,7 +5,7 @@ namespace Peletnapechkai.Api.Infrastructure.Operations;
 public sealed record DeploymentSnapshot(string DeploymentId, string Environment, string Component, string Status, string Commit,
     string Message, DateTimeOffset StartedAt, DateTimeOffset UpdatedAt, int DurationSeconds);
 public sealed record DeploymentReliability(int SampleSize, int Successful, int Recovered, int Failed, int SuccessRate,
-    int MedianDurationSeconds, int P95DurationSeconds, int HealthyStreak, string State);
+    int MedianDurationSeconds, int P95DurationSeconds, int HealthyStreak, int Stalled, string State);
 
 public sealed class DeploymentSnapshotReader(IConfiguration configuration)
 {
@@ -30,10 +30,13 @@ public sealed class DeploymentSnapshotReader(IConfiguration configuration)
         catch (UnauthorizedAccessException) { return []; }
     }
 
-    public static DeploymentReliability Measure(IEnumerable<DeploymentSnapshot> snapshots)
+    public static DeploymentReliability Measure(IEnumerable<DeploymentSnapshot> snapshots, DateTimeOffset? checkedAt = null)
     {
-        var completed = snapshots.Where(x => x.Status is "Succeeded" or "RolledBack" or "RollbackFailed" or "Failed")
+        var items = snapshots.OrderByDescending(x => x.UpdatedAt).Take(50).ToArray();
+        var completed = items.Where(x => x.Status is "Succeeded" or "RolledBack" or "RollbackFailed" or "Failed")
             .OrderByDescending(x => x.UpdatedAt).Take(50).ToArray();
+        var staleBefore = (checkedAt ?? DateTimeOffset.UtcNow).AddMinutes(-15);
+        var stalled = items.Count(x => (x.Status is "Started" or "Verifying") && x.UpdatedAt < staleBefore);
         var successful = completed.Count(x => x.Status == "Succeeded");
         var recovered = completed.Count(x => x.Status == "RolledBack");
         var failed = completed.Length - successful - recovered;
@@ -41,9 +44,9 @@ public sealed class DeploymentSnapshotReader(IConfiguration configuration)
         var healthyStreak = completed.TakeWhile(x => x.Status == "Succeeded").Count();
         var rate = completed.Length == 0 ? 0 : (int)Math.Round(successful * 100d / completed.Length);
         var p95Index = durations.Length == 0 ? 0 : (int)Math.Ceiling(durations.Length * .95) - 1;
-        var state = completed.Length == 0 ? "NoData" : failed > 0 || rate < 90 ? "AtRisk" : recovered > 0 || rate < 100 ? "Watch" : "Healthy";
+        var state = stalled > 0 || failed > 0 || (completed.Length > 0 && rate < 90) ? "AtRisk" : completed.Length == 0 ? "NoData" : recovered > 0 || rate < 100 ? "Watch" : "Healthy";
         return new(completed.Length, successful, recovered, failed, rate,
-            durations.Length == 0 ? 0 : durations[(durations.Length - 1) / 2], durations.Length == 0 ? 0 : durations[p95Index], healthyStreak, state);
+            durations.Length == 0 ? 0 : durations[(durations.Length - 1) / 2], durations.Length == 0 ? 0 : durations[p95Index], healthyStreak, stalled, state);
     }
 
     private DeploymentSnapshot? Read(string name)

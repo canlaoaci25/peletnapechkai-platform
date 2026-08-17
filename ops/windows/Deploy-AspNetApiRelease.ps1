@@ -10,6 +10,8 @@ $deploymentId = [guid]::NewGuid().ToString('N')
 $deploymentStartedAt = [datetimeoffset]::UtcNow
 $commit = (& git.exe -C $RepositoryPath rev-parse --short=12 HEAD 2>$null)
 Write-BoeclDeploymentJournal -Environment $Environment -Component Api -Status Started -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'API release is being published and staged.'
+$terminalRecorded = $false
+try {
 Import-Module WebAdministration
 $settings = if ($Environment -eq 'Production') {
     @{ Pool='PeletnapechkaiApiPool'; Root='C:\inetpub\peletnapechkai'; Health='Test-ProductionHealth.ps1' }
@@ -50,6 +52,7 @@ try {
     & (Join-Path $PSScriptRoot $settings.Health) | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "$Environment API health check failed." }
     Write-BoeclDeploymentJournal -Environment $Environment -Component Api -Status Succeeded -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'API health gate passed.'
+    $terminalRecorded = $true
     [pscustomobject]@{ Environment=$Environment; Active=$active; Rollback=$rollback; Healthy=$true }
 }
 catch {
@@ -70,5 +73,13 @@ catch {
     } catch { $rollbackHealthy = $false }
     $recoveryStatus = if ($rollbackHealthy) { 'RolledBack' } else { 'RollbackFailed' }
     Write-BoeclDeploymentJournal -Environment $Environment -Component Api -Status $recoveryStatus -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message $failureMessage
+    $terminalRecorded = $true
+    throw
+}
+}
+catch {
+    if (-not $terminalRecorded) {
+        Write-BoeclDeploymentJournal -Environment $Environment -Component Api -Status Failed -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message $_.Exception.Message
+    }
     throw
 }

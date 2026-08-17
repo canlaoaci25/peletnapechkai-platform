@@ -97,7 +97,7 @@ export type SystemStatus = {
   };
   deployments: DeploymentSnapshot[];
   deploymentHistory: DeploymentSnapshot[];
-  deploymentReliability: { sampleSize:number; successful:number; recovered:number; failed:number; successRate:number; medianDurationSeconds:number; p95DurationSeconds:number; healthyStreak:number; state:"NoData"|"AtRisk"|"Watch"|"Healthy" };
+  deploymentReliability: { sampleSize:number; successful:number; recovered:number; failed:number; successRate:number; medianDurationSeconds:number; p95DurationSeconds:number; healthyStreak:number; stalled:number; state:"NoData"|"AtRisk"|"Watch"|"Healthy" };
 };
 export type DeploymentSnapshot = { deploymentId: string; environment: "Staging" | "Production"; component: "Web" | "Api"; status: string; commit: string; message: string; startedAt: string; updatedAt: string; durationSeconds: number };
 export type EditorialCommandCenter = {

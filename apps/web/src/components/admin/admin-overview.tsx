@@ -55,6 +55,8 @@ export function AdminOverview({
       recovered: "Otomatik kurtarıldı",
       attention: "Müdahale",
       latest: "Son 12 sürüm",
+      stalled: "Takılı dağıtım",
+      stalledHelp: "15 dakikadan uzun süredir ilerlemeyen dağıtımlar terminal hata kaydı ve operatör incelemesi gerektirir.",
     },
     "en-US": {
       title: "RELEASE RECOVERY CENTER",
@@ -64,6 +66,8 @@ export function AdminOverview({
       recovered: "Auto-recovered",
       attention: "Needs attention",
       latest: "Latest 12 releases",
+      stalled: "Stalled release",
+      stalledHelp: "Deployments with no progress for over 15 minutes need a terminal failure record and operator review.",
     },
     "de-DE": {
       title: "RELEASE-WIEDERHERSTELLUNG",
@@ -73,6 +77,8 @@ export function AdminOverview({
       recovered: "Automatisch wiederhergestellt",
       attention: "Eingriff nötig",
       latest: "Letzte 12 Versionen",
+      stalled: "Blockierte Version",
+      stalledHelp: "Bereitstellungen ohne Fortschritt seit über 15 Minuten benötigen einen terminalen Fehlerstatus und eine Prüfung.",
     },
     "fr-FR": {
       title: "CENTRE DE REPRISE DES VERSIONS",
@@ -82,6 +88,8 @@ export function AdminOverview({
       recovered: "Récupérés automatiquement",
       attention: "Intervention requise",
       latest: "12 dernières versions",
+      stalled: "Version bloquée",
+      stalledHelp: "Les déploiements sans progression depuis plus de 15 minutes exigent un échec terminal et une vérification.",
     },
   }[locale] ?? {
     title: "SÜRÜM KURTARMA MERKEZİ",
@@ -91,6 +99,8 @@ export function AdminOverview({
     recovered: "Otomatik kurtarıldı",
     attention: "Müdahale",
     latest: "Son 12 sürüm",
+    stalled: "Takılı dağıtım",
+    stalledHelp: "15 dakikadan uzun süredir ilerlemeyen dağıtımlar terminal hata kaydı ve operatör incelemesi gerektirir.",
   };
   const deployStatus: Record<string, string> = {
     Started: "Hazırlanıyor",
@@ -271,6 +281,12 @@ export function AdminOverview({
               <article><span>{reliabilityText.p95}</span><strong>{reliability.p95DurationSeconds}s</strong><small>p95</small></article>
               <article><span>{reliabilityText.streak}</span><strong>{reliability.healthyStreak}</strong><small>{reliability.failed} {reliabilityText.failure}</small></article>
             </div>
+          )}
+          {!!reliability?.stalled && (
+            <aside className="release-stalled-alert" role="alert">
+              <strong>{reliability.stalled} {deployText.stalled}</strong>
+              <span>{deployText.stalledHelp}</span>
+            </aside>
           )}
           {status.deployments.length === 0 ? (
             <p className="muted">{deployText.empty}</p>

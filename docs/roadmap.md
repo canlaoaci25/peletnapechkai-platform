@@ -1,5 +1,15 @@
 # Delivery roadmap
 
+## Cycle 48 — Observable deployment failure recovery
+
+Release Recovery Center now exposes deployments that remain in `Started` or `Verifying`
+for more than 15 minutes as explicit intervention debt across every admin locale. Web and
+API deployment automation records pre-swap artifact, publish, module, and copy failures as
+terminal `Failed` outcomes, so an early failure can no longer remain invisible to the SLO.
+The existing health-gated swap and automatic rollback behavior remains unchanged. Alert
+delivery, authorized manual rollback, retention automation, and canary traffic remain the
+next operational milestones.
+
 ## Cycle 47 — Visual generation operations center
 
 Visual Renewal Studio now manages archive-wide renewal as a durable, resumable operation:

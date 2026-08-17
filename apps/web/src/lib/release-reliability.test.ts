@@ -11,7 +11,10 @@ test("release reliability desk exposes localized SLO, latency and streak evidenc
   assert.match(overview, /medianDurationSeconds/);
   assert.match(overview, /p95DurationSeconds/);
   assert.match(overview, /healthyStreak/);
+  assert.match(overview, /stalledHelp/);
+  assert.match(overview, /release-stalled-alert/);
   for (const locale of ["tr-TR", "en-US", "de-DE", "fr-FR"]) assert.match(overview, new RegExp(`"${locale}"`));
   assert.match(styles, /\.release-slo/);
   assert.match(styles, /reliability-atrisk/);
+  assert.match(styles, /\.release-stalled-alert/);
 });

@@ -10,12 +10,14 @@ $deploymentId = [guid]::NewGuid().ToString('N')
 $deploymentStartedAt = [datetimeoffset]::UtcNow
 $commit = (& git.exe -C (Join-Path $PSScriptRoot '..\..') rev-parse --short=12 HEAD 2>$null)
 Write-BoeclDeploymentJournal -Environment $Environment -Component Web -Status Started -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'Release artifacts are being staged.'
+$terminalRecorded = $false
 $settings = if ($Environment -eq 'Production') {
     @{ Service='PeletnapechkaiWeb'; Root='C:\inetpub\peletnapechkai'; Health='Test-ProductionHealth.ps1'; BaseUrl='https://peletnapechkai.com' }
 } else {
     @{ Service='BoeclStagingWeb'; Root='C:\inetpub\boecl-staging'; Health='Test-StagingHealth.ps1'; BaseUrl='https://staging.peletnapechkai.com' }
 }
 
+try {
 $root = [IO.Path]::GetFullPath($settings.Root)
 $active = Join-Path $root 'web'
 $release = Join-Path $root ('.web-release-' + [guid]::NewGuid().ToString('N'))
@@ -64,6 +66,7 @@ try {
     & (Join-Path $PSScriptRoot 'Test-PublicExperience.ps1') -BaseUrl $settings.BaseUrl | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "$Environment public experience check failed." }
     Write-BoeclDeploymentJournal -Environment $Environment -Component Web -Status Succeeded -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'Health and public experience gates passed.'
+    $terminalRecorded = $true
     [pscustomobject]@{ Environment=$Environment; Active=$active; Rollback=$rollback; Healthy=$true }
 }
 catch {
@@ -82,5 +85,13 @@ catch {
     } catch { $rollbackHealthy = $false }
     $recoveryStatus = if ($rollbackHealthy) { 'RolledBack' } else { 'RollbackFailed' }
     Write-BoeclDeploymentJournal -Environment $Environment -Component Web -Status $recoveryStatus -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message $failureMessage
+    $terminalRecorded = $true
+    throw
+}
+}
+catch {
+    if (-not $terminalRecorded) {
+        Write-BoeclDeploymentJournal -Environment $Environment -Component Web -Status Failed -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message $_.Exception.Message
+    }
     throw
 }
