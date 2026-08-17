@@ -62,7 +62,7 @@ public static class AutomationEndpoints
             return new { row.Id, row.locale, row.Slug, row.Title, row.PublishedAt, score = result.Score, grade = result.Grade,
                 risks = result.Risks, result.BodyImageCount, coverUrl = row.coverId is null ? null : "/api/media/" + row.coverId,
                 row.CoverAltText, row.width, row.height, row.optimizedBytes,
-                visualTask = tasks.TryGetValue(row.Id, out var task) ? new { task.Id, status = task.Status.ToString(), task.SectionContext, task.VisualPurpose, task.ProposedPrompt, task.NegativePrompt, task.AttemptCount, task.ReviewerNote, task.UpdatedAt,
+                visualTask = tasks.TryGetValue(row.Id, out var task) ? new { task.Id, status = task.Status.ToString(), task.SectionContext, task.VisualPurpose, visualType = InferVisualType(task.ProposedPrompt), task.ProposedPrompt, task.NegativePrompt, task.AttemptCount, task.ReviewerNote, task.UpdatedAt,
                     task.CandidateMediaAssetId, candidateUrl = task.CandidateMediaAssetId == null ? null : "/api/media/" + task.CandidateMediaAssetId,
                     task.Provider, task.LicenseName, task.Attribution, task.CandidateAltText, task.TopicScore, task.TextSafetyScore, task.CropScore, task.OriginalityScore,
                     task.ClosestMediaAssetId, task.ClosestSimilarityPercent, closestMediaUrl = task.ClosestMediaAssetId == null ? null : "/api/media/" + task.ClosestMediaAssetId,
@@ -219,6 +219,13 @@ public static class AutomationEndpoints
     private sealed record VisualReviewActionRequest(string? Note, Guid? MediaAssetId = null, string? Provider = null,
         string? LicenseName = null, string? Attribution = null, string? AltText = null, int TopicScore = 0,
         int TextSafetyScore = 0, int CropScore = 0);
+
+    private static string InferVisualType(string prompt)
+    {
+        foreach (var type in new[] { "step-by-step editorial illustration", "comparison editorial illustration", "data-led editorial illustration", "technical editorial illustration", "natural editorial photograph" })
+            if (prompt.Contains(type, StringComparison.OrdinalIgnoreCase)) return type;
+        return "editorial visual";
+    }
 
     private static string ResolveMediaPath(string root, string? storageKey)
     {

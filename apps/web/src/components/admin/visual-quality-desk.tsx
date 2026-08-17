@@ -10,6 +10,7 @@ type VisualTask = {
   status: string;
   sectionContext: string;
   visualPurpose: string;
+  visualType: string;
   proposedPrompt: string;
   negativePrompt: string;
   attemptCount: number;
@@ -78,6 +79,7 @@ const base = {
   sync: "Queue risky stories",
   syncing: "Preparing queue…",
   context: "Section context",
+  visualType: "Selected visual type",
   brief: "Original text-free design brief",
   negative: "Exclude from output",
   reviewAction: "Start review",
@@ -145,6 +147,7 @@ const copy = {
     sync: "Riskli makaleleri kuyruğa al",
     syncing: "Kuyruk hazırlanıyor…",
     context: "Bölüm bağlamı",
+    visualType: "Seçilen görsel türü",
     brief: "Yazısız özgün tasarım briefi",
     negative: "Üretimden dışla",
     reviewAction: "İncelemeye al",
@@ -216,6 +219,7 @@ const copy = {
     sync: "Riskante Beiträge einreihen",
     syncing: "Warteschlange wird erstellt…",
     context: "Abschnittskontext",
+    visualType: "Ausgewählter Bildtyp",
     brief: "Originales textfreies Bildbriefing",
     negative: "Vom Ergebnis ausschließen",
     reviewAction: "Prüfung beginnen",
@@ -256,6 +260,7 @@ const copy = {
     sync: "Mettre les articles à risque en file",
     syncing: "Préparation de la file…",
     context: "Contexte de section",
+    visualType: "Type visuel sélectionné",
     brief: "Brief visuel original sans texte",
     negative: "Exclure du résultat",
     reviewAction: "Commencer la vérification",
@@ -459,6 +464,8 @@ export function VisualQualityDesk({
                     </summary>
                     <strong>{c.context}</strong>
                     <p>{item.visualTask.sectionContext}</p>
+                    <strong>{c.visualType}</strong>
+                    <p className="visual-type-chip">{item.visualTask.visualType}</p>
                     <strong>{c.brief}</strong>
                     <p>{item.visualTask.proposedPrompt}</p>
                     <strong>{c.negative}</strong>

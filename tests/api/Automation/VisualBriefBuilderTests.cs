@@ -16,6 +16,8 @@ public sealed class VisualBriefBuilderTests
         Assert.Contains("mobile-safe", brief.Prompt);
         Assert.Contains("text", brief.NegativePrompt);
         Assert.Contains("watermark", brief.NegativePrompt);
+        Assert.Equal("technical editorial illustration", brief.VisualType);
+        Assert.Contains("technically plausible", brief.Prompt);
     }
 
     [Fact]
@@ -23,6 +25,18 @@ public sealed class VisualBriefBuilderTests
     {
         var brief = VisualBriefBuilder.Build("Başlık", "Somut özet bağlamı", "<p>Kısa gövde</p>", "en-US", []);
         Assert.Equal("Somut özet bağlamı", brief.SectionContext);
+        Assert.Equal("natural editorial photograph", brief.VisualType);
+    }
+
+    [Theory]
+    [InlineData("Telefon kurulum adımları", "Uygulamayı güvenli biçimde yapılandırın.", "step-by-step editorial illustration")]
+    [InlineData("İki dizüstü bilgisayar karşılaştırması", "Modellerin farklarını inceleyin.", "comparison editorial illustration")]
+    [InlineData("Kullanım oranları araştırması", "Yeni veriler trendi gösteriyor.", "data-led editorial illustration")]
+    public void Selects_information_led_visual_type_instead_of_a_generic_photo(string title, string summary, string expected)
+    {
+        var brief = VisualBriefBuilder.Build(title, summary, $"<h2>{summary}</h2><p>{new string('x', 2000)}</p>", "tr-TR", ["Teknoloji"]);
+        Assert.Equal(expected, brief.VisualType);
+        Assert.Contains("entirely text-free", brief.Prompt);
     }
 
     [Fact]
