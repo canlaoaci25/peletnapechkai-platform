@@ -70,7 +70,7 @@ export async function SiteHeader({ locale, localeHrefs, homeActive = false }: Si
             <Link href={`/${locale}/topics`}>{copy.allTopics}</Link>
             {categories.map((category) => (
               <Link key={category.slug} href={`/${locale}/categories/${category.slug}`}>
-                {category.title}
+                <span>{category.title}</span><small aria-label={`${category.articleCount}`}>{category.articleCount}</small>
               </Link>
             ))}
           </nav>

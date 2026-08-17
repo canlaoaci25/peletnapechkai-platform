@@ -47,6 +47,13 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
     return { ...category, feature };
   });
   const formatDate = (date: string) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(date));
+  const editionDate = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long" }).format(new Date());
+  const editionLinks = [
+    trending.length > 0 && { href: "#popular", label: copy.trending, count: trending.length },
+    atlasCategories.length > 0 && { href: "#topic-atlas", label: copy.topicAtlas, count: atlasCategories.length },
+    picks.length > 0 && { href: "#editors-picks", label: copy.editorsPicks, count: picks.length },
+    latest.length > 0 && { href: "#latest", label: copy.latestTitle, count: latest.length },
+  ].filter((item): item is { href: string; label: string; count: number } => Boolean(item));
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -65,6 +72,18 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
             <Link key={category.slug} href={`/${locale}/categories/${category.slug}`}>{category.title}</Link>
           ))}
         </nav>
+
+        {lead && <section className="edition-route" aria-labelledby="edition-route-title">
+          <div className="edition-route-intro">
+            <p className="section-kicker">{copy.editionEyebrow}</p>
+            <h2 id="edition-route-title">{copy.editionTitle}</h2>
+            <p>{editionDate} <span aria-hidden="true">/</span> {articles.length} {copy.editionStories}</p>
+          </div>
+          <nav aria-label={copy.editionNavigation}>
+            <a href="#headline-title"><span>00</span><strong>{copy.featured}</strong></a>
+            {editionLinks.map((item, index) => <a href={item.href} key={item.href}><span>{String(index + 1).padStart(2, "0")}</span><strong>{item.label}</strong><small>{item.count}</small></a>)}
+          </nav>
+        </section>}
 
         {lead ? (
           <section className="headline-grid" aria-labelledby="headline-title">
@@ -91,12 +110,12 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
           <section className="hero"><p className="eyebrow">{copy.eyebrow}</p><h1>{copy.title}</h1><p className="hero-description">{copy.description}</p><p className="muted">{copy.noArticles}</p></section>
         )}
 
-        {trending.length > 0 && <section className="trending-section" aria-labelledby="trending-title">
+        {trending.length > 0 && <section className="trending-section" id="popular" aria-labelledby="trending-title">
           <header className="home-section-header"><div><p className="section-kicker">01 / {copy.discover}</p><h2 id="trending-title">{copy.trending}</h2></div><span>{copy.trendingHint}</span></header>
           <ol>{trending.map((article, index) => <li key={article.slug}><span>{String(index + 1).padStart(2, "0")}</span><div><small>{article.type}</small><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3></div></li>)}</ol>
         </section>}
 
-        {atlasCategories.length > 0 && <section className="topic-atlas" aria-labelledby="topic-atlas-title">
+        {atlasCategories.length > 0 && <section className="topic-atlas" id="topic-atlas" aria-labelledby="topic-atlas-title">
           <header className="home-section-header">
             <div><p className="section-kicker">02 / {copy.coverage}</p><h2 id="topic-atlas-title">{copy.topicAtlas}</h2></div>
             <p>{copy.topicAtlasDescription}</p>
@@ -118,7 +137,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
           <Link className="topic-atlas-all" href={`/${locale}/topics`}>{copy.exploreAllTopics}<span aria-hidden="true"> →</span></Link>
         </section>}
 
-        {picks.length > 0 && <section className="picks-section" aria-labelledby="picks-title">
+        {picks.length > 0 && <section className="picks-section" id="editors-picks" aria-labelledby="picks-title">
           <header className="home-section-header"><div><p className="section-kicker">03 / {copy.curated}</p><h2 id="picks-title">{copy.editorsPicks}</h2></div></header>
           <div className="pick-grid">{picks.map(article => <article key={article.slug}><ArticleImageLink article={article} className="pick-image" locale={locale} sizes={homeImageSizes.pick} /><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p></article>)}</div>
         </section>}
@@ -134,7 +153,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
           </section>;
         })}
 
-        {latest.length > 0 && <section className="latest-feed" aria-labelledby="latest-title">
+        {latest.length > 0 && <section className="latest-feed" id="latest" aria-labelledby="latest-title">
           <header className="home-section-header"><div><p className="section-kicker">{copy.justIn}</p><h2 id="latest-title">{copy.latestTitle}</h2></div></header>
           <div>{latest.map(article => <article key={article.slug}>{article.cover && <ArticleImageLink article={article} className="latest-image" locale={locale} sizes={homeImageSizes.latest} />}<div><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p><time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time></div></article>)}</div>
         </section>}

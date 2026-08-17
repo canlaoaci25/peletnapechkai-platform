@@ -2,6 +2,13 @@
 
 ## Execution status
 
+Cycle 41 turns the public homepage into a navigable daily edition: readers now see the
+localized edition date, unique live-story depth, and direct routes to the lead, popular,
+topic-atlas, editor-pick, and latest layers, while global desktop navigation exposes real
+category archive depth. The surface remains server-rendered, locale-isolated, responsive,
+and JavaScript-free. Consented route engagement and traffic-informed editorial ordering
+remain the next homepage measurement milestones.
+
 Cycle 40 turns deployment evidence into an actionable Release Reliability Center: the
 admin home now calculates a bounded 50-release success SLO, automatic-recovery and failure
 debt, median/P95 deployment duration, and the current healthy streak from sanitized journal

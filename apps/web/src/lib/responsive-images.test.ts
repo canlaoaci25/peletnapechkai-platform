@@ -25,6 +25,21 @@ test("ana sayfa konu atlasi gercek taxonomy yollarini ve arsiv derinligini sunar
   assert.match(header, /aria-current=\{homeActive \? "page" : undefined\}/);
 });
 
+test("gunluk edisyon rotasi gercek bolumleri ve global kategori kapsamlarini gosterir", () => {
+  const homePage = readFileSync(fileURLToPath(new URL("../app/[locale]/page.tsx", import.meta.url)), "utf8");
+  const header = readFileSync(fileURLToPath(new URL("../components/site-header.tsx", import.meta.url)), "utf8");
+  const styles = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
+
+  assert.match(homePage, /className="edition-route"/);
+  assert.match(homePage, /href: "#popular"/);
+  assert.match(homePage, /href: "#topic-atlas"/);
+  assert.match(homePage, /articles\.length/);
+  assert.match(header, /<small aria-label=\{`\$\{category\.articleCount\}`\}>\{category\.articleCount\}<\/small>/);
+  assert.match(styles, /\.edition-route nav\s*\{[^}]*grid-template-columns:repeat\(5/);
+  assert.match(styles, /scroll-snap-type:x proximity/);
+  assert.match(styles, /@media\(max-width:560px\)[\s\S]*?\.primary-navigation a small\{display:none\}/);
+});
+
 test("yayın görselleri Next.js optimizasyon hattını kullanır", () => {
   const homePage = readFileSync(fileURLToPath(new URL("../app/[locale]/page.tsx", import.meta.url)), "utf8");
   const articlePage = readFileSync(fileURLToPath(new URL("../app/[locale]/articles/[slug]/page.tsx", import.meta.url)), "utf8");
