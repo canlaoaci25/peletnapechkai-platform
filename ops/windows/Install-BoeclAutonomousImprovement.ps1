@@ -4,8 +4,7 @@ param([string]$RepositoryPath = 'C:\Users\Administrator\Desktop\peletnapechkai-p
 $ErrorActionPreference = 'Stop'
 $script = Join-Path ([IO.Path]::GetFullPath($RepositoryPath)) 'ops\windows\Invoke-BoeclAutonomousCycle.ps1'
 if (-not (Test-Path -LiteralPath $script)) { throw "Orkestratör bulunamadı: $script" }
-$encodedPath = $script.Replace("'", "''")
-$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -Command `"& ([scriptblock]::Create((Get-Content -Raw -Encoding UTF8 '$encodedPath')))`""
+$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$script`""
 $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 1)
 $settings = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Hours 6)
 $principal = New-ScheduledTaskPrincipal -UserId 'Administrator' -LogonType Interactive -RunLevel Highest
