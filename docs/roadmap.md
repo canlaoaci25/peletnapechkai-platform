@@ -2,6 +2,13 @@
 
 ## Execution status
 
+Cycle 37 transforms the traffic dashboard into a multilingual Content Authority Center:
+administrators now see evidence-based source/SEO/taxonomy coverage, the most-used source
+domains, and a risk-ranked improvement queue weighted by existing traffic impact. Scores
+describe structural evidence and never claim that a source was editorially verified.
+Source ownership, last-check timestamps, HTTP health checks, and Search Console query-to-
+article opportunity matching remain the next content-growth milestones.
+
 Cycle 36 turns the article detail into a publication-readiness cockpit: editors now see
 the shared tasks, comments, and eight-step quality checklist beside a visible readiness
 meter, while scheduling, direct publishing, and normal publishing are rejected by the

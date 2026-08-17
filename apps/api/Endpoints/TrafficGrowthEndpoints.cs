@@ -28,14 +28,23 @@ public static class TrafficGrowthEndpoints
                 Views = db.ArticleEngagements.Where(e => e.ArticleLocalizationId == x.Id).Select(e => e.ViewCount).FirstOrDefault(),
                 EngagedSeconds = db.ArticleEngagements.Where(e => e.ArticleLocalizationId == x.Id).Select(e => e.EngagedSeconds).FirstOrDefault(),
                 Categories = x.Categories.Select(c => c.Name).ToArray(),
+                CategoryCount = x.Categories.Count,
                 TagCount = x.Tags.Count,
+                SourceUrls = x.ArticleGroup.Sources.Select(source => source.Url).ToArray(),
                 HasSeo = x.SeoTitle != null && x.SeoDescription != null,
                 HasCover = x.CoverMediaAssetId != null
             }).ToListAsync(token);
         var totalViews = rows.Sum(x => x.Views); var totalSeconds = rows.Sum(x => x.EngagedSeconds);
-        var opportunities = rows.OrderBy(x => x.Views).ThenByDescending(x => x.PublishedAt).Take(20)
-            .Select(x => new { x.Id, x.Slug, x.Title, x.Views, x.EngagedSeconds, x.HasSeo, x.HasCover, x.TagCount,
-                reason = !x.HasSeo ? "SEO bilgisi eksik" : !x.HasCover ? "Kapak görseli eksik" : x.TagCount == 0 ? "Etiket ve konu bağlantısı eksik" : "Düşük keşif: iç bağlantı ve dağıtım adayı" });
+        var assessed = rows.Select(x => new { Row = x, Authority = ContentAuthorityPolicy.Assess(x.SourceUrls, x.HasSeo, x.HasCover, x.CategoryCount, x.TagCount) }).ToArray();
+        var opportunities = assessed.Where(x => x.Authority.Risks.Length > 0)
+            .OrderBy(x => x.Authority.Score).ThenByDescending(x => x.Row.Views).ThenByDescending(x => x.Row.PublishedAt).Take(24)
+            .Select(x => new { x.Row.Id, x.Row.Slug, x.Row.Title, x.Row.Views, x.Row.EngagedSeconds, x.Row.HasSeo, x.Row.HasCover, x.Row.TagCount,
+                sourceCount=x.Row.SourceUrls.Length, domainCount=x.Row.SourceUrls.Select(url=>new Uri(url).Host.ToLowerInvariant()).Distinct().Count(), authorityScore=x.Authority.Score, risks=x.Authority.Risks });
+        var sourceDomains = rows.SelectMany(x => x.SourceUrls.Select(url => new { x.Id, Domain = new Uri(url).Host.ToLowerInvariant() }))
+            .GroupBy(x => x.Domain).Select(group => new { domain=group.Key, articles=group.Select(x=>x.Id).Distinct().Count(), citations=group.Count() })
+            .OrderByDescending(x=>x.articles).ThenBy(x=>x.domain).Take(12).ToArray();
+        var authority = new { strong=assessed.Count(x=>x.Authority.Score>=80), needsWork=assessed.Count(x=>x.Authority.Score is >=50 and <80), critical=assessed.Count(x=>x.Authority.Score<50),
+            averageScore=assessed.Length==0?0:Math.Round(assessed.Average(x=>x.Authority.Score),1), withoutSources=assessed.Count(x=>x.Authority.Risks.Contains("missing_sources")), singleSource=assessed.Count(x=>x.Authority.Risks.Contains("single_source")) };
         var clusters = rows.SelectMany(x => x.Categories.DefaultIfEmpty("Kategorisiz").Select(category => new { category, x.Views, x.EngagedSeconds }))
             .GroupBy(x => x.category).Select(x => new { name=x.Key, articles=x.Count(), views=x.Sum(y=>y.Views), engagedSeconds=x.Sum(y=>y.EngagedSeconds) })
             .OrderByDescending(x => x.views).ThenByDescending(x => x.articles).Take(12);
@@ -43,7 +52,7 @@ public static class TrafficGrowthEndpoints
         return Results.Ok(new { locale, checkedAt=DateTimeOffset.UtcNow, published=rows.Count, totalViews, totalEngagedSeconds=totalSeconds,
             averageEngagedSeconds=rows.Count == 0 ? 0 : Math.Round((double)totalSeconds/rows.Count,1),
             measurement=new { internalAnalytics=true, ga4=!string.IsNullOrWhiteSpace(configuration["Analytics:GaMeasurementId"]), clarity=!string.IsNullOrWhiteSpace(configuration["Analytics:ClarityProjectId"]), searchConsole=searchConsole is not null },
-            searchConsole, top=rows.OrderByDescending(x=>x.Views).ThenByDescending(x=>x.EngagedSeconds).Take(10).Select(x=>new{x.Slug,x.Title,x.Views,x.EngagedSeconds}), opportunities, clusters });
+            searchConsole, authority, sourceDomains, top=rows.OrderByDescending(x=>x.Views).ThenByDescending(x=>x.EngagedSeconds).Take(10).Select(x=>new{x.Slug,x.Title,x.Views,x.EngagedSeconds}), opportunities, clusters });
     }
 
     private static async Task<object?> GetSearchConsoleAsync(IConfiguration configuration, CancellationToken token)
