@@ -50,6 +50,7 @@ test("ana vitrin manset, kronolojik akis ve gorsel ikincil dosyalari birlikte su
   assert.match(homePage, /latest\.slice\(0, 5\)/);
   assert.match(homePage, /Intl\.DateTimeFormat\(locale,\{hour:"2-digit",minute:"2-digit"\}\)/);
   assert.match(header, /className="trust-link"[\s\S]*?\{copy\.sources\}/);
+  assert.match(header, /site-menu-panel[\s\S]*?href=\{`\/\$\{locale\}\/sources`\}>\{copy\.sources\}/);
   assert.match(styles, /\.front-page-grid\{[^}]*grid-template-columns:minmax\(0,1\.72fr\)/);
   assert.match(styles, /@media\(max-width:700px\)[\s\S]*?scroll-snap-type:x proximity/);
 });

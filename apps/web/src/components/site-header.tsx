@@ -39,6 +39,7 @@ export async function SiteHeader({ locale, localeHrefs, homeActive = false }: Si
                 <Link href={`/${locale}`} aria-current={homeActive ? "page" : undefined}>{copy.home}</Link>
                 <Link href={`/${locale}/search`}>{copy.search}</Link>
                 <Link href={`/${locale}/topics`}>{copy.allTopics}</Link>
+                <Link href={`/${locale}/sources`}>{copy.sources}</Link>
                 {categories.map((category) => (
                   <Link key={category.slug} href={`/${locale}/categories/${category.slug}`}>
                     <span>{category.title}</span><small>{category.articleCount}</small>
