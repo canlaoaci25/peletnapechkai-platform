@@ -102,8 +102,10 @@ export type SystemStatus = {
 export type DeploymentSnapshot = { deploymentId: string; environment: "Staging" | "Production"; component: "Web" | "Api"; status: string; commit: string; message: string; startedAt: string; updatedAt: string; durationSeconds: number };
 export type EditorialCommandCenter = {
   checkedAt: string;
-  summary: { overdue: number; dueSoon: number; inReview: number; incompleteQuality: number; personalOpen: number; personalOverdue: number; personalDueSoon: number };
-  items: { articleId: string; title: string; locale: string; kind: string; dueAt: string; taskTitle: string | null; assignee: string | null; priority: string | null; taskId: string | null; status: string | null; isMine: boolean }[];
+  summary: { overdue: number; dueSoon: number; inReview: number; incompleteQuality: number; personalOpen: number; personalOverdue: number; personalDueSoon: number; unassigned:number; teamMembers:number };
+  workloads:{userId:string;displayName:string;open:number;overdue:number;dueSoon:number}[];
+  users:{id:string;displayName:string}[];
+  items: { articleId: string; title: string; locale: string; kind: string; dueAt: string; taskTitle: string | null; assignee: string | null; assigneeUserId:string|null; priority: string | null; taskId: string | null; status: string | null; isMine: boolean }[];
 };
 export type KnowledgeLink = {
   id: string;

@@ -13,4 +13,5 @@ public sealed class EditorialTask
     }
     public Guid Id{get;private set;}public Guid ArticleLocalizationId{get;private set;}public ArticleLocalization Article{get;private set;}=null!;public Guid AssigneeUserId{get;private set;}public string Title{get;private set;}="";public EditorialTaskPriority Priority{get;private set;}public EditorialTaskStatus Status{get;private set;}public DateTimeOffset DueAt{get;private set;}public Guid CreatedByUserId{get;private set;}public DateTimeOffset CreatedAt{get;private set;}public DateTimeOffset UpdatedAt{get;private set;}
     public void ChangeStatus(EditorialTaskStatus status,DateTimeOffset now){Status=status;UpdatedAt=now;}
+    public void Reassign(Guid assigneeUserId,DateTimeOffset now){if(assigneeUserId==Guid.Empty)throw new ArgumentException("An assignee is required.",nameof(assigneeUserId));AssigneeUserId=assigneeUserId;UpdatedAt=now;}
 }

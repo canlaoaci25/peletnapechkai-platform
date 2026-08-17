@@ -13,11 +13,12 @@ export default async function AdminPage({params}:PageProps<"/[locale]/admin">) {
   const session=await getAdminSession();
   if(!session) redirect(`/${locale}/admin/login`);
   const canManage=session.roles.some(role=>["Owner","Admin"].includes(role));
+  const canManageEditorial=session.roles.some(role=>["Owner","Admin","Editor"].includes(role));
   const [articles,status,commandCenter]=await Promise.all([getArticles(),canManage?getSystemStatus():Promise.resolve(null),getEditorialCommandCenter()]);
   const copy=pageCopy[locale];
   return <main className="admin-shell admin-dashboard-shell">
     <header className="admin-command-header"><div><p className="section-kicker">{siteConfig.name} / {copy.kicker}</p><h1>{copy.title}</h1><p>{copy.intro}</p></div><div className="dashboard-live"><span/><strong>{copy.live}</strong></div></header>
-    {commandCenter&&<EditorialCommandCenterView locale={locale} data={commandCenter}/>}
+    {commandCenter&&<EditorialCommandCenterView locale={locale} data={commandCenter} canReassign={canManageEditorial}/>}
     {canManage&&<AutomaticContentControl/>}
     <AdminOverview locale={locale} articles={articles} status={status}/>
   </main>;

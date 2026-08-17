@@ -32,6 +32,7 @@ const copy = {
     Completed: "Tamamlandı",
     updateError: "Görev durumu güncellenemedi.",
     priority: "Öncelik",
+    capacity: "Ekip kapasitesi", capacityIntro: "Açık iş ve SLA riskini kişi bazında görün; yoğunluğu gecikme oluşmadan dengeleyin.", noOwner: "Sahipsiz iş", teamMembers: "Aktif ekip", reassign: "Sorumluyu değiştir", reassignError: "Görev yeniden atanamadı.", openShort: "açık", overdueShort: "gecikmiş", soonShort: "yaklaşan",
   },
   "en-US": {
     kicker: "DAILY EDITORIAL WORKSPACE",
@@ -61,6 +62,7 @@ const copy = {
     Completed: "Completed",
     updateError: "Task status could not be updated.",
     priority: "Priority",
+    capacity: "Team capacity", capacityIntro: "See open work and SLA risk by person; rebalance before delays grow.", noOwner: "Unowned work", teamMembers: "Active team", reassign: "Change owner", reassignError: "Task could not be reassigned.", openShort: "open", overdueShort: "overdue", soonShort: "due soon",
   },
   "de-DE": {
     kicker: "TÄGLICHER REDAKTIONSARBEITSPLATZ",
@@ -90,6 +92,7 @@ const copy = {
     Completed: "Erledigt",
     updateError: "Aufgabenstatus konnte nicht aktualisiert werden.",
     priority: "Priorität",
+    capacity: "Teamkapazität", capacityIntro: "Offene Arbeit und SLA-Risiken pro Person erkennen und rechtzeitig ausgleichen.", noOwner: "Nicht zugeordnet", teamMembers: "Aktives Team", reassign: "Verantwortung ändern", reassignError: "Aufgabe konnte nicht neu zugewiesen werden.", openShort: "offen", overdueShort: "überfällig", soonShort: "bald fällig",
   },
   "fr-FR": {
     kicker: "ESPACE ÉDITORIAL QUOTIDIEN",
@@ -119,6 +122,7 @@ const copy = {
     Completed: "Terminée",
     updateError: "Le statut n’a pas pu être mis à jour.",
     priority: "Priorité",
+    capacity: "Capacité de l’équipe", capacityIntro: "Visualisez la charge et le risque SLA par personne, puis rééquilibrez avant les retards.", noOwner: "Sans responsable", teamMembers: "Équipe active", reassign: "Changer le responsable", reassignError: "La tâche n’a pas pu être réattribuée.", openShort: "ouvertes", overdueShort: "en retard", soonShort: "bientôt dues",
   },
 } as const;
 type Scope = "mine" | "team";
@@ -126,9 +130,11 @@ type Filter = "all" | "overdue" | "soon" | "review";
 export function EditorialCommandCenterView({
   locale,
   data,
+  canReassign,
 }: {
   locale: string;
   data: EditorialCommandCenter;
+  canReassign:boolean;
 }) {
   const c = copy[locale as keyof typeof copy] ?? copy["tr-TR"],
     router = useRouter(),
@@ -181,6 +187,13 @@ export function EditorialCommandCenterView({
     } finally {
       setBusy(null);
     }
+  }
+  async function reassign(item:EditorialCommandCenter["items"][number],assigneeUserId:string){
+    if(!item.taskId)return;setBusy(item.taskId);setError("");
+    try{const csrf=await fetch("/api/admin/auth/csrf",{cache:"no-store"}),{token}=await csrf.json() as {token:string};
+      const response=await fetch(`/api/admin/editorial/tasks/${item.taskId}/assignee`,{method:"POST",headers:{"content-type":"application/json","x-csrf-token":token},body:JSON.stringify({assigneeUserId})});
+      if(!response.ok)throw new Error();router.refresh();
+    }catch{setError(c.reassignError)}finally{setBusy(null)}
   }
   const filters: [Filter, string, number][] = [
     [
@@ -253,6 +266,10 @@ export function EditorialCommandCenterView({
           <span>{c.quality}</span>
         </article>
       </div>
+      <section className="editorial-capacity" aria-labelledby="editorial-capacity-title">
+        <header><div><p className="section-kicker">{c.teamMembers}: {data.summary.teamMembers}</p><h3 id="editorial-capacity-title">{c.capacity}</h3><p>{c.capacityIntro}</p></div><strong data-alert={data.summary.unassigned>0}>{data.summary.unassigned} <span>{c.noOwner}</span></strong></header>
+        <div className="capacity-grid">{data.workloads.map(person=><article key={person.userId} data-alert={person.overdue>0}><div><strong>{person.displayName}</strong><small>{person.open} {c.openShort}</small></div><span>{person.overdue} {c.overdueShort}</span><span>{person.dueSoon} {c.soonShort}</span><i aria-hidden style={{width:`${Math.min(100,person.open*12.5)}%`}}/></article>)}</div>
+      </section>
       <nav className="desk-filters" aria-label={c.title}>
         {filters.map(([value, label, count]) => (
           <button
@@ -324,6 +341,7 @@ export function EditorialCommandCenterView({
                     </select>
                   </label>
                 )}
+                {item.taskId&&canReassign&&<label><span>{c.reassign}</span><select value={item.assigneeUserId??""} disabled={busy===item.taskId} onChange={event=>void reassign(item,event.target.value)}><option value="" disabled>{c.assigned}</option>{data.users.map(user=><option key={user.id} value={user.id}>{user.displayName}</option>)}</select></label>}
                 <Link href={`/${locale}/admin/articles/${item.articleId}`}>
                   {c.open} →
                 </Link>

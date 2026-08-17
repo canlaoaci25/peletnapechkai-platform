@@ -1,5 +1,14 @@
 # Delivery roadmap
 
+## Cycle 44 — Editorial capacity center
+
+The admin control center now exposes real team workload, overdue and 48-hour SLA risk,
+inactive-owner debt, and authorized inline task reassignment. Reassignments require an
+active owner, editorial-management authorization, antiforgery validation, and a durable
+audit event. Historical completion-time p50/p95 trends, capacity thresholds based on
+measured throughput, and reversible bulk assignment remain the next editorial operations
+milestones.
+
 ## Cycle 43 — Member reading hub
 
 The member account now unifies continue, personal-feed, saved-story, and followed-topic
