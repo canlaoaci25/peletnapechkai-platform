@@ -64,3 +64,15 @@ test("reading progress offers a locale-complete return journey", () => {
   assert.match(tracker, /x-csrf-token/);
   assert.match(surface, /continue-meter/);
 });
+
+test("registration starts an accessible locale-complete interest onboarding", () => {
+  const form = readFileSync(fileURLToPath(new URL("../components/account-form.tsx", import.meta.url)), "utf8");
+  const onboarding = readFileSync(fileURLToPath(new URL("../components/member-onboarding.tsx", import.meta.url)), "utf8");
+  assert.match(form, /account\/onboarding/);
+  assert.match(onboarding, /aria-pressed=\{active\}/);
+  assert.match(onboarding, /x-csrf-token/);
+  assert.match(onboarding, /method:"PUT"/);
+  assert.match(onboarding, /current\.length<5/);
+  const css = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
+  assert.match(css, /body:has\(\.consent-banner\) \.member-onboarding>footer/);
+});

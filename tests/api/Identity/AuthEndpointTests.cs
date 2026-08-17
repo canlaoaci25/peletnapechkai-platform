@@ -104,6 +104,13 @@ public sealed class AuthEndpointTests : IClassFixture<AuthEndpointTests.ApiFacto
     }
 
     [Fact]
+    public async Task TopicOnboarding_WithoutAuthenticatedCookie_IsRejected()
+    {
+        var response = await client.PutAsJsonAsync("/api/v1/account/following-setup/tr-TR", new { slugs = new[] { "teknoloji" } });
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
     public async Task ReadingProgress_WithoutAuthenticatedCookie_IsRejected()
     {
         var response = await client.GetAsync("/api/v1/account/reading-progress?locale=tr-TR");

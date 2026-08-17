@@ -25,6 +25,7 @@ public static class MemberAccountEndpoints
         group.MapGet("/following/{locale}/{slug}", GetFollowingStatusAsync);
         group.MapPut("/following/{locale}/{slug}", FollowCategoryAsync).ValidateAntiforgery();
         group.MapDelete("/following/{locale}/{slug}", UnfollowCategoryAsync).ValidateAntiforgery();
+        group.MapPut("/following-setup/{locale}", SetupFollowingAsync).ValidateAntiforgery();
         group.MapGet("/feed", GetPersonalFeedAsync);
         group.MapGet("/reading-progress", ListReadingProgressAsync);
         group.MapGet("/reading-progress/{locale}/{slug}", GetReadingProgressAsync);
@@ -97,6 +98,18 @@ public static class MemberAccountEndpoints
         var followed=await db.FollowedCategories.Include(item=>item.Category).SingleOrDefaultAsync(item=>item.UserId==user.Id&&item.Category.Locale.Code==locale&&item.Category.Slug==slug,token);if(followed is null)return Results.NoContent();
         db.FollowedCategories.Remove(followed);db.AuditLogs.Add(new AuditLog(user.Id,"member.category_unfollowed",nameof(Category),followed.CategoryId,null,DateTimeOffset.UtcNow));await db.SaveChangesAsync(token);return Results.NoContent();
     }
+    private static async Task<IResult> SetupFollowingAsync(string locale,FollowingSetupRequest request,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
+        var slugs=(request.Slugs??[]).Select(value=>value?.Trim()).Where(value=>!string.IsNullOrWhiteSpace(value)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        if(slugs.Length is <1 or >5)return Results.BadRequest(new{message="Choose between 1 and 5 topics."});
+        var categories=await db.Categories.Where(item=>item.Locale.Code==locale&&slugs.Contains(item.Slug)&&item.ParentCategoryId==null&&item.Articles.Any(article=>article.Status==PublicationStatus.Published)).ToArrayAsync(token);
+        if(categories.Length!=slugs.Length)return Results.BadRequest(new{message="One or more topics are unavailable."});
+        var existing=await db.FollowedCategories.Where(item=>item.UserId==user.Id&&item.Category.Locale.Code==locale).Select(item=>item.CategoryId).ToArrayAsync(token);var now=DateTimeOffset.UtcNow;
+        foreach(var category in categories.Where(item=>!existing.Contains(item.Id)))db.FollowedCategories.Add(new FollowedCategory(user,category,now));
+        db.AuditLogs.Add(new AuditLog(user.Id,"member.topic_onboarding_completed",nameof(ApplicationUser),user.Id,System.Text.Json.JsonSerializer.Serialize(new{locale,topicCount=categories.Length}),now));
+        await db.SaveChangesAsync(token);return Results.Ok(new{followed=categories.Length});
+    }
     private static async Task<IResult> GetPersonalFeedAsync(string locale,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
     {
         var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
@@ -127,7 +140,7 @@ public static class MemberAccountEndpoints
     private static async Task<IResult> GetReadingRitualAsync(string locale,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
     {
         var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
-        var now=DateTimeOffset.UtcNow;var daysFromMonday=((int)now.DayOfWeek+6)%7;var weekStart=now.Date.AddDays(-daysFromMonday);
+        var now=DateTimeOffset.UtcNow;var daysFromMonday=((int)now.DayOfWeek+6)%7;var weekStart=new DateTimeOffset(now.UtcDateTime.Date,TimeSpan.Zero).AddDays(-daysFromMonday);
         var completed=await db.ArticleReadingProgress.AsNoTracking().Where(item=>item.UserId==user.Id&&item.CompletedAt>=weekStart&&item.ArticleLocalization.Locale.Code==locale&&item.ArticleLocalization.Status==PublicationStatus.Published).Select(item=>item.CompletedAt!.Value).ToArrayAsync(token);
         var next=await db.ArticleLocalizations.AsNoTracking().Where(article=>article.Locale.Code==locale&&article.Status==PublicationStatus.Published&&!db.ArticleReadingProgress.Any(progress=>progress.UserId==user.Id&&progress.ArticleLocalizationId==article.Id&&progress.CompletedAt!=null)&&(article.Categories.Any(category=>db.FollowedCategories.Any(follow=>follow.UserId==user.Id&&follow.CategoryId==category.Id))||db.SavedArticles.Any(saved=>saved.UserId==user.Id&&saved.ArticleLocalizationId==article.Id))).OrderByDescending(article=>article.PublishedAt).Select(article=>new{article.Slug,article.Title,article.Summary,cover=article.CoverMediaAssetId==null?null:new{url="/api/media/"+article.CoverMediaAssetId+"?v="+article.CoverMediaAsset!.OptimizedByteLength,altText=article.CoverAltText}}).FirstOrDefaultAsync(token);
         return Results.Ok(new{goal=user.WeeklyReadingGoal,completed=completed.Length,activeDays=completed.Select(item=>item.UtcDateTime.Date).Distinct().Count(),weekStartsAt=weekStart,next});
@@ -141,4 +154,5 @@ public static class MemberAccountEndpoints
     public sealed record PasswordRequest(string? CurrentPassword,string? NewPassword);
     public sealed record ReadingProgressRequest(int Percent,string? Anchor);
     public sealed record ReadingRitualRequest(int Goal);
+    public sealed record FollowingSetupRequest(string[]? Slugs);
 }
