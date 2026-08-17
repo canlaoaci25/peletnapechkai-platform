@@ -1,8 +1,8 @@
 {
   "updatedAt": "2026-08-17T17:00:00Z",
   "items": [
-    { "id": "public-sidebar", "title": "Yayın sidebar navigasyonu", "outcome": "Masaüstü ve mobilde kategori, arama, üyelik ve tema akışlarını tek erişilebilir navigasyonda birleştir.", "status": "active" },
-    { "id": "browser-push", "title": "Tarayıcı ve telefon push bildirimleri", "outcome": "İzin veren üyeye yeni Türkçe içerik ve doğrulanmış site güncellemelerini Web Push ile gönder; konu tercihleri, sessiz saatler ve abonelikten çıkma ekle.", "status": "queued" },
+    { "id": "public-sidebar", "title": "Yayın sidebar navigasyonu", "outcome": "Masaüstü ve mobilde kategori, arama, üyelik ve tema akışlarını tek erişilebilir navigasyonda birleştir.", "status": "completed" },
+    { "id": "browser-push", "title": "Tarayıcı ve telefon push bildirimleri", "outcome": "İzin veren üyeye yeni Türkçe içerik ve doğrulanmış site güncellemelerini Web Push ile gönder; konu tercihleri, sessiz saatler ve abonelikten çıkma ekle.", "status": "active" },
     { "id": "visual-service", "title": "Bağımsız görsel üretim servisi", "outcome": "Makale bağlamından yazısız, konuya uygun kapak ve gövde görselleri üret; kalite kapıları ve sağlayıcı yedeği ekle.", "status": "queued" },
     { "id": "visual-backfill", "title": "Mevcut yayınların görsel yenilemesi", "outcome": "Eksik veya alakasız yayın görsellerini checkpoint ve geri dönüş korumasıyla yeniden üret.", "status": "queued" },
     { "id": "home-discovery", "title": "Ana sayfa keşif mimarisi", "outcome": "Manşet, güncel akış, editör seçkisi, kategori şeritleri ve evergreen merkezlerini dinamik verilerle zenginleştir.", "status": "queued" },

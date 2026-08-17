@@ -31,6 +31,7 @@ $payload = [ordered]@{
     currentEventLog = $state.currentEventLog
     currentResultLog = $state.currentResultLog
     roadmap = $state.roadmap
+    githubPushPausedUntil = $state.githubPushPausedUntil
     updatedAt = [DateTimeOffset]::UtcNow.ToString('o')
 }
 if ($Action -ne 'Status') {

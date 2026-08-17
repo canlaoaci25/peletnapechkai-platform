@@ -40,6 +40,12 @@ try {
     if ($masterInstructionsInfo.Length -le 0 -or $masterInstructionsInfo.Length -gt 100KB) { throw 'Kullanici master otonom talimat dosyasi gecersiz boyutta.' }
     $masterInstructions = Get-Content -Raw -LiteralPath $masterInstructionsPath -Encoding UTF8
     $masterAuditMode = -not ($state.PSObject.Properties.Name -contains 'masterAuditCompleted' -and [bool]$state.masterAuditCompleted)
+    $githubPushPaused = Test-BoeclUtcDeadlinePending -Deadline ([string]$state.githubPushPausedUntil)
+    $deliveryPolicy = if ($githubPushPaused) {
+        "KULLANICI GECICI TESLIM KARARI: $([string]$state.githubPushPausedUntil) UTC zamanina kadar GitHub, gh, Git Credential Manager, git push, remote kimlik dogrulama veya PR islemi yapma. Degisiklikleri anlamli yerel commit olarak kaydet; kalite kapilari sonrasi staging ve production'a dogrudan canli dagit. Bu karar asagidaki eski push talimatlarinin yerine gecer."
+    } else {
+        'GitHub teslimi acik: kalite kapilari gecerse anlamli commit olustur ve origin/main dalina push et.'
+    }
 
     $focuses = @(
         'ana sayfa, global navigasyon ve gorunur tasarim donusumu',
@@ -80,6 +86,8 @@ Asagidaki CODEX MASTER INSTRUCTIONS metni kullanici tarafindan kalici ana talima
 ----- KULLANICI MASTER TALIMATLARI BASLANGICI -----
 $masterInstructions
 ----- KULLANICI MASTER TALIMATLARI SONU -----
+
+$deliveryPolicy
 
 Bu master talimatlar icin ilk calistirma denetimi gerekli mi: $masterAuditMode. Deger True ise once tam analiz ve oncelikli ilk 20 gelistirme raporunu depo altinda kalici dokuman olarak olustur, sonra ayni cevrimde kanitlanan en kritik guvenli isi uygula. Deger False ise daha onceki denetimi ve backlog'u okuyarak siradaki faza devam et; ilk analiz adimini gereksiz yere tekrarlama.
 
