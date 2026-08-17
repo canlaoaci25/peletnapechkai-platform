@@ -2,13 +2,16 @@
 param(
     [string]$StateRoot = 'C:\ProgramData\Peletnapechkai\Autonomous',
     [string]$TaskName = 'BOECL Autonomous Improvement',
+    [string]$ConfigPath = 'C:\ProgramData\Peletnapechkai\Secrets\automation-worker.json',
     [ValidateRange(1, 120)][int]$StaleAfterMinutes = 10
 )
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'AutonomousWatchdogCore.ps1')
+. (Join-Path $PSScriptRoot 'AutonomousRoadmap.ps1')
 
 $statePath = Join-Path $StateRoot 'state.json'
+$stateBackupPath = Join-Path $StateRoot 'state.last-good.json'
 $watchdogPath = Join-Path $StateRoot 'watchdog.json'
 $logRoot = Join-Path $StateRoot 'Logs'
 $logPath = Join-Path $logRoot 'watchdog.jsonl'
@@ -29,19 +32,60 @@ function Save-WatchdogState {
     Move-Item -LiteralPath $temporary -Destination $watchdogPath -Force
 }
 
+function Save-AutonomousState {
+    param($Value)
+    $temporary = "$statePath.$([guid]::NewGuid().ToString('N')).tmp"
+    $Value | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $temporary -Encoding UTF8
+    Move-Item -LiteralPath $temporary -Destination $statePath -Force
+    Copy-Item -LiteralPath $statePath -Destination $stateBackupPath -Force
+}
+
 try {
     try { $acquired = $mutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $acquired = $true }
     if (-not $acquired) { exit 0 }
     if (-not (Test-Path -LiteralPath $statePath -PathType Leaf)) { Write-WatchdogEvent 'Warning' 'state_missing' 'Otonom durum dosyasi bulunamadi.'; exit 0 }
 
-    $state = Get-Content -Raw -LiteralPath $statePath -Encoding UTF8 | ConvertFrom-Json
+    try {
+        $state = Get-Content -Raw -LiteralPath $statePath -Encoding UTF8 | ConvertFrom-Json
+        Copy-Item -LiteralPath $statePath -Destination $stateBackupPath -Force
+    }
+    catch {
+        if (-not (Test-Path -LiteralPath $stateBackupPath -PathType Leaf)) { throw }
+        $state = Get-Content -Raw -LiteralPath $stateBackupPath -Encoding UTF8 | ConvertFrom-Json
+        Save-AutonomousState $state
+        Write-WatchdogEvent 'Warning' 'state_restored' 'Bozuk otonom durum dosyasi son saglam kopyadan geri yuklendi.'
+    }
     if (-not [bool]$state.enabled) { Write-WatchdogEvent 'Info' 'disabled' 'Otonom mod kullanici tarafindan kapali.'; exit 0 }
 
     $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
     $action = $task.Actions | Select-Object -First 1
     if ([string]$action.Execute -notmatch '(?i)powershell(?:\.exe)?$' -or [string]$action.Arguments -notmatch '(?i)(?:^|\s)-File\s+') {
-        Write-WatchdogEvent 'Error' 'invalid_action' 'Ana gorev guvenli -File eylemini kullanmiyor; otomatik baslatma engellendi.'
-        exit 2
+        if ($task.State -in @('Running','Queued')) { throw 'Calisan ana gorevin eylemi guvenli bicimde onarilamaz.' }
+        $config = Get-Content -Raw -LiteralPath $ConfigPath -Encoding UTF8 | ConvertFrom-Json
+        $repository = [IO.Path]::GetFullPath([string]$config.repositoryPath)
+        $cycleScript = Join-Path $repository 'ops\windows\Invoke-BoeclAutonomousCycle.ps1'
+        if (-not (Test-Path -LiteralPath $cycleScript -PathType Leaf)) { throw 'Ana otonom cevrim betigi bulunamadi.' }
+        $fixedAction = New-ScheduledTaskAction -Execute 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$cycleScript`"" -WorkingDirectory $repository
+        Set-ScheduledTask -TaskName $TaskName -Action $fixedAction | Out-Null
+        $task = Get-ScheduledTask -TaskName $TaskName
+        Write-WatchdogEvent 'Warning' 'action_repaired' 'Ana gorev guvenli -File eylemine geri alindi.'
+    }
+
+    if ([string]$state.currentStatus -eq 'Failed' -and [string]$state.lastResult -match 'yol haritasi en az .* gelecek adim') {
+        $config = Get-Content -Raw -LiteralPath $ConfigPath -Encoding UTF8 | ConvertFrom-Json
+        $repository = [IO.Path]::GetFullPath([string]$config.repositoryPath)
+        $roadmapPath = Join-Path $repository 'docs\operations\autonomous-roadmap.json'
+        $repairedRoadmap = @(Repair-BoeclAutonomousRoadmap -Path $roadmapPath)
+        $now = [DateTimeOffset]::UtcNow.ToString('o')
+        $state | Add-Member -NotePropertyName roadmap -NotePropertyValue $repairedRoadmap -Force
+        $state | Add-Member -NotePropertyName consecutiveFailures -NotePropertyValue 0 -Force
+        $state | Add-Member -NotePropertyName nextRetryAt -NotePropertyValue $null -Force
+        $state | Add-Member -NotePropertyName currentStatus -NotePropertyValue 'Queued' -Force
+        $state | Add-Member -NotePropertyName recoveryState -NotePropertyValue 'SelfHealedRoadmap' -Force
+        $state | Add-Member -NotePropertyName automaticRecoveries -NotePropertyValue (([int]$state.automaticRecoveries)+1) -Force
+        $state | Add-Member -NotePropertyName updatedAt -NotePropertyValue $now -Force
+        Save-AutonomousState $state
+        Write-WatchdogEvent 'Warning' 'roadmap_repaired' 'Eksik otonom yol haritasi otomatik tamamlandi ve backoff temizlendi.'
     }
 
     $decision = Get-BoeclWatchdogDecision -Enabled ([bool]$state.enabled) -TaskState ([string]$task.State) `
