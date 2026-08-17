@@ -5,17 +5,27 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'AutonomousCycleRecovery.ps1')
 $statePath = Join-Path $StateRoot 'state.json'
 $logRoot = Join-Path $StateRoot 'Logs'
 if (-not (Test-Path -LiteralPath $statePath)) { exit 0 }
 $state = Get-Content -Raw -LiteralPath $statePath -Encoding UTF8 | ConvertFrom-Json
 if (-not $state.enabled) { exit 0 }
 function Set-StateValue([string]$Name, $Value) { $state | Add-Member -NotePropertyName $Name -NotePropertyValue $Value -Force }
+if (Test-BoeclUtcDeadlinePending -Deadline ([string]$state.nextRetryAt)) { exit 0 }
 New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
 $mutex = [Threading.Mutex]::new($false, 'Global\BOECL-Autonomous-Improvement')
-if (-not $mutex.WaitOne(0)) { exit 0 }
+$mutexAcquired = $false
+try { $mutexAcquired = $mutex.WaitOne(0) }
+catch [Threading.AbandonedMutexException] { $mutexAcquired = $true }
+if (-not $mutexAcquired) { $mutex.Dispose(); exit 0 }
 
 try {
+    if ([string]$state.currentStatus -eq 'Running' -and (Test-BoeclHeartbeatStale -Heartbeat ([string]$state.heartbeatAt))) {
+        Set-StateValue 'recoveredFromCycle' ([int]$state.currentCycle)
+        Set-StateValue 'automaticRecoveries' (([int]$state.automaticRecoveries) + 1)
+        Set-StateValue 'recoveryState' 'RecoveredAbandonedRun'
+    }
     $config = Get-Content -Raw -LiteralPath $ConfigPath -Encoding UTF8 | ConvertFrom-Json
     $repository = [IO.Path]::GetFullPath([string]$config.repositoryPath)
     if (-not (Test-Path -LiteralPath (Join-Path $repository 'AGENTS.md'))) { throw 'Yetkili BOECL deposu doğrulanamadı.' }
@@ -51,6 +61,8 @@ try {
     Set-StateValue 'currentFocus' $focus
     Set-StateValue 'currentStatus' 'Running'
     Set-StateValue 'currentStartedAt' ([DateTimeOffset]::UtcNow.ToString('o'))
+    Set-StateValue 'heartbeatAt' $state.currentStartedAt
+    Set-StateValue 'recoveryState' 'Healthy'
     Set-StateValue 'currentEventLog' $events
     Set-StateValue 'currentResultLog' $output
     $state.updatedAt = $state.currentStartedAt
@@ -95,7 +107,12 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
     $process = Start-Process -FilePath ([string]$config.codexPath) -ArgumentList $argumentLine -NoNewWindow -PassThru `
         -RedirectStandardInput $inputPath -RedirectStandardOutput $events -RedirectStandardError $errors
     $null = $process.Handle
-    $process.WaitForExit()
+    while (-not $process.WaitForExit(15000)) {
+        Set-StateValue 'heartbeatAt' ([DateTimeOffset]::UtcNow.ToString('o'))
+        $state.updatedAt = $state.heartbeatAt
+        $state | ConvertTo-Json | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
+        Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
+    }
     $process.Refresh()
     $exitCode = $process.ExitCode
     Remove-Item -LiteralPath $inputPath -Force -ErrorAction SilentlyContinue
@@ -143,6 +160,10 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
     $state.cycle = $cycle
     $state.lastRunAt = [DateTimeOffset]::UtcNow.ToString('o')
     $state.lastResult = 'Completed'
+    Set-StateValue 'consecutiveFailures' 0
+    Set-StateValue 'nextRetryAt' $null
+    Set-StateValue 'recoveryState' 'Healthy'
+    Set-StateValue 'heartbeatAt' $state.lastRunAt
     $state | Add-Member -NotePropertyName 'masterAuditCompleted' -NotePropertyValue $true -Force
     Set-StateValue 'currentStatus' 'Completed'
     $state.updatedAt = $state.lastRunAt
@@ -152,6 +173,13 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
 catch {
     $state.lastRunAt = [DateTimeOffset]::UtcNow.ToString('o')
     $state.lastResult = "Failed: $($_.Exception.Message)"
+    $failures = ([int]$state.consecutiveFailures) + 1
+    $retryDelay = Get-BoeclRetryDelayMinutes -ConsecutiveFailures $failures
+    Set-StateValue 'consecutiveFailures' $failures
+    Set-StateValue 'lastFailureAt' $state.lastRunAt
+    Set-StateValue 'nextRetryAt' ([DateTimeOffset]::UtcNow.AddMinutes($retryDelay).ToString('o'))
+    Set-StateValue 'recoveryState' 'Backoff'
+    Set-StateValue 'heartbeatAt' $state.lastRunAt
     Set-StateValue 'currentStatus' 'Failed'
     $state.updatedAt = $state.lastRunAt
     $state | ConvertTo-Json | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8

@@ -17,6 +17,13 @@ $payload = [ordered]@{
     stoppedAt = if ($Action -eq 'Stop') { [DateTimeOffset]::UtcNow.ToString('o') } else { $state.stoppedAt }
     lastRunAt = $state.lastRunAt
     lastResult = $state.lastResult
+    consecutiveFailures = if ($state) { [int]$state.consecutiveFailures } else { 0 }
+    automaticRecoveries = if ($state) { [int]$state.automaticRecoveries } else { 0 }
+    recoveredFromCycle = $state.recoveredFromCycle
+    recoveryState = if ($Action -eq 'Start') { 'Queued' } elseif ($Action -eq 'Stop') { 'Stopped' } else { $state.recoveryState }
+    heartbeatAt = $state.heartbeatAt
+    lastFailureAt = $state.lastFailureAt
+    nextRetryAt = if ($Action -eq 'Start') { $null } else { $state.nextRetryAt }
     updatedAt = [DateTimeOffset]::UtcNow.ToString('o')
 }
 if ($Action -ne 'Status') {

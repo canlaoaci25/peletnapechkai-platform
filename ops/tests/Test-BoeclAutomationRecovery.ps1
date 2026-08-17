@@ -3,6 +3,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot '..\windows\BoeclAutomationRecovery.ps1')
+. (Join-Path $PSScriptRoot '..\windows\AutonomousCycleRecovery.ps1')
 
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) ("boecl-recovery-{0}" -f [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $testRoot | Out-Null
@@ -25,6 +26,14 @@ try {
 
     $legacyResult = Join-Path $testRoot 'job-2-run-batch-1-result.json'
     '{"items":[{"slug":"legacy-result"}]}' | Set-Content -LiteralPath $legacyResult -Encoding UTF8
+    $delays = 1..8 | ForEach-Object { Get-BoeclRetryDelayMinutes -ConsecutiveFailures $_ }
+    if (($delays -join ',') -ne '1,2,4,8,16,32,60,60') { throw 'Otonom yeniden deneme geri cekilmesi beklenen sinirda degil.' }
+    $now = [DateTimeOffset]::Parse('2026-08-16T12:00:00Z')
+    if (-not (Test-BoeclUtcDeadlinePending -Deadline '2026-08-16T12:01:00Z' -Now $now)) { throw 'Gelecek yeniden deneme zamani bekleme olarak algilanmadi.' }
+    if (Test-BoeclUtcDeadlinePending -Deadline '2026-08-16T11:59:00Z' -Now $now) { throw 'Gecmis yeniden deneme zamani bekleme olarak algilandi.' }
+    if (-not (Test-BoeclHeartbeatStale -Heartbeat '2026-08-16T11:49:59Z' -Now $now)) { throw 'Terk edilmis heartbeat algilanmadi.' }
+    if (Test-BoeclHeartbeatStale -Heartbeat '2026-08-16T11:55:00Z' -Now $now) { throw 'Saglikli heartbeat terk edilmis sayildi.' }
+
     $legacy = Find-BoeclRecoveredResult -LogRoot $testRoot -JobId 'job-2' -CurrentResultPath (Join-Path $testRoot 'current.json') -RequestFingerprint $fingerprintA
     if ($null -ne $legacy) { throw 'Parmak izi metadata kaydı olmayan eski sonuç yeniden kullanıldı.' }
 

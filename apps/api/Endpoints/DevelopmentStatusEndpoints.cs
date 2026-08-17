@@ -54,7 +54,10 @@ public static class DevelopmentStatusEndpoints
         var logRoot=Path.Combine(root,"Logs");
         var reports=Directory.Exists(logRoot)?Directory.EnumerateFiles(logRoot,"*-result.txt").Select(path=>new FileInfo(path)).OrderByDescending(file=>file.LastWriteTimeUtc).Take(10)
             .Select(file=>(object)new{id=Path.GetFileNameWithoutExtension(file.Name),createdAt=file.LastWriteTimeUtc,text=SafeText(File.ReadAllText(file.FullName))}).ToArray():Array.Empty<object>();
-        return Results.Ok(new{enabled=GetBool(state,"enabled"),cycle=GetInt(state,"currentCycle")??GetInt(state,"cycle")??0,status=GetString(state,"currentStatus")??GetString(state,"lastResult")??"Waiting",focus=SafeText(GetString(state,"currentFocus")),lastResult=SafeText(GetString(state,"lastResult")),startedAt=GetString(state,"currentStartedAt")??GetString(state,"startedAt"),updatedAt=GetString(state,"updatedAt"),events,reports});
+        var heartbeatAt=GetDate(state,"heartbeatAt");
+        var nextRetryAt=GetDate(state,"nextRetryAt");
+        var heartbeatHealthy=GetString(state,"currentStatus")!="Running"||(heartbeatAt.HasValue&&DateTimeOffset.UtcNow-heartbeatAt.Value<TimeSpan.FromMinutes(1));
+        return Results.Ok(new{enabled=GetBool(state,"enabled"),cycle=GetInt(state,"currentCycle")??GetInt(state,"cycle")??0,status=GetString(state,"currentStatus")??GetString(state,"lastResult")??"Waiting",focus=SafeText(GetString(state,"currentFocus")),lastResult=SafeText(GetString(state,"lastResult")),startedAt=GetString(state,"currentStartedAt")??GetString(state,"startedAt"),updatedAt=GetString(state,"updatedAt"),heartbeatAt,heartbeatHealthy,consecutiveFailures=GetInt(state,"consecutiveFailures")??0,automaticRecoveries=GetInt(state,"automaticRecoveries")??0,recoveredFromCycle=GetInt(state,"recoveredFromCycle"),recoveryState=GetString(state,"recoveryState")??"Unknown",nextRetryAt,events,reports});
     }
 
     private static async Task<IResult> SetAutonomousModeAsync(AutonomousModeRequest request,CancellationToken token)
@@ -75,6 +78,8 @@ public static class DevelopmentStatusEndpoints
             state["enabled"]=request.Enabled;
             state[request.Enabled?"startedAt":"stoppedAt"]=now;
             state["currentStatus"]=request.Enabled?"Queued":"Stopping";
+            state["recoveryState"]=request.Enabled?"Queued":"Stopped";
+            if(request.Enabled)state["nextRetryAt"]=null;
             state["updatedAt"]=now;
             var temporary=statePath+"."+Guid.NewGuid().ToString("N")+".tmp";
             await File.WriteAllTextAsync(temporary,state.ToJsonString(new JsonSerializerOptions{WriteIndented=true}),token);
@@ -90,5 +95,6 @@ public static class DevelopmentStatusEndpoints
     private static string? GetString(JsonElement value,string name)=>value.TryGetProperty(name,out var property)&&property.ValueKind==JsonValueKind.String?property.GetString():null;
     private static bool GetBool(JsonElement value,string name)=>value.TryGetProperty(name,out var property)&&property.ValueKind==JsonValueKind.True;
     private static int? GetInt(JsonElement value,string name)=>value.TryGetProperty(name,out var property)&&property.ValueKind==JsonValueKind.Number?property.GetInt32():null;
+    private static DateTimeOffset? GetDate(JsonElement value,string name)=>DateTimeOffset.TryParse(GetString(value,name),out var parsed)?parsed:null;
     private sealed record AutonomousModeRequest(bool Enabled);
 }

@@ -1,5 +1,14 @@
 # Delivery roadmap
 
+## Cycle 56 — Autonomous recovery and retry safety
+
+The live Codex operations desk now exposes heartbeat health, consecutive failures,
+automatic abandoned-run recoveries, and the next bounded retry across all four admin
+locales. The autonomous orchestrator refreshes a durable heartbeat, safely reacquires an
+abandoned mutex, and applies capped exponential backoff after failures instead of creating
+a minute-by-minute failure storm. External alert delivery, operator-authorized rollback,
+and canary traffic remain the next release-reliability milestones.
+
 ## Cycle 55 — Perceptual visual originality gate
 
 Visual Renewal Studio now derives originality from a server-side perceptual comparison against the optimized media archive instead of trusting an editor-entered score. The closest archive image, similarity percentage, and automatic score are visible in the responsive review surface; near-duplicates cannot pass transactional promotion. Automated vision scoring, production provider execution, and locale-specific body-image art direction remain the next visual-service milestones.
