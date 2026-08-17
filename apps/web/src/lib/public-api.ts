@@ -1,12 +1,12 @@
 import "server-only";
 
 export type PublicArticleSummary = {
-  articleGroupId: string; slug: string; title: string; summary: string; type: string; publishedAt: string; updatedAt: string; cover:{url:string;altText:string}|null; categories?:{slug:string;name:string}[]; sourceCount?:number;
+  articleGroupId: string; slug: string; title: string; summary: string; type: string; publishedAt: string; updatedAt: string; cover:{url:string;altText:string}|null; categories?:{slug:string;name:string}[]; sourceCount?:number; sourceDomainCount?:number; reviewedSourceCount?:number;
 };
 export type PublicArticle = Omit<PublicArticleSummary, "articleGroupId"|"cover"> & { body: string; seoTitle: string | null; seoDescription: string | null; isSponsored:boolean; sponsorName:string|null; hasAffiliateLinks:boolean; cover:{url:string;altText:string;caption:string|null;credit:string|null}|null; categories:{slug:string;name:string}[]; tags:{slug:string;name:string}[]; authors:{slug:string;displayName:string}[]; sources:{name:string;url:string}[]; translations: { locale: string; slug: string }[] };
 export type PublicArchive = { kind:string; slug:string; title:string; description:string|null; translations?:{locale:string;slug:string}[]; articleCount:number; page:number; pageSize:number; totalPages:number; typeCounts:{type:string;count:number}[]; relatedCategories:{slug:string;title:string;articleCount:number}[]; articles:PublicArticleSummary[] };
 export type PublicArchiveIndex = { categories:{slug:string;title:string;description:string|null;translationKey:string;articleCount:number;parent:{slug:string;title:string}|null;children:{slug:string;title:string;articleCount:number}[];featured:PublicArticleSummary[]}[]; tags:{slug:string;title:string;translationKey:string}[]; authors:{slug:string;title:string}[] };
-export type PublicHomepage = { lead:PublicArticleSummary|null;secondary:PublicArticleSummary[];trending:PublicArticleSummary[];editors:PublicArticleSummary[];latest:PublicArticleSummary[];mode:"Automatic"|"Hybrid" };
+export type PublicHomepage = { lead:PublicArticleSummary|null;secondary:PublicArticleSummary[];trending:PublicArticleSummary[];editors:PublicArticleSummary[];evidence:PublicArticleSummary[];latest:PublicArticleSummary[];mode:"Automatic"|"Hybrid" };
 export type SourceKind="Unclassified"|"OfficialInstitution"|"PrimaryResearch"|"IndustryData"|"NewsPublication"|"Other";
 export type PublicSourceIndex = { totalSources:number;totalCitations:number;sources:{domain:string;sourceName:string;kind:SourceKind;lastReviewedAt:string|null;articleCount:number;citationCount:number;latestCitationAt:string}[] };
 export type PublicSourceArchive = { domain:string;names:string[];kind:SourceKind;lastReviewedAt:string|null;articleCount:number;citationCount:number;latestCitationAt:string;articles:PublicArticleSummary[] };
@@ -25,7 +25,7 @@ async function publicGet<T>(path: string): Promise<T | null> {
 export async function getPublishedArticles(locale: string, limit = 12) {
   return await publicGet<PublicArticleSummary[]>(`/api/v1/public/${encodeURIComponent(locale)}/articles?limit=${Math.min(Math.max(limit, 1), 1000)}`) ?? [];
 }
-export async function getPublicHomepage(locale:string){return await publicGet<PublicHomepage>(`/api/v1/public/${encodeURIComponent(locale)}/homepage`)??{lead:null,secondary:[],trending:[],editors:[],latest:[],mode:"Automatic"}}
+export async function getPublicHomepage(locale:string){return await publicGet<PublicHomepage>(`/api/v1/public/${encodeURIComponent(locale)}/homepage`)??{lead:null,secondary:[],trending:[],editors:[],evidence:[],latest:[],mode:"Automatic"}}
 
 export function getPublishedArticle(locale: string, slug: string) {
   return publicGet<PublicArticle>(`/api/v1/public/${encodeURIComponent(locale)}/articles/${encodeURIComponent(slug)}`);

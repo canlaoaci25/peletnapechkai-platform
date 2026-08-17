@@ -37,6 +37,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
   const secondary = homepage.secondary;
   const trending = homepage.trending;
   const picks = homepage.editors;
+  const evidence = homepage.evidence;
   const latest = homepage.latest;
   const liveDesk = latest.slice(0, 5);
   const latestArchive = latest.slice(5);
@@ -54,6 +55,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
     trending.length > 0 && { href: "#popular", label: copy.trending, count: trending.length },
     atlasCategories.length > 0 && { href: "#topic-atlas", label: copy.topicAtlas, count: atlasCategories.length },
     picks.length > 0 && { href: "#editors-picks", label: copy.editorsPicks, count: picks.length },
+    evidence.length > 0 && { href: "#evidence-led", label: copy.evidenceTitle, count: evidence.length },
     latest.length > 0 && { href: "#latest", label: copy.latestTitle, count: latest.length },
   ].filter((item): item is { href: string; label: string; count: number } => Boolean(item));
   const structuredData = {
@@ -148,6 +150,16 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
         {picks.length > 0 && <section className="picks-section" id="editors-picks" aria-labelledby="picks-title">
           <header className="home-section-header"><div><p className="section-kicker">03 / {copy.curated}</p><h2 id="picks-title">{copy.editorsPicks}</h2></div></header>
           <div className="pick-grid">{picks.map(article => <article key={article.slug}><ArticleImageLink article={article} className="pick-image" locale={locale} sizes={homeImageSizes.pick} /><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p></article>)}</div>
+        </section>}
+
+        {evidence.length > 0 && <section className="evidence-section" id="evidence-led" aria-labelledby="evidence-title">
+          <header className="home-section-header"><div><p className="section-kicker">04 / {copy.evidenceKicker}</p><h2 id="evidence-title">{copy.evidenceTitle}</h2></div><p>{copy.evidenceDescription}</p></header>
+          <div className="evidence-grid">{evidence.map((article,index)=><article key={article.slug}>
+            <span className="evidence-rank">{String(index+1).padStart(2,"0")}</span>
+            <div><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p></div>
+            <footer><strong>{article.sourceCount} {copy.evidenceSources}</strong><span>{article.sourceDomainCount} {copy.evidenceDomains}</span>{article.reviewedSourceCount ? <span>{copy.evidenceReviewed}</span>:null}</footer>
+          </article>)}</div>
+          <Link className="topic-atlas-all" href={`/${locale}/sources`}>{copy.exploreEvidence}<span aria-hidden="true"> →</span></Link>
         </section>}
 
         <AdSlot label={copy.advertisement} />

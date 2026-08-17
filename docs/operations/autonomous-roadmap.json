@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-17T22:30:00Z",
+  "updatedAt": "2026-08-17T22:45:00Z",
   "items": [
     { "id": "public-sidebar", "title": "Yayın sidebar navigasyonu", "outcome": "Masaüstü ve mobilde kategori, arama, üyelik ve tema akışlarını tek erişilebilir navigasyonda birleştir.", "status": "completed" },
     { "id": "browser-push", "title": "Tarayıcı ve telefon push bildirimleri", "outcome": "İzin veren üyeye yeni Türkçe içerik ve doğrulanmış site güncellemelerini Web Push ile gönder; konu tercihleri, sessiz saatler ve abonelikten çıkma ekle.", "status": "queued" },
@@ -11,7 +11,7 @@
     { "id": "search-recommendation", "title": "Arama ve öneri kalitesi", "outcome": "Yazım toleransı, ilgili içerik, konu kümeleri ve boş sonuç kurtarmasıyla keşfi geliştir.", "status": "queued" },
     { "id": "editorial-console", "title": "Editoryal operasyon merkezi", "outcome": "İçerik, yayın, kategori, etiket ve kalite borçlarını tek yönetilebilir admin iş akışında birleştir.", "status": "completed" },
     { "id": "locale-coverage", "title": "Çok dilli yayın bütünlüğü", "outcome": "Çeviri, kategori eşlemesi, locale SEO ve ülke yönlendirmesi açıklarını otomatik kalite kapılarıyla kapat.", "status": "queued" },
-    { "id": "seo-authority", "title": "SEO otoritesi ve iç bağlantılar", "outcome": "Konu kümeleri, yapılandırılmış veri, canonical/hreflang ve iç bağlantı önerilerini güçlendir.", "status": "queued" },
+    { "id": "seo-authority", "title": "SEO otoritesi ve iç bağlantılar", "outcome": "Ana sayfada kaynak derinliği kanıtlanan yayınları görünür kıl; konu kümeleri ve iç bağlantıları güçlendir.", "status": "completed" },
     { "id": "performance-budget", "title": "Core Web Vitals bütçesi", "outcome": "Mobil LCP, CLS ve INP metriklerini ölçülen bütçeler ve release kapılarıyla koru.", "status": "queued" },
     { "id": "resilience-operations", "title": "Operasyonel dayanıklılık", "outcome": "Watchdog, yedek, geri alma, hata sınıflandırma ve canlı gözlemlenebilirlik katmanlarını tamamla.", "status": "queued" }
   ]

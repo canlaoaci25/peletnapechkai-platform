@@ -21,7 +21,7 @@ public static class HomepageEndpoints
     private static async Task<IResult> GetHomepageAsync(string locale, PublishingDbContext db, CancellationToken token)
     {
         var articles = await Candidates(locale, db, token);
-        if (articles.Count == 0) return Results.Ok(new { lead=(object?)null, secondary=Array.Empty<object>(), trending=Array.Empty<object>(), editors=Array.Empty<object>(), latest=Array.Empty<object>() });
+        if (articles.Count == 0) return Results.Ok(new { lead=(object?)null, secondary=Array.Empty<object>(), trending=Array.Empty<object>(), editors=Array.Empty<object>(), evidence=Array.Empty<object>(), latest=Array.Empty<object>() });
         var placements = await db.HomepagePlacements.AsNoTracking().Where(x => x.Locale.Code == locale).OrderBy(x => x.Position).Select(x => new { x.Section, x.ArticleLocalizationId }).ToListAsync(token);
         var byId = articles.ToDictionary(x => x.Id);
         var manualLead = placements.FirstOrDefault(x => x.Section == "Lead" && byId.ContainsKey(x.ArticleLocalizationId));
@@ -31,7 +31,13 @@ public static class HomepageEndpoints
         editors.AddRange(automatic.Where(x => x.Id != lead.Id && editors.All(y => y.Id != x.Id)).Take(Math.Max(0, 4-editors.Count)));
         var secondary = articles.Where(x => x.Id != lead.Id).Take(4).ToList();
         var excluded = new HashSet<Guid>(secondary.Select(x=>x.Id)) { lead.Id };
-        return Results.Ok(new { lead=Shape(lead), secondary=secondary.Select(Shape), trending=automatic.Take(6).Select(Shape), editors=editors.Take(4).Select(Shape), latest=articles.Where(x=>!excluded.Contains(x.Id)).Take(15).Select(Shape), mode=placements.Count==0?"Automatic":"Hybrid" });
+        var evidence = articles.Where(x => x.SourceCount >= 2 && x.SourceDomainCount >= 2)
+            .OrderByDescending(x => x.ReviewedSourceCount)
+            .ThenByDescending(x => x.SourceDomainCount)
+            .ThenByDescending(x => x.SourceCount)
+            .ThenByDescending(x => x.PublishedAt)
+            .Take(4);
+        return Results.Ok(new { lead=Shape(lead), secondary=secondary.Select(Shape), trending=automatic.Take(6).Select(Shape), editors=editors.Take(4).Select(Shape), evidence=evidence.Select(Shape), latest=articles.Where(x=>!excluded.Contains(x.Id)).Take(15).Select(Shape), mode=placements.Count==0?"Automatic":"Hybrid" });
     }
 
     private static double Score(Candidate x)
@@ -40,12 +46,12 @@ public static class HomepageEndpoints
         return Math.Log10(x.Views+1)*35 + Math.Log10(x.EngagedSeconds+1)*12 + 120/Math.Pow(ageHours+2,.55);
     }
 
-    private static object Shape(Candidate x) => new { articleGroupId=x.GroupId, slug=x.Slug, title=x.Title, summary=x.Summary, type=x.Type, publishedAt=x.PublishedAt, updatedAt=x.UpdatedAt, cover=x.CoverId is null?null:new { url="/api/media/"+x.CoverId+"?v="+x.CoverBytes, altText=x.CoverAlt }, views=x.Views };
+    private static object Shape(Candidate x) => new { articleGroupId=x.GroupId, slug=x.Slug, title=x.Title, summary=x.Summary, type=x.Type, publishedAt=x.PublishedAt, updatedAt=x.UpdatedAt, cover=x.CoverId is null?null:new { url="/api/media/"+x.CoverId+"?v="+x.CoverBytes, altText=x.CoverAlt }, views=x.Views, sourceCount=x.SourceCount, sourceDomainCount=x.SourceDomainCount, reviewedSourceCount=x.ReviewedSourceCount };
 
     private static async Task<List<Candidate>> Candidates(string locale, PublishingDbContext db, CancellationToken token) => await db.ArticleLocalizations.AsNoTracking()
         .Where(x=>x.Locale.Code==locale&&x.Locale.IsEnabled&&x.Status==PublicationStatus.Published)
         .OrderByDescending(x=>x.PublishedAt).Take(50)
-        .Select(x=>new Candidate(x.Id,x.ArticleGroupId,x.Slug,x.Title,x.Summary,x.ArticleGroup.Type.ToString(),x.PublishedAt,x.UpdatedAt,x.CoverMediaAssetId,x.CoverAltText,x.CoverMediaAsset==null?0:x.CoverMediaAsset.OptimizedByteLength??x.CoverMediaAsset.ByteLength,db.ArticleEngagements.Where(e=>e.ArticleLocalizationId==x.Id).Select(e=>e.ViewCount).FirstOrDefault(),db.ArticleEngagements.Where(e=>e.ArticleLocalizationId==x.Id).Select(e=>e.EngagedSeconds).FirstOrDefault())).ToListAsync(token);
+        .Select(x=>new Candidate(x.Id,x.ArticleGroupId,x.Slug,x.Title,x.Summary,x.ArticleGroup.Type.ToString(),x.PublishedAt,x.UpdatedAt,x.CoverMediaAssetId,x.CoverAltText,x.CoverMediaAsset==null?0:x.CoverMediaAsset.OptimizedByteLength??x.CoverMediaAsset.ByteLength,db.ArticleEngagements.Where(e=>e.ArticleLocalizationId==x.Id).Select(e=>e.ViewCount).FirstOrDefault(),db.ArticleEngagements.Where(e=>e.ArticleLocalizationId==x.Id).Select(e=>e.EngagedSeconds).FirstOrDefault(),x.ArticleGroup.Sources.Count,x.ArticleGroup.Sources.Select(s=>s.Url).ToArray(),x.ArticleGroup.Sources.Count(s=>s.Kind!=SourceKind.Unclassified&&s.LastReviewedAt!=null))).ToListAsync(token);
 
     private static async Task<IResult> RecordEngagementAsync(string locale,string slug,EngagementRequest request,PublishingDbContext db,CancellationToken token)
     {
@@ -70,7 +76,10 @@ public static class HomepageEndpoints
         await db.SaveChangesAsync(token);return Results.NoContent();
     }
 
-    private sealed record Candidate(Guid Id,Guid GroupId,string Slug,string Title,string Summary,string Type,DateTimeOffset? PublishedAt,DateTimeOffset UpdatedAt,Guid? CoverId,string? CoverAlt,long CoverBytes,long Views,long EngagedSeconds);
+    private sealed record Candidate(Guid Id,Guid GroupId,string Slug,string Title,string Summary,string Type,DateTimeOffset? PublishedAt,DateTimeOffset UpdatedAt,Guid? CoverId,string? CoverAlt,long CoverBytes,long Views,long EngagedSeconds,int SourceCount,string[] SourceUrls,int ReviewedSourceCount)
+    {
+        public int SourceDomainCount => SourceUrls.Select(SourceArchivePolicy.GetCanonicalDomain).Where(domain=>domain is not null).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+    }
     public sealed record EngagementRequest(string Kind,int Seconds=0);
     public sealed record HomepagePlacementRequest(string Section,int Position,Guid ArticleId);
     public sealed record HomepageRequest(bool AutomaticOnly,HomepagePlacementRequest[] Placements);

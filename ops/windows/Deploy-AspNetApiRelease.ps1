@@ -37,11 +37,13 @@ Copy-Item -LiteralPath $publish -Destination $release -Recurse
 
 $swapped = $false
 try {
-    Stop-WebAppPool $settings.Pool
+    $poolState = (Get-WebAppPoolState $settings.Pool).Value
+    if ($poolState -eq 'Started') { Stop-WebAppPool $settings.Pool }
     for ($attempt=0; $attempt -lt 30; $attempt++) {
         if ((Get-WebAppPoolState $settings.Pool).Value -eq 'Stopped') { break }
         Start-Sleep -Milliseconds 500
     }
+    if ((Get-WebAppPoolState $settings.Pool).Value -ne 'Stopped') { throw "Application pool did not stop: $($settings.Pool)" }
     Start-Sleep -Seconds 2
     Move-Item -LiteralPath $active -Destination $rollback
     Move-Item -LiteralPath $release -Destination $active
@@ -57,7 +59,7 @@ try {
 }
 catch {
     $failureMessage = $_.Exception.Message
-    Stop-WebAppPool $settings.Pool -ErrorAction SilentlyContinue
+    if ((Get-WebAppPoolState $settings.Pool).Value -eq 'Started') { Stop-WebAppPool $settings.Pool }
     Start-Sleep -Seconds 2
     if ($swapped -and (Test-Path -LiteralPath $rollback)) {
         $failed = Join-Path $root ".api-failed-$stamp"

@@ -25,6 +25,16 @@ test("ana sayfa konu atlasi gercek taxonomy yollarini ve arsiv derinligini sunar
   assert.match(header, /homeActive \|\| pathname === href/);
 });
 
+test("ana sayfa kaynak derinligi kanitlanan yayinlari ayri kesifte sunar", () => {
+  const homePage = readFileSync(fileURLToPath(new URL("../app/[locale]/page.tsx", import.meta.url)), "utf8");
+  const api = readFileSync(fileURLToPath(new URL("../../../api/Endpoints/HomepageEndpoints.cs", import.meta.url)), "utf8");
+  assert.match(api, /SourceCount >= 2 && x\.SourceDomainCount >= 2/);
+  assert.match(api, /OrderByDescending\(x => x\.ReviewedSourceCount\)/);
+  assert.match(homePage, /className="evidence-section"/);
+  assert.match(homePage, /article\.sourceDomainCount/);
+  assert.match(homePage, /href=\{`\/\$\{locale\}\/sources`\}/);
+});
+
 test("gunluk edisyon rotasi gercek bolumleri ve global kategori kapsamlarini gosterir", () => {
   const homePage = readFileSync(fileURLToPath(new URL("../app/[locale]/page.tsx", import.meta.url)), "utf8");
   const header = readFileSync(fileURLToPath(new URL("../components/public-navigation.tsx", import.meta.url)), "utf8");
