@@ -14,8 +14,43 @@ public static class PublicContentEndpoints
         group.MapGet("/{locale}/articles/{slug}", GetAsync);
         group.MapGet("/{locale}/archives", ListArchivesAsync);
         group.MapGet("/{locale}/archives/{kind}/{slug}", GetArchiveAsync);
+        group.MapGet("/{locale}/sources", ListSourcesAsync);
+        group.MapGet("/{locale}/sources/{domain}", GetSourceArchiveAsync);
         group.MapGet("/media/{assetId:guid}", GetMediaAsync);
         return endpoints;
+    }
+
+    private static async Task<IResult> ListSourcesAsync(string locale, PublishingDbContext database, CancellationToken token)
+    {
+        var rows = await database.ArticleLocalizations.AsNoTracking()
+            .Where(article => article.Locale.Code == locale && article.Locale.IsEnabled && article.Status == PublicationStatus.Published)
+            .SelectMany(article => article.ArticleGroup.Sources.Select(source => new { article.Id, source.Name, source.Url, article.PublishedAt }))
+            .ToListAsync(token);
+        var sources = rows.Select(row => new { Row = row, Domain = SourceArchivePolicy.GetCanonicalDomain(row.Url) })
+            .Where(item => item.Domain is not null).GroupBy(item => item.Domain!)
+            .Select(group => new { domain = group.Key, sourceName = group.GroupBy(item => item.Row.Name).OrderByDescending(names => names.Count()).ThenBy(names => names.Key).First().Key,
+                articleCount = group.Select(item => item.Row.Id).Distinct().Count(), citationCount = group.Count(), latestCitationAt = group.Max(item => item.Row.PublishedAt) })
+            .OrderByDescending(item => item.articleCount).ThenBy(item => item.domain).ToArray();
+        return Results.Ok(new { totalSources = sources.Length, totalCitations = sources.Sum(item => item.citationCount), sources });
+    }
+
+    private static async Task<IResult> GetSourceArchiveAsync(string locale, string domain, PublishingDbContext database, CancellationToken token)
+    {
+        domain = domain.Trim().ToLowerInvariant();
+        if (!SourceArchivePolicy.IsValidDomain(domain)) return Results.NotFound();
+        var rows = await database.ArticleLocalizations.AsNoTracking()
+            .Where(article => article.Locale.Code == locale && article.Locale.IsEnabled && article.Status == PublicationStatus.Published)
+            .Where(article => article.ArticleGroup.Sources.Count > 0)
+            .Select(article => new { article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt,
+                cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText },
+                sources = article.ArticleGroup.Sources.Select(source => new { source.Name, source.Url }).ToArray() })
+            .OrderByDescending(article => article.PublishedAt).ToListAsync(token);
+        var matches = rows.Select(row => new { Row = row, Sources = row.sources.Where(source => SourceArchivePolicy.GetCanonicalDomain(source.Url) == domain).ToArray() })
+            .Where(item => item.Sources.Length > 0).ToArray();
+        if (matches.Length == 0) return Results.NotFound();
+        var names = matches.SelectMany(item => item.Sources).GroupBy(source => source.Name).OrderByDescending(group => group.Count()).ThenBy(group => group.Key).Select(group => group.Key).Take(4).ToArray();
+        return Results.Ok(new { domain, names, articleCount = matches.Length, citationCount = matches.Sum(item => item.Sources.Length), latestCitationAt = matches.Max(item => item.Row.PublishedAt),
+            articles = matches.Select(item => item.Row).ToArray() });
     }
 
     private static async Task<IResult> GetMediaAsync(Guid assetId, PublishingDbContext database, IConfiguration configuration, CancellationToken token)

@@ -27,4 +27,22 @@ public sealed class ContentAuthorityPolicyTests
         Assert.Equal(65, result.Score);
         Assert.Equal(["missing_sources"], result.Risks);
     }
+
+    [Theory]
+    [InlineData("https://www.TUIK.gov.tr/report#table", "tuik.gov.tr")]
+    [InlineData("https://sub.example.com/path", "sub.example.com")]
+    [InlineData("not-a-url", null)]
+    public void Source_archive_domains_are_stable(string url, string? expected)
+    {
+        Assert.Equal(expected, SourceArchivePolicy.GetCanonicalDomain(url));
+    }
+
+    [Theory]
+    [InlineData("tuik.gov.tr", true)]
+    [InlineData("www.tuik.gov.tr", false)]
+    [InlineData("tuik.gov.tr/path", false)]
+    public void Source_archive_routes_only_accept_canonical_domains(string domain, bool expected)
+    {
+        Assert.Equal(expected, SourceArchivePolicy.IsValidDomain(domain));
+    }
 }

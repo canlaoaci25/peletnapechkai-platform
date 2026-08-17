@@ -232,7 +232,7 @@ export default async function ArticlePage({
                     >
                       {source.name}
                     </a>
-                    <small>{source.host} <span aria-hidden="true">↗</span></small>
+                    <small><Link href={`/${locale}/sources/${source.host.replace(/^www\./, "")}`}>{source.host}</Link> <span aria-hidden="true">↗</span></small>
                   </li>
                 ))}
               </ul>

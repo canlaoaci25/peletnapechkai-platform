@@ -1,5 +1,14 @@
 # Delivery roadmap
 
+## Cycle 45 — Public source trust and discovery
+
+The public publication now turns real citation evidence into a multilingual Sources &
+Trust Center. Readers can compare cited domains, citation depth, and the image-led story
+archive informed by each source; article source boxes link into those internal archives,
+and every public source surface is canonical and sitemap-discoverable. Durable source
+ownership, last-review evidence, SSRF-safe health checks, and Search Console opportunity
+matching remain the next source-quality milestones.
+
 ## Cycle 44 — Editorial capacity center
 
 The admin control center now exposes real team workload, overdue and 48-hour SLA risk,

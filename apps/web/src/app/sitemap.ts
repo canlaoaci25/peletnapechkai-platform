@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { locales } from "@/i18n/config";
-import { getPublicArchiveIndex, getPublishedArticles } from "@/lib/public-api";
+import { getPublicArchiveIndex, getPublishedArticles, getPublicSourceIndex } from "@/lib/public-api";
 import { absoluteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
@@ -27,5 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...index.tags.map(item=>({path:`tags/${item.slug}`,languages:undefined})),
     ...index.authors.map(item=>({path:`authors/${item.slug}`,languages:undefined})),
   ].map(item=>({url:absoluteUrl(`/${locale}/${item.path}`),changeFrequency:"weekly" as const,priority:.5,alternates:item.languages?{languages:item.languages}:undefined})));
-  return [...homes, ...topics, ...articles, ...archives];
+  const sourceCollections=await Promise.all(locales.map(async locale=>({locale,index:await getPublicSourceIndex(locale)})));
+  const sourceCenters:MetadataRoute.Sitemap=sourceCollections.flatMap(({locale,index})=>[{url:absoluteUrl(`/${locale}/sources`),changeFrequency:"weekly" as const,priority:.65},...index.sources.map(source=>({url:absoluteUrl(`/${locale}/sources/${source.domain}`),lastModified:source.latestCitationAt,changeFrequency:"weekly" as const,priority:.55}))]);
+  return [...homes, ...topics, ...articles, ...archives, ...sourceCenters];
 }

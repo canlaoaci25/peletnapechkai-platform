@@ -1,0 +1,11 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { SiteHeader } from "@/components/site-header";
+import { hasLocale, locales } from "@/i18n/config";
+import { sourceCopy } from "@/i18n/source-copy";
+import { getPublicSourceIndex } from "@/lib/public-api";
+
+export const dynamic="force-dynamic";
+export async function generateMetadata({params}:PageProps<"/[locale]/sources">):Promise<Metadata>{const {locale}=await params;if(!hasLocale(locale))return{};const copy=sourceCopy[locale];return{title:copy.title,description:copy.description,alternates:{canonical:`/${locale}/sources`,languages:Object.fromEntries(locales.map(code=>[code,`/${code}/sources`]))}}}
+export default async function SourcesPage({params}:PageProps<"/[locale]/sources">){const {locale}=await params;if(!hasLocale(locale))notFound();const [index,copy]=[await getPublicSourceIndex(locale),sourceCopy[locale]];return <div className="site-shell"><SiteHeader locale={locale}/><main id="main-content" className="source-center"><header className="source-center-hero"><div><p className="section-kicker">{copy.eyebrow}</p><h1>{copy.title}</h1><p>{copy.description}</p></div><dl><div><dt>{copy.sources}</dt><dd>{index.totalSources}</dd></div><div><dt>{copy.citations}</dt><dd>{index.totalCitations}</dd></div></dl></header>{index.sources.length===0?<p className="muted">{copy.empty}</p>:<section className="source-domain-grid" aria-label={copy.sources}>{index.sources.map((source,index)=><article key={source.domain}><span className="source-rank">{String(index+1).padStart(2,"0")}</span><p className="section-kicker">{source.sourceName}</p><h2><Link href={`/${locale}/sources/${source.domain}`}>{source.domain}</Link></h2><div className="source-statline"><strong>{source.articleCount}</strong> {copy.articles}<span>·</span><strong>{source.citationCount}</strong> {copy.citations}</div><p>{copy.latest}: <time dateTime={source.latestCitationAt}>{new Intl.DateTimeFormat(locale,{dateStyle:"medium"}).format(new Date(source.latestCitationAt))}</time></p><Link className="source-open" href={`/${locale}/sources/${source.domain}`}>{copy.open} →</Link></article>)}</section>}</main></div>}

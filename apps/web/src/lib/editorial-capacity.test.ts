@@ -17,5 +17,5 @@ test("task reassignment is csrf protected and responsive", () => {
   assert.match(component, /x-csrf-token/);
   assert.match(component, /canReassign/);
   assert.match(component, /\/api\/admin\/editorial\/tasks\/\$\{item\.taskId\}\/assignee/);
-  assert.match(styles, /@media\(max-width:600px\).*\.capacity-grid\{grid-template-columns:1fr\}/s);
+  assert.match(styles, /@media\(max-width:600px\)[\s\S]*\.capacity-grid\{grid-template-columns:1fr\}/);
 });
