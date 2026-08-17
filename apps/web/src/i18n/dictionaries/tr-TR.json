@@ -19,7 +19,8 @@
     "latest": "Son yayınlar",
     "allTopics": "Tüm konular",
     "publicationPromise": "Teknoloji · Bilim · Kültür",
-    "menuDescription": "BOECL'in tüm yayın alanlarını ve güncel dosyalarını keşfedin."
+    "menuDescription": "BOECL'in tüm yayın alanlarını ve güncel dosyalarını keşfedin.",
+    "sources": "Kaynaklar ve güven"
   },
   "accessibility": { "skipToContent": "Ana içeriğe geç" },
   "article": { "onThisPage": "Bu yazıda", "published": "Yayımlandı", "updated": "Güncellendi", "minuteRead": "{minutes} dk okuma", "sourcesUsed": "{count} kaynak", "editorialTrust": "Bu içerik nasıl hazırlandı?", "trustSummary": "BOECL; yazar, güncellik ve başvurulan kaynakları okurun değerlendirmesine açık biçimde sunar.", "sourceHeading": "Başvurulan kaynaklar", "sourceSummary": "İddiaları ve ayrıntıları denetlemek için kullanılan dış kaynaklar. Bağlantılar yeni sekmede açılır.", "relatedHeading": "Bu konuda okumaya devam edin" },
@@ -35,6 +36,7 @@
     "latestTitle": "Son yayınlar",
     "noArticles": "Bu dilde henüz yayımlanmış içerik yok.",
     "readArticle": "Makaleyi oku",
+    "now": "Şimdi", "liveDesk": "Güncel akış", "allLatest": "Tüm yeniler",
     "currentTopics": "Gündem rotası", "featured": "Bugünün odağı", "dailyEdition": "Bağımsız ve kaynaklı", "moreHeadlines": "Öne çıkan diğer başlıklar", "discover": "Keşfet", "trending": "Şimdi popüler", "trendingHint": "BOECL'de öne çıkan yayınlar", "curated": "Seçki", "editorsPicks": "Editörün seçtikleri", "advertisement": "Reklam", "coverage": "Dosya", "seeAll": "Tümünü gör", "justIn": "Yeni yayınlar", "explore": "Arşivi keşfet", "searchDescription": "İlgilendiğiniz konuyu BOECL arşivinde arayın.", "editionEyebrow": "BUGÜN BOECL'DE", "editionTitle": "Edisyon rotası", "editionStories": "özgün hikâye", "editionNavigation": "Bugünün edisyon bölümleri", "topicAtlas": "BOECL konu atlası", "topicAtlasDescription": "Arşivin en güçlü yayın alanlarına, öne çıkan dosyalarına ve konu derinliğine tek bakışta ulaşın.", "publications": "yayın", "exploreAllTopics": "Tüm konu atlasını keşfet"
   }
 }

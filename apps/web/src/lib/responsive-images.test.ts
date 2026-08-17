@@ -40,6 +40,20 @@ test("gunluk edisyon rotasi gercek bolumleri ve global kategori kapsamlarini gos
   assert.match(styles, /@media\(max-width:560px\)[\s\S]*?\.primary-navigation a small\{display:none\}/);
 });
 
+test("ana vitrin manset, kronolojik akis ve gorsel ikincil dosyalari birlikte sunar", () => {
+  const homePage = readFileSync(fileURLToPath(new URL("../app/[locale]/page.tsx", import.meta.url)), "utf8");
+  const header = readFileSync(fileURLToPath(new URL("../components/site-header.tsx", import.meta.url)), "utf8");
+  const styles = readFileSync(fileURLToPath(new URL("../app/globals.css", import.meta.url)), "utf8");
+
+  assert.match(homePage, /className="front-page"/);
+  assert.match(homePage, /className="live-desk" id="latest"/);
+  assert.match(homePage, /latest\.slice\(0, 5\)/);
+  assert.match(homePage, /Intl\.DateTimeFormat\(locale,\{hour:"2-digit",minute:"2-digit"\}\)/);
+  assert.match(header, /className="trust-link"[\s\S]*?\{copy\.sources\}/);
+  assert.match(styles, /\.front-page-grid\{[^}]*grid-template-columns:minmax\(0,1\.72fr\)/);
+  assert.match(styles, /@media\(max-width:700px\)[\s\S]*?scroll-snap-type:x proximity/);
+});
+
 test("yayın görselleri Next.js optimizasyon hattını kullanır", () => {
   const homePage = readFileSync(fileURLToPath(new URL("../app/[locale]/page.tsx", import.meta.url)), "utf8");
   const articlePage = readFileSync(fileURLToPath(new URL("../app/[locale]/articles/[slug]/page.tsx", import.meta.url)), "utf8");

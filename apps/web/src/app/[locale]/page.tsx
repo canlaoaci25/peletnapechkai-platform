@@ -38,6 +38,8 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
   const trending = homepage.trending;
   const picks = homepage.editors;
   const latest = homepage.latest;
+  const liveDesk = latest.slice(0, 5);
+  const latestArchive = latest.slice(5);
   const articles = [lead,...secondary,...trending,...picks,...latest].filter((item):item is PublicArticleSummary=>item!==null).filter((item,index,all)=>all.findIndex(candidate=>candidate.slug===item.slug)===index);
   const types = [...new Set(articles.map(article => article.type))].slice(0, 3);
   const atlasFeatureSlugs = new Set<string>();
@@ -86,7 +88,8 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
         </section>}
 
         {lead ? (
-          <section className="headline-grid" aria-labelledby="headline-title">
+          <section className="front-page" aria-labelledby="headline-title">
+            <div className={`front-page-grid${liveDesk.length === 0 ? " front-page-grid-solo" : ""}`}>
             <article className="lead-story">
               <ArticleImageLink article={lead} className="lead-image" locale={locale} sizes={homeImageSizes.lead} preload />
               <div className="lead-copy">
@@ -96,14 +99,19 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
                 <div className="lead-byline"><span>{lead.type} · {formatDate(lead.publishedAt)}</span><Link href={`/${locale}/articles/${lead.slug}`}>{copy.readArticle}<span aria-hidden="true"> →</span></Link></div>
               </div>
             </article>
+            {liveDesk.length > 0 && <aside className="live-desk" id="latest" aria-labelledby="live-desk-title">
+              <header><div><span className="live-signal" aria-hidden="true" /><p className="section-kicker">{copy.now}</p><h2 id="live-desk-title">{copy.liveDesk}</h2></div><Link href={latestArchive.length > 0 ? "#latest-archive" : `/${locale}/search`}>{copy.allLatest} ↓</Link></header>
+              <ol>{liveDesk.map((article, index) => <li key={article.slug}><time dateTime={article.publishedAt}>{new Intl.DateTimeFormat(locale,{hour:"2-digit",minute:"2-digit"}).format(new Date(article.publishedAt))}</time><div><small>{article.type}</small><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3></div><span>{String(index + 1).padStart(2,"0")}</span></li>)}</ol>
+            </aside>}
+            </div>
             <div className="secondary-stories">
               <header><span>{copy.moreHeadlines}</span><strong>{String(secondary.length).padStart(2, "0")}</strong></header>
-              {secondary.map(article => (
+              <div>{secondary.map(article => (
                 <article key={article.slug}>
                   <ArticleImageLink article={article} className="secondary-image" locale={locale} sizes={homeImageSizes.secondary} />
                   <div><p className="section-kicker">{article.type}</p><h2><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h2><time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time></div>
                 </article>
-              ))}
+              ))}</div>
             </div>
           </section>
         ) : (
@@ -153,9 +161,9 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
           </section>;
         })}
 
-        {latest.length > 0 && <section className="latest-feed" id="latest" aria-labelledby="latest-title">
+        {latestArchive.length > 0 && <section className="latest-feed" id="latest-archive" aria-labelledby="latest-title">
           <header className="home-section-header"><div><p className="section-kicker">{copy.justIn}</p><h2 id="latest-title">{copy.latestTitle}</h2></div></header>
-          <div>{latest.map(article => <article key={article.slug}>{article.cover && <ArticleImageLink article={article} className="latest-image" locale={locale} sizes={homeImageSizes.latest} />}<div><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p><time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time></div></article>)}</div>
+          <div>{latestArchive.map(article => <article key={article.slug}>{article.cover && <ArticleImageLink article={article} className="latest-image" locale={locale} sizes={homeImageSizes.latest} />}<div><p className="section-kicker">{article.type}</p><h3><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></h3><p>{article.summary}</p><time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time></div></article>)}</div>
         </section>}
 
         <section className="home-search"><div><p className="section-kicker">{copy.explore}</p><h2>{dictionary.search.title}</h2><p>{copy.searchDescription}</p></div><form action={`/${locale}/search`} role="search"><label htmlFor="home-search">{dictionary.search.label}</label><div><input id="home-search" name="q" minLength={2} required /><button>{dictionary.search.submit}</button></div></form></section>

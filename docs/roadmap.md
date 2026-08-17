@@ -1,5 +1,14 @@
 # Delivery roadmap
 
+## Cycle 49 — Unified newsroom front page and trust navigation
+
+The homepage now combines its image-led lead, a five-story chronological latest desk, and
+visual secondary files in one responsive opening composition. Global navigation exposes
+the localized Sources & Trust Center as a first-class route, while the existing edition,
+topic atlas, editorial selection, canonical, and locale-isolation contracts remain intact.
+Consented route engagement, traffic-informed ordering, and mobile art-direction crops are
+the next homepage milestones.
+
 ## Cycle 48 — Observable deployment failure recovery
 
 Release Recovery Center now exposes deployments that remain in `Started` or `Verifying`

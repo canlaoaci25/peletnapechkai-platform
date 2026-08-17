@@ -19,7 +19,8 @@
     "latest": "Neueste",
     "allTopics": "Alle Themen",
     "publicationPromise": "Technologie · Wissenschaft · Kultur",
-    "menuDescription": "Entdecken Sie alle BOECL-Ressorts und aktuellen Themendossiers."
+    "menuDescription": "Entdecken Sie alle BOECL-Ressorts und aktuellen Themendossiers.",
+    "sources": "Quellen und Vertrauen"
   },
   "accessibility": { "skipToContent": "Zum Hauptinhalt springen" },
   "article": { "onThisPage": "In diesem Artikel", "published": "Veröffentlicht", "updated": "Aktualisiert", "minuteRead": "{minutes} Min. Lesezeit", "sourcesUsed": "{count} Quellen", "editorialTrust": "Wie ist dieser Beitrag entstanden?", "trustSummary": "BOECL macht Autorenschaft, Aktualität und verwendete Quellen sichtbar, damit Leser den Beitrag einordnen können.", "sourceHeading": "Verwendete Quellen", "sourceSummary": "Externe Quellen zur Prüfung von Aussagen und Details. Links öffnen sich in einem neuen Tab.", "relatedHeading": "Mehr zu diesem Thema" },
@@ -35,6 +36,7 @@
     "latestTitle": "Neueste Veröffentlichungen",
     "noArticles": "In dieser Sprache wurden noch keine Inhalte veröffentlicht.",
     "readArticle": "Artikel lesen",
+    "now": "Jetzt", "liveDesk": "Aktueller Ticker", "allLatest": "Alle neuen Beiträge",
     "currentTopics": "Themenkompass", "featured": "Heute im Fokus", "dailyEdition": "Unabhängig und quellenbasiert", "moreHeadlines": "Weitere Top-Themen", "discover": "Entdecken", "trending": "Jetzt im Trend", "trendingHint": "Beiträge, die auf BOECL Aufmerksamkeit erhalten", "curated": "Auswahl", "editorsPicks": "Empfehlungen der Redaktion", "advertisement": "Anzeige", "coverage": "Themenbereich", "seeAll": "Alle anzeigen", "justIn": "Neu erschienen", "explore": "Archiv entdecken", "searchDescription": "Durchsuchen Sie das BOECL-Archiv nach einem Thema, das Sie interessiert.", "editionEyebrow": "HEUTE BEI BOECL", "editionTitle": "Route durch die Ausgabe", "editionStories": "eigenständige Beiträge", "editionNavigation": "Bereiche der heutigen Ausgabe", "topicAtlas": "Der BOECL-Themenatlas", "topicAtlasDescription": "Entdecken Sie die stärksten Ressorts, ausgewählte Beiträge und die redaktionelle Tiefe des Archivs auf einen Blick.", "publications": "Beiträge", "exploreAllTopics": "Den vollständigen Themenatlas entdecken"
   }
 }

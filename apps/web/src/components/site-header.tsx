@@ -75,6 +75,10 @@ export async function SiteHeader({ locale, localeHrefs, homeActive = false }: Si
             ))}
           </nav>
 
+          <Link className="trust-link" href={`/${locale}/sources`}>
+            <span aria-hidden="true">◆</span>{copy.sources}
+          </Link>
+
           <details className="locale-menu">
             <summary>{locale.split("-")[0].toUpperCase()}<span className="sr-only"> — {copy.language}</span></summary>
             <nav aria-label={copy.language}>

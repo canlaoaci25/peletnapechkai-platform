@@ -19,7 +19,8 @@
     "latest": "Latest",
     "allTopics": "All topics",
     "publicationPromise": "Technology · Science · Culture",
-    "menuDescription": "Explore every BOECL desk and current editorial collection."
+    "menuDescription": "Explore every BOECL desk and current editorial collection.",
+    "sources": "Sources and trust"
   },
   "accessibility": { "skipToContent": "Skip to main content" },
   "article": { "onThisPage": "In this article", "published": "Published", "updated": "Updated", "minuteRead": "{minutes} min read", "sourcesUsed": "{count} sources", "editorialTrust": "How was this story prepared?", "trustSummary": "BOECL makes the author, freshness and consulted sources visible so readers can assess the story.", "sourceHeading": "Sources consulted", "sourceSummary": "External sources used to check claims and details. Links open in a new tab.", "relatedHeading": "Continue exploring this topic" },
@@ -35,6 +36,7 @@
     "latestTitle": "Latest publications",
     "noArticles": "No content has been published in this locale yet.",
     "readArticle": "Read article",
+    "now": "Now", "liveDesk": "Latest desk", "allLatest": "All latest",
     "currentTopics": "News compass", "featured": "Today's focus", "dailyEdition": "Independent and sourced", "moreHeadlines": "More leading stories", "discover": "Discover", "trending": "Trending now", "trendingHint": "Stories drawing attention on BOECL", "curated": "Curated", "editorsPicks": "Editor's picks", "advertisement": "Advertisement", "coverage": "Coverage", "seeAll": "See all", "justIn": "Just in", "explore": "Explore the archive", "searchDescription": "Search the BOECL archive for a topic that interests you.", "editionEyebrow": "TODAY AT BOECL", "editionTitle": "Edition route", "editionStories": "original stories", "editionNavigation": "Today's edition sections", "topicAtlas": "The BOECL topic atlas", "topicAtlasDescription": "See the archive's strongest fields, featured stories, and editorial depth at a glance.", "publications": "stories", "exploreAllTopics": "Explore the complete topic atlas"
   }
 }
