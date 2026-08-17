@@ -20,7 +20,8 @@ export default async function TopicsPage({ params }: PageProps<"/[locale]/topics
   if (!hasLocale(locale)) notFound();
   const [archives] = await Promise.all([getPublicArchiveIndex(locale)]);
   const copy = topicCopy[locale];
-  const [lead, ...categories] = archives.categories;
+  const [lead] = archives.categories;
+  const categories = archives.categories.filter(category => !category.parent);
   return <div className="site-shell"><SiteHeader locale={locale} /><main id="main-content" className="topics-page">
     <header className="topics-hero"><p className="section-kicker">{copy.eyebrow}</p><h1>{copy.title}</h1><p>{copy.description}</p></header>
     {lead && <section className="topic-lead" aria-labelledby="topic-lead-title">
@@ -30,12 +31,12 @@ export default async function TopicsPage({ params }: PageProps<"/[locale]/topics
         <div className="topic-lead-stories"><p className="section-kicker">{copy.now}</p>{lead.featured.map(article => <Link key={article.slug} href={`/${locale}/articles/${article.slug}`}>{article.title}<span aria-hidden="true">↗</span></Link>)}</div>
       </div>
     </section>}
-    <section aria-labelledby="all-topics-title"><div className="topic-map-heading"><p className="section-kicker" id="all-topics-title">{copy.all}</p><span>{categories.length}</span></div>
+    <section aria-labelledby="all-topics-title"><div className="topic-map-heading"><div><p className="section-kicker">{copy.paths}</p><h2 id="all-topics-title">{copy.all}</h2></div><span>{categories.length}</span></div>
     <div className="topic-map">{categories.map((category, index) => {
       const image = category.featured.find(article => article.cover)?.cover;
       return <article className="topic-map-card" key={category.slug}>
         <Link className="topic-map-visual" href={`/${locale}/categories/${category.slug}`} tabIndex={-1} aria-hidden="true">{image ? <Image src={image.url} alt="" fill sizes="(max-width: 700px) 100vw, 45vw" /> : <span>{String(index + 1).padStart(2, "0")}</span>}</Link>
-        <div><p className="section-kicker">{category.articleCount} {copy.stories}</p><h2><Link href={`/${locale}/categories/${category.slug}`}>{category.title}</Link></h2>{category.description && <p>{category.description}</p>}<ul className="topic-story-list">{category.featured.slice(0,2).map(article=><li key={article.slug}><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></li>)}</ul><Link className="topic-map-link" href={`/${locale}/categories/${category.slug}`}>{copy.latest} →</Link></div>
+        <div><p className="section-kicker">{category.articleCount} {copy.stories}</p><h2><Link href={`/${locale}/categories/${category.slug}`}>{category.title}</Link></h2>{category.description && <p>{category.description}</p>}{category.children.length>0&&<div className="topic-children"><strong>{copy.subtopics}</strong>{category.children.map(child=><Link key={child.slug} href={`/${locale}/categories/${child.slug}`}><span>{child.title}</span><small>{child.articleCount}</small></Link>)}</div>}<ul className="topic-story-list">{category.featured.slice(0,2).map(article=><li key={article.slug}><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></li>)}</ul><Link className="topic-map-link" href={`/${locale}/categories/${category.slug}`}>{copy.latest} →</Link></div>
       </article>;
     })}</div></section>
   </main></div>;

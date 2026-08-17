@@ -31,6 +31,9 @@ public sealed class Category
     public Guid? SourceCategoryId { get; private set; }
     public Category? SourceCategory { get; private set; }
     public ICollection<Category> Translations { get; } = [];
+    public Guid? ParentCategoryId { get; private set; }
+    public Category? ParentCategory { get; private set; }
+    public ICollection<Category> Children { get; } = [];
     public Guid LocaleId { get; private set; }
     public Locale Locale { get; private set; } = null!;
     public string Slug { get; private set; } = string.Empty;
@@ -46,5 +49,13 @@ public sealed class Category
             throw new InvalidOperationException("Category translations require a default-locale source and a non-default target.");
         SourceCategory = source;
         SourceCategoryId = source.Id;
+    }
+
+    public void SetParent(Category? parent)
+    {
+        if (parent is not null && (parent.Id == Id || parent.LocaleId != LocaleId))
+            throw new InvalidOperationException("Category parents must belong to the same locale and cannot reference themselves.");
+        ParentCategory = parent;
+        ParentCategoryId = parent?.Id;
     }
 }

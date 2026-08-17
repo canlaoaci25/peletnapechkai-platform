@@ -53,7 +53,7 @@ export type ManagedUser = {
 };
 
 export type SupportingLibrary = {
-  categories: { id: string; locale: string; slug: string; name: string; articleCount:number; publishedCount:number }[];
+  categories: { id: string; locale: string; slug: string; name: string; parentCategoryId:string|null;parentName:string|null;childCount:number; articleCount:number; publishedCount:number }[];
   tags: { id: string; locale: string; slug: string; name: string }[];
   authors: { id: string; slug: string; displayName: string }[];
   sources: { id: string; name: string; url: string }[];

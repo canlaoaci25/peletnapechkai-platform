@@ -43,6 +43,8 @@ public static partial class SupportingContentEndpoints
         categories = await db.Categories.AsNoTracking().OrderBy(x => x.Locale.Code).ThenBy(x => x.Name).Select(x => new
         {
             x.Id, locale = x.Locale.Code, x.Slug, x.Name,
+            x.ParentCategoryId, parentName = x.ParentCategory == null ? null : x.ParentCategory.Name,
+            childCount = x.Children.Count,
             articleCount = x.Articles.Count,
             publishedCount = x.Articles.Count(article => article.Status == PublicationStatus.Published)
         }).ToListAsync(token),
@@ -74,7 +76,9 @@ public static partial class SupportingContentEndpoints
         if(!ValidSlug(request.Slug)||string.IsNullOrWhiteSpace(request.Name))return Invalid();
         var actor=await users.GetUserAsync(principal);var item=await db.Categories.Include(x=>x.Locale).SingleOrDefaultAsync(x=>x.Id==categoryId,token);
         if(actor is null)return Results.Unauthorized();if(item is null)return Results.NotFound();if(item.Locale.Code!="tr-TR")return Results.Conflict(new{message="Only Turkish categories are managed here."});
-        item.Update(request.Slug,request.Name);db.AuditLogs.Add(new AuditLog(actor.Id,"supporting.category_updated",nameof(Category),item.Id,null,DateTimeOffset.UtcNow));
+        Category? parent=null;
+        if(request.ParentCategoryId.HasValue){parent=await db.Categories.SingleOrDefaultAsync(x=>x.Id==request.ParentCategoryId&&x.LocaleId==item.LocaleId,token);if(parent is null||parent.ParentCategoryId!=null||parent.Id==item.Id)return Results.ValidationProblem(new Dictionary<string,string[]>{{"parentCategoryId",["A valid top-level category is required."]}});}
+        item.Update(request.Slug,request.Name);item.SetParent(parent);db.AuditLogs.Add(new AuditLog(actor.Id,"supporting.category_updated",nameof(Category),item.Id,JsonSerializer.Serialize(new{item.Slug,item.Name,item.ParentCategoryId}),DateTimeOffset.UtcNow));
         try{await db.SaveChangesAsync(token);}catch(DbUpdateException){return Results.Conflict(new{message="A category with the same slug already exists."});}
         return Results.Ok(new{item.Id,item.Slug,item.Name});
     }
@@ -83,7 +87,7 @@ public static partial class SupportingContentEndpoints
     {
         var actor=await users.GetUserAsync(principal);var item=await db.Categories.Include(x=>x.Locale).Include(x=>x.Articles).SingleOrDefaultAsync(x=>x.Id==categoryId,token);
         if(actor is null)return Results.Unauthorized();if(item is null)return Results.NotFound();if(item.Locale.Code!="tr-TR")return Results.Conflict(new{message="Only Turkish categories are managed here."});
-        if(item.Articles.Count>0)return Results.Conflict(new{message="A category used by content cannot be deleted."});
+        if(item.Articles.Count>0||await db.Categories.AnyAsync(x=>x.ParentCategoryId==item.Id,token))return Results.Conflict(new{message="A category used by content or child topics cannot be deleted."});
         db.AuditLogs.Add(new AuditLog(actor.Id,"supporting.category_deleted",nameof(Category),item.Id,JsonSerializer.Serialize(new{item.Slug,item.Name}),DateTimeOffset.UtcNow));db.Categories.Remove(item);await db.SaveChangesAsync(token);return Results.NoContent();
     }
 
@@ -213,7 +217,7 @@ public static partial class SupportingContentEndpoints
     [GeneratedRegex("^[a-z0-9]+(?:-[a-z0-9]+)*$")]
     private static partial Regex SlugPattern();
     private sealed record NamedLocaleRequest(string Locale, string Slug, string Name);
-    private sealed record NamedRequest(string Slug, string Name);
+    private sealed record NamedRequest(string Slug, string Name, Guid? ParentCategoryId = null);
     private sealed record SourceRequest(string Name, string Url);
 }
 

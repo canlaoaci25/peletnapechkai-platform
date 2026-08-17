@@ -1,5 +1,14 @@
 # Delivery roadmap
 
+## Cycle 50 — Hierarchical topic discovery and automotive mobility taxonomy
+
+The public topic map now presents broad editorial fields with real child-topic paths and
+archive depth instead of a flat category catalogue. A durable, locale-safe parent relation
+powers the public API and Turkish admin controls, while the evidence-backed Automotive
+Technology and Mobility taxonomy joins all four editions through an audited migration.
+Consented category-path measurement and hierarchy-aware archive breadcrumbs are the next
+discovery milestones.
+
 ## Cycle 49 — Unified newsroom front page and trust navigation
 
 The homepage now combines its image-led lead, a five-story chronological latest desk, and

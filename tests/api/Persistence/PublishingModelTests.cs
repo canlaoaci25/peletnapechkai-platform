@@ -106,6 +106,7 @@ public sealed class PublishingModelTests
         using var context = CreateContext();
 
         AssertUniqueIndex(context, typeof(Category), "ux_categories_locale_slug");
+        Assert.Contains(context.Model.FindEntityType(typeof(Category))!.GetIndexes(), index => index.GetDatabaseName() == "ix_categories_parent_name");
         AssertUniqueIndex(context, typeof(Tag), "ux_tags_locale_slug");
         AssertUniqueIndex(context, typeof(Author), "ux_authors_slug");
         AssertUniqueIndex(context, typeof(Source), "ux_sources_url");

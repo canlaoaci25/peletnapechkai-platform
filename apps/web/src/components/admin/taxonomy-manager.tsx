@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Item = { id: string; locale: string; slug: string; name: string; articleCount?:number;publishedCount?:number };
+type Item = { id: string; locale: string; slug: string; name: string; parentCategoryId?:string|null;parentName?:string|null;childCount?:number; articleCount?:number;publishedCount?:number };
 type Health={publishedCount:number;uncategorizedCount:number;uncategorized:{id:string;slug:string;title:string;publishedAt:string}[]};
 type Kind = "categories" | "tags";
 export function TaxonomyManager({
@@ -63,6 +63,7 @@ export function TaxonomyManager({
       locale: "tr-TR",
       slug: data.get("slug"),
       name: data.get("name"),
+      ...(category ? { parentCategoryId: data.get("parentCategoryId") || null } : {}),
     });
     form.reset();
   }
@@ -147,8 +148,10 @@ export function TaxonomyManager({
                     maxLength={160}
                   />
                 </label>
+                {category&&<label>Ana alan<select name="parentCategoryId" defaultValue={item.parentCategoryId??""}><option value="">Üst düzey</option>{turkish.filter(candidate=>candidate.id!==item.id&&!candidate.parentCategoryId).map(candidate=><option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}</select></label>}
                 <button disabled={pending}>Kaydet</button>
                 {category&&<output className="category-volume" aria-label="Yayımlanmış içerik"><strong>{item.publishedCount??0}</strong><span>yayın</span></output>}
+                {category&&<output className="category-volume" aria-label="Alt konu"><strong>{item.childCount??0}</strong><span>alt konu</span></output>}
                 <button
                   className="button-secondary"
                   type="button"

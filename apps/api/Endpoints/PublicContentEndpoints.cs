@@ -80,7 +80,14 @@ public static class PublicContentEndpoints
                 item.Slug,
                 title = item.Name,
                 item.Description,
+                parent = item.ParentCategory == null ? null : new { item.ParentCategory.Slug, title = item.ParentCategory.Name },
                 translationKey = item.SourceCategoryId ?? item.Id,
+                children = item.Children
+                    .Where(child => child.Articles.Any(article => article.Status == PublicationStatus.Published))
+                    .OrderByDescending(child => child.Articles.Count(article => article.Status == PublicationStatus.Published))
+                    .ThenBy(child => child.Name)
+                    .Select(child => new { child.Slug, title = child.Name, articleCount = child.Articles.Count(article => article.Status == PublicationStatus.Published) })
+                    .ToArray(),
                 articleCount = item.Articles.Count(article => article.Status == PublicationStatus.Published),
                 featured = item.Articles
                     .Where(article => article.Status == PublicationStatus.Published)

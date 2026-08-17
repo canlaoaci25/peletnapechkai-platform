@@ -8,6 +8,8 @@ const migration = readFileSync(new URL("../../../api/Infrastructure/Persistence/
 const softwareMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260816203000_AddSoftwareApplicationsTaxonomy.cs", import.meta.url), "utf8");
 const privacyMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260816220000_AddPrivacyDigitalRightsTaxonomy.cs", import.meta.url), "utf8");
 const smartHomeMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260817030000_AddSmartHomeConnectedLivingTaxonomy.cs", import.meta.url), "utf8");
+const hierarchyMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260817042309_AddCategoryHierarchyAndMobilityTaxonomy.cs", import.meta.url), "utf8");
+const parityMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260817043000_RepairMobilityTaxonomyLocaleParity.cs", import.meta.url), "utf8");
 const publicApi = readFileSync(new URL("../../../api/Endpoints/PublicContentEndpoints.cs", import.meta.url), "utf8");
 const supportingApi = readFileSync(new URL("../../../api/Endpoints/SupportingContentEndpoints.cs", import.meta.url), "utf8");
 const proxy = readFileSync(new URL("../proxy.ts", import.meta.url), "utf8");
@@ -26,6 +28,26 @@ test("konu merkezi öne çıkan konu ve doğrudan makale keşif yolları sunar",
   assert.match(page,/category\.featured\.slice\(0,2\)/);
   assert.ok(page.includes('href={`/${locale}/articles/${article.slug}`}'));
   assert.doesNotMatch(publicApi,/foreach \(var item in categoryRows\)/);
+});
+
+test("konu merkezi parent-child keşif yollarını gerçek arşiv ilişkilerinden kurar",()=>{
+  assert.match(page,/filter\(category => !category\.parent\)/);
+  assert.match(page,/category\.children\.map/);
+  assert.match(page,/topic-children/);
+  assert.match(publicApi,/item\.ParentCategory/);
+  assert.match(publicApi,/item\.Children/);
+});
+
+test("mobilite taxonomy migrationı dört locale, hiyerarşi, audit ve güvenli rollback içerir",()=>{
+  for(const locale of ["tr-TR","en-US","de-DE","fr-FR"]) assert.match(hierarchyMigration,new RegExp(locale));
+  assert.match(hierarchyMigration,/Otomobil Teknolojileri ve Mobilite/);
+  assert.match(hierarchyMigration,/parent_category_id/);
+  assert.match(hierarchyMigration,/ON CONFLICT DO NOTHING/);
+  assert.match(hierarchyMigration,/migration\.category_hierarchy_mobility_added/);
+  assert.match(hierarchyMigration,/protected override void Down/);
+  assert.match(hierarchyMigration,/LEFT JOIN categories AS parent/);
+  assert.match(parityMigration,/ON CONFLICT \(locale_id, slug\) DO NOTHING/);
+  assert.match(parityMigration,/mobility_taxonomy_locale_parity_repaired/);
 });
 
 test("akıllı ev taxonomy migrationı dört locale, audit, idempotency ve rollback içerir",()=>{

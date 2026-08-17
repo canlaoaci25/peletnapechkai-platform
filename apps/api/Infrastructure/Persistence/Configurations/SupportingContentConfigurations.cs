@@ -18,14 +18,17 @@ internal sealed class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
         builder.Property(x => x.LocaleId).HasColumnName("locale_id");
         builder.Property(x => x.SourceCategoryId).HasColumnName("source_category_id");
+        builder.Property(x => x.ParentCategoryId).HasColumnName("parent_category_id");
         builder.Property(x => x.Slug).HasColumnName("slug").HasMaxLength(160);
         builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(160);
         builder.Property(x => x.Description).HasColumnName("description").HasMaxLength(500);
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.HasOne(x => x.Locale).WithMany().HasForeignKey(x => x.LocaleId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.SourceCategory).WithMany(x => x.Translations).HasForeignKey(x => x.SourceCategoryId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(x => x.ParentCategory).WithMany(x => x.Children).HasForeignKey(x => x.ParentCategoryId).OnDelete(DeleteBehavior.Restrict);
         builder.HasIndex(x => new { x.LocaleId, x.Slug }).IsUnique().HasDatabaseName("ux_categories_locale_slug");
         builder.HasIndex(x => new { x.SourceCategoryId, x.LocaleId }).IsUnique().HasDatabaseName("ux_categories_source_locale");
+        builder.HasIndex(x => new { x.ParentCategoryId, x.Name }).HasDatabaseName("ix_categories_parent_name");
     }
 }
 
