@@ -17,7 +17,7 @@
                       "id":  "visual-service",
                       "title":  "Bağımsız görsel üretim servisi",
                       "outcome":  "Makale bağlamından yazısız, konuya uygun kapak ve gövde görselleri üret; kalite kapıları ve sağlayıcı yedeği ekle.",
-                      "status":  "active"
+                      "status":  "queued"
                   },
                   {
                       "id":  "visual-backfill",
@@ -35,7 +35,7 @@
                       "id":  "taxonomy-growth",
                       "title":  "Kategori ve konu genişlemesi",
                       "outcome":  "Arşiv ve arama niyeti boşluklarından yeni Türkçe kategori, etiket ve seri fırsatlarını belirleyip yerelleştir.",
-                      "status":  "queued"
+                      "status":  "active"
                   },
                   {
                       "id":  "membership-retention",

@@ -110,13 +110,14 @@ public static class PublicContentEndpoints
         var query = database.ArticleLocalizations.AsNoTracking().Where(article => article.Locale.Code == locale && article.Locale.IsEnabled && article.Status == PublicationStatus.Published);
         string? title;
         string? description = null;
+        object? parent = null;
         object translations = Array.Empty<object>();
         switch (kind)
         {
             case "categories":
-                var category = await database.Categories.AsNoTracking().Where(item => item.Locale.Code == locale && item.Slug == slug).Select(item => new { item.Id, item.SourceCategoryId, item.Name, item.Description }).SingleOrDefaultAsync(token);
+                var category = await database.Categories.AsNoTracking().Where(item => item.Locale.Code == locale && item.Slug == slug).Select(item => new { item.Id, item.SourceCategoryId, item.Name, item.Description, Parent = item.ParentCategory == null ? null : new { item.ParentCategory.Slug, title = item.ParentCategory.Name } }).SingleOrDefaultAsync(token);
                 if (category is null) return Results.NotFound();
-                title = category.Name; description = category.Description;
+                title = category.Name; description = category.Description; parent = category.Parent;
                 query = query.Where(article => article.Categories.Any(item => item.Slug == slug));
                 var translationKey = category.SourceCategoryId ?? category.Id;
                 translations = await database.Categories.AsNoTracking()
@@ -154,7 +155,7 @@ public static class PublicContentEndpoints
         var relatedCategories = await query.SelectMany(article => article.Categories).Where(item => item.Slug != slug)
             .GroupBy(item => new { item.Slug, item.Name }).Select(group => new { group.Key.Slug, title = group.Key.Name, articleCount = group.Count() })
             .OrderByDescending(item => item.articleCount).ThenBy(item => item.title).Take(5).ToArrayAsync(token);
-        return Results.Ok(new { kind, slug, title, description, translations, articleCount, page = currentPage, pageSize = take, totalPages, typeCounts, relatedCategories, articles });
+        return Results.Ok(new { kind, slug, title, description, parent, translations, articleCount, page = currentPage, pageSize = take, totalPages, typeCounts, relatedCategories, articles });
     }
 
     private static async Task<IResult> SearchAsync(string locale, string? q, PublishingDbContext database, int? limit, CancellationToken token)

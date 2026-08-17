@@ -45,11 +45,19 @@ export default async function ArchivePage({ params,searchParams }: Props) {
   ]);
   if (!archive) notFound();
   const copy = archiveCopy[locale];
+  const breadcrumbItems = [
+    { name: dictionary.navigation.home, url: `/${locale}` },
+    ...(collection === "categories" ? [{ name: copy.allTopics, url: `/${locale}/topics` }] : []),
+    ...(archive.parent ? [{ name: archive.parent.title, url: `/${locale}/categories/${archive.parent.slug}` }] : []),
+    { name: archive.title, url: `/${locale}/${collection}/${slug}` },
+  ];
+  const breadcrumbSchema = { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: breadcrumbItems.map((item, index) => ({ "@type": "ListItem", position: index + 1, name: item.name, item: item.url })) };
   return (
     <div className="site-shell">
       <SiteHeader locale={locale} />
       <main className="archive-page">
-        <nav className="archive-breadcrumbs" aria-label="Breadcrumb"><Link href={`/${locale}`}>{dictionary.navigation.home}</Link><span aria-hidden="true">/</span>{collection === "categories" && <><Link href={`/${locale}/topics`}>{copy.allTopics}</Link><span aria-hidden="true">/</span></>}<span aria-current="page">{archive.title}</span></nav>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema).replace(/</g, "\\u003c") }} />
+        <nav className="archive-breadcrumbs" aria-label="Breadcrumb"><Link href={`/${locale}`}>{dictionary.navigation.home}</Link><span aria-hidden="true">/</span>{collection === "categories" && <><Link href={`/${locale}/topics`}>{copy.allTopics}</Link><span aria-hidden="true">/</span></>}{archive.parent && <><Link href={`/${locale}/categories/${archive.parent.slug}`}>{archive.parent.title}</Link><span aria-hidden="true">/</span></>}<span aria-current="page">{archive.title}</span></nav>
         <header className="archive-authority-hero">
           <div><p className="section-kicker">{copy[collection]} · {archive.articleCount} {copy.stories}</p><h1>{archive.title}</h1>{archive.description && <p className="archive-description">{archive.description}</p>}{collection === "categories" && <FollowCategoryButton locale={locale} slug={slug}/>}</div>
           {archive.typeCounts.length > 0 && <ul className="archive-type-counts" aria-label={copy.description}>{archive.typeCounts.map(item => <li key={item.type}><strong>{item.count}</strong><span>{item.type}</span></li>)}</ul>}
