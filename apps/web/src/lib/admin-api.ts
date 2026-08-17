@@ -53,10 +53,11 @@ export type ManagedUser = {
 };
 
 export type SupportingLibrary = {
-  categories: { id: string; locale: string; slug: string; name: string }[];
+  categories: { id: string; locale: string; slug: string; name: string; articleCount:number; publishedCount:number }[];
   tags: { id: string; locale: string; slug: string; name: string }[];
   authors: { id: string; slug: string; displayName: string }[];
   sources: { id: string; name: string; url: string }[];
+  taxonomyHealth:{publishedCount:number;uncategorizedCount:number;uncategorized:{id:string;slug:string;title:string;publishedAt:string}[]};
 };
 export type MediaItem = {
   id: string;
@@ -255,6 +256,7 @@ export async function getSupportingLibrary() {
       tags: [],
       authors: [],
       sources: [],
+      taxonomyHealth:{publishedCount:0,uncategorizedCount:0,uncategorized:[]},
     }
   );
 }

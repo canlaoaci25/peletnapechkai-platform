@@ -3,14 +3,17 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Item = { id: string; locale: string; slug: string; name: string };
+type Item = { id: string; locale: string; slug: string; name: string; articleCount?:number;publishedCount?:number };
+type Health={publishedCount:number;uncategorizedCount:number;uncategorized:{id:string;slug:string;title:string;publishedAt:string}[]};
 type Kind = "categories" | "tags";
 export function TaxonomyManager({
   items,
   kind,
+  health,
 }: {
   items: Item[];
   kind: Kind;
+  health?:Health;
 }) {
   const router = useRouter(),
     [message, setMessage] = useState(""),
@@ -73,6 +76,11 @@ export function TaxonomyManager({
   }
   return (
     <div className="category-workspace">
+      {category&&health&&<section className="taxonomy-health" aria-labelledby="taxonomy-health-title">
+        <header><div><p className="section-kicker">KEŞİF BÜTÜNLÜĞÜ</p><h2 id="taxonomy-health-title">Taxonomy kapsama masası</h2><p>Yayımdaki Türkçe arşivin kategori kapsamını ve editoryal boşluklarını canlı veriden izleyin.</p></div><div className="taxonomy-score"><strong>{health.publishedCount?Math.round((health.publishedCount-health.uncategorizedCount)/health.publishedCount*100):100}%</strong><span>kapsama</span></div></header>
+        <div className="taxonomy-metrics"><article><span>Yayımdaki içerik</span><strong>{health.publishedCount}</strong></article><article><span>Kategorisiz</span><strong>{health.uncategorizedCount}</strong></article><article><span>Türkçe konu</span><strong>{turkish.length}</strong></article></div>
+        {health.uncategorized.length>0?<div className="taxonomy-debt"><h3>Öncelikli sınıflandırma kuyruğu</h3>{health.uncategorized.map(item=><a key={item.id} href={`/tr-TR/admin/articles/${item.id}`}><span>{item.title}</span><time dateTime={item.publishedAt}>{new Intl.DateTimeFormat("tr-TR",{dateStyle:"medium"}).format(new Date(item.publishedAt))}</time></a>)}</div>:<p className="taxonomy-complete">Tüm yayımlanmış Türkçe içerikler en az bir konuya bağlı.</p>}
+      </section>}
       <form
         className="admin-form admin-panel category-create"
         onSubmit={create}
@@ -140,6 +148,7 @@ export function TaxonomyManager({
                   />
                 </label>
                 <button disabled={pending}>Kaydet</button>
+                {category&&<output className="category-volume" aria-label="Yayımlanmış içerik"><strong>{item.publishedCount??0}</strong><span>yayın</span></output>}
                 <button
                   className="button-secondary"
                   type="button"

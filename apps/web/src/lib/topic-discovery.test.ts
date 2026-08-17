@@ -6,7 +6,9 @@ const page = readFileSync(new URL("../app/[locale]/topics/page.tsx", import.meta
 const archive = readFileSync(new URL("../app/[locale]/[collection]/[slug]/page.tsx", import.meta.url), "utf8");
 const migration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260816190000_AddMobileTechnologyTaxonomy.cs", import.meta.url), "utf8");
 const softwareMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260816203000_AddSoftwareApplicationsTaxonomy.cs", import.meta.url), "utf8");
+const privacyMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260816220000_AddPrivacyDigitalRightsTaxonomy.cs", import.meta.url), "utf8");
 const publicApi = readFileSync(new URL("../../../api/Endpoints/PublicContentEndpoints.cs", import.meta.url), "utf8");
+const supportingApi = readFileSync(new URL("../../../api/Endpoints/SupportingContentEndpoints.cs", import.meta.url), "utf8");
 const proxy = readFileSync(new URL("../proxy.ts", import.meta.url), "utf8");
 
 test("konu merkezi locale-aware canonical, hreflang ve gerçek yayın kapakları sunar", () => {
@@ -30,6 +32,29 @@ test("kategori otorite merkezi derinlik, tür dağılımı ve ilişkili konu yol
   assert.match(archive, /archive\.relatedCategories/);
   assert.match(publicApi, /GroupBy\(article => article\.ArticleGroup\.Type\)/);
   assert.match(publicApi, /SelectMany\(article => article\.Categories\)/);
+});
+
+test("kategori arşivi kararlı, canonical sayfalama ve ileri geri keşif yolları sunar",()=>{
+  assert.match(archive,/searchParams/);
+  assert.match(archive,/archive\.totalPages/);
+  assert.match(archive,/rel="prev"/);
+  assert.match(archive,/rel="next"/);
+  assert.match(publicApi,/Skip\(\(currentPage - 1\) \* take\)/);
+  assert.match(publicApi,/ThenBy\(article => article\.Id\)/);
+});
+
+test("admin taxonomy masası yayın kapsamı ve kategorisiz kuyruğunu gerçek veriden ölçer",()=>{
+  assert.match(supportingApi,/uncategorizedCount/);
+  assert.match(supportingApi,/!article\.Categories\.Any\(\)/);
+  assert.match(supportingApi,/publishedCount/);
+});
+
+test("gizlilik taxonomy migrationı dört locale, audit, idempotency ve rollback içerir",()=>{
+  for(const locale of ["tr-TR","en-US","de-DE","fr-FR"]) assert.match(privacyMigration,new RegExp(locale));
+  assert.match(privacyMigration,/ON CONFLICT DO NOTHING/);
+  assert.match(privacyMigration,/migration\.privacy_digital_rights_taxonomy_added/);
+  assert.match(privacyMigration,/article_group_id/);
+  assert.match(privacyMigration,/protected override void Down/);
 });
 
 test("yazılım taxonomy migrationı dört locale, denetlenebilir ilişki ve rollback içerir", () => {

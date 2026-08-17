@@ -29,7 +29,7 @@ export default async function CategoriesPage({
           ← İçeriklere dön
         </Link>
       </header>
-      <TaxonomyManager items={library.categories} kind="categories" />
+      <TaxonomyManager items={library.categories} kind="categories" health={library.taxonomyHealth} />
     </main>
   );
 }

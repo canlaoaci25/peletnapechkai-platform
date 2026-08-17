@@ -14,29 +14,33 @@ export const dynamic = "force-dynamic";
 const collections = ["categories", "tags", "authors"] as const;
 type Props = {
   params: Promise<{ locale: string; collection: string; slug: string }>;
+  searchParams: Promise<{ page?: string | string[] }>;
 };
+function pageNumber(value:string|string[]|undefined){const raw=Array.isArray(value)?value[0]:value;const parsed=Number.parseInt(raw??"1",10);return Number.isFinite(parsed)&&parsed>0?parsed:1}
 function isCollection(value: string): value is (typeof collections)[number] {
   return collections.includes(value as (typeof collections)[number]);
 }
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params,searchParams }: Props): Promise<Metadata> {
   const { locale, collection, slug } = await params;
+  const page=pageNumber((await searchParams).page);
   if (!hasLocale(locale) || !isCollection(collection)) return {};
-  const archive = await getPublicArchive(locale, collection, slug);
+  const archive = await getPublicArchive(locale, collection, slug,page);
   if (!archive) return {};
   return {
     title: archive.title,
     description: archive.description ?? archiveCopy[locale].description,
     alternates: {
-      canonical: `/${locale}/${collection}/${slug}`,
+      canonical: `/${locale}/${collection}/${slug}${page>1?`?page=${page}`:""}`,
       languages: archiveLanguages(collection, archive.translations),
     },
   };
 }
-export default async function ArchivePage({ params }: Props) {
+export default async function ArchivePage({ params,searchParams }: Props) {
   const { locale, collection, slug } = await params;
+  const page=pageNumber((await searchParams).page);
   if (!hasLocale(locale) || !isCollection(collection)) notFound();
   const [archive, dictionary] = await Promise.all([
-    getPublicArchive(locale, collection, slug),
+    getPublicArchive(locale, collection, slug,page),
     getDictionary(locale),
   ]);
   if (!archive) notFound();
@@ -74,6 +78,11 @@ export default async function ArchivePage({ params }: Props) {
             ))}
           </div></section>
         )}
+        {archive.totalPages>1&&<nav className="archive-pagination" aria-label={`${copy.page} ${archive.page} ${copy.of} ${archive.totalPages}`}>
+          {archive.page>1?<Link rel="prev" href={`/${locale}/${collection}/${slug}${archive.page===2?"":`?page=${archive.page-1}`}`}>← {copy.previous}</Link>:<span/>}
+          <strong>{copy.page} {archive.page} <span>{copy.of} {archive.totalPages}</span></strong>
+          {archive.page<archive.totalPages?<Link rel="next" href={`/${locale}/${collection}/${slug}?page=${archive.page+1}`}>{copy.next} →</Link>:<span/>}
+        </nav>}
       </main>
     </div>
   );

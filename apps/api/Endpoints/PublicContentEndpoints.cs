@@ -63,9 +63,10 @@ public static class PublicContentEndpoints
         return Results.Ok(new { categories, tags, authors });
     }
 
-    private static async Task<IResult> GetArchiveAsync(string locale, string kind, string slug, PublishingDbContext database, int? limit, CancellationToken token)
+    private static async Task<IResult> GetArchiveAsync(string locale, string kind, string slug, PublishingDbContext database, int? page, int? limit, CancellationToken token)
     {
         var take = Math.Clamp(limit ?? 24, 1, 50);
+        var currentPage = Math.Max(page ?? 1, 1);
         var query = database.ArticleLocalizations.AsNoTracking().Where(article => article.Locale.Code == locale && article.Locale.IsEnabled && article.Status == PublicationStatus.Published);
         string? title;
         string? description = null;
@@ -98,13 +99,17 @@ public static class PublicContentEndpoints
             default:
                 return Results.NotFound();
         }
-        var articles = await query.OrderByDescending(article => article.PublishedAt).Take(take).Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } }).ToListAsync(token);
         var articleCount = await query.CountAsync(token);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(articleCount / (double)take));
+        if (currentPage > totalPages) return Results.NotFound();
+        var articles = await query.OrderByDescending(article => article.PublishedAt).ThenBy(article => article.Id)
+            .Skip((currentPage - 1) * take).Take(take)
+            .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } }).ToListAsync(token);
         var typeCounts = await query.GroupBy(article => article.ArticleGroup.Type).Select(group => new { type = group.Key.ToString(), count = group.Count() }).OrderByDescending(item => item.count).ToArrayAsync(token);
         var relatedCategories = await query.SelectMany(article => article.Categories).Where(item => item.Slug != slug)
             .GroupBy(item => new { item.Slug, item.Name }).Select(group => new { group.Key.Slug, title = group.Key.Name, articleCount = group.Count() })
             .OrderByDescending(item => item.articleCount).ThenBy(item => item.title).Take(5).ToArrayAsync(token);
-        return Results.Ok(new { kind, slug, title, description, translations, articleCount, typeCounts, relatedCategories, articles });
+        return Results.Ok(new { kind, slug, title, description, translations, articleCount, page = currentPage, pageSize = take, totalPages, typeCounts, relatedCategories, articles });
     }
 
     private static async Task<IResult> SearchAsync(string locale, string? q, PublishingDbContext database, int? limit, CancellationToken token)

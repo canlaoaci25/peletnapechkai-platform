@@ -4,7 +4,7 @@ export type PublicArticleSummary = {
   articleGroupId: string; slug: string; title: string; summary: string; type: string; publishedAt: string; updatedAt: string; cover:{url:string;altText:string}|null; categories?:{slug:string;name:string}[]; sourceCount?:number;
 };
 export type PublicArticle = Omit<PublicArticleSummary, "articleGroupId"|"cover"> & { body: string; seoTitle: string | null; seoDescription: string | null; isSponsored:boolean; sponsorName:string|null; hasAffiliateLinks:boolean; cover:{url:string;altText:string;caption:string|null;credit:string|null}|null; categories:{slug:string;name:string}[]; tags:{slug:string;name:string}[]; authors:{slug:string;displayName:string}[]; sources:{name:string;url:string}[]; translations: { locale: string; slug: string }[] };
-export type PublicArchive = { kind:string; slug:string; title:string; description:string|null; translations?:{locale:string;slug:string}[]; articleCount:number; typeCounts:{type:string;count:number}[]; relatedCategories:{slug:string;title:string;articleCount:number}[]; articles:PublicArticleSummary[] };
+export type PublicArchive = { kind:string; slug:string; title:string; description:string|null; translations?:{locale:string;slug:string}[]; articleCount:number; page:number; pageSize:number; totalPages:number; typeCounts:{type:string;count:number}[]; relatedCategories:{slug:string;title:string;articleCount:number}[]; articles:PublicArticleSummary[] };
 export type PublicArchiveIndex = { categories:{slug:string;title:string;description:string|null;translationKey:string;articleCount:number;featured:PublicArticleSummary[]}[]; tags:{slug:string;title:string}[]; authors:{slug:string;title:string}[] };
 export type PublicHomepage = { lead:PublicArticleSummary|null;secondary:PublicArticleSummary[];trending:PublicArticleSummary[];editors:PublicArticleSummary[];latest:PublicArticleSummary[];mode:"Automatic"|"Hybrid" };
 
@@ -33,6 +33,6 @@ export async function searchPublishedArticles(locale: string, query: string) {
   return await publicGet<PublicArticleSummary[]>(`/api/v1/public/${encodeURIComponent(locale)}/articles/search?q=${encodeURIComponent(query.trim())}`) ?? [];
 }
 
-export function getPublicArchive(locale:string,kind:string,slug:string){return publicGet<PublicArchive>(`/api/v1/public/${encodeURIComponent(locale)}/archives/${encodeURIComponent(kind)}/${encodeURIComponent(slug)}`)}
+export function getPublicArchive(locale:string,kind:string,slug:string,page=1){return publicGet<PublicArchive>(`/api/v1/public/${encodeURIComponent(locale)}/archives/${encodeURIComponent(kind)}/${encodeURIComponent(slug)}?page=${Math.max(1,page)}`)}
 export async function getRelatedArticles(locale:string,slug:string){return await publicGet<PublicArticleSummary[]>(`/api/v1/public/${encodeURIComponent(locale)}/articles/${encodeURIComponent(slug)}/related`)??[]}
 export async function getPublicArchiveIndex(locale:string){return await publicGet<PublicArchiveIndex>(`/api/v1/public/${encodeURIComponent(locale)}/archives`)??{categories:[],tags:[],authors:[]}}

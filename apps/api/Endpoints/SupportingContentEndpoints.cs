@@ -40,10 +40,24 @@ public static partial class SupportingContentEndpoints
 
     private static async Task<IResult> ListAsync(PublishingDbContext db, CancellationToken token) => Results.Ok(new
     {
-        categories = await db.Categories.AsNoTracking().OrderBy(x => x.Locale.Code).ThenBy(x => x.Name).Select(x => new { x.Id, locale = x.Locale.Code, x.Slug, x.Name }).ToListAsync(token),
+        categories = await db.Categories.AsNoTracking().OrderBy(x => x.Locale.Code).ThenBy(x => x.Name).Select(x => new
+        {
+            x.Id, locale = x.Locale.Code, x.Slug, x.Name,
+            articleCount = x.Articles.Count,
+            publishedCount = x.Articles.Count(article => article.Status == PublicationStatus.Published)
+        }).ToListAsync(token),
         tags = await db.Tags.AsNoTracking().OrderBy(x => x.Locale.Code).ThenBy(x => x.Name).Select(x => new { x.Id, locale = x.Locale.Code, x.Slug, x.Name }).ToListAsync(token),
         authors = await db.Authors.AsNoTracking().OrderBy(x => x.DisplayName).Select(x => new { x.Id, x.Slug, x.DisplayName }).ToListAsync(token),
-        sources = await db.Sources.AsNoTracking().OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.Url }).ToListAsync(token)
+        sources = await db.Sources.AsNoTracking().OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.Url }).ToListAsync(token),
+        taxonomyHealth = new
+        {
+            publishedCount = db.ArticleLocalizations.Count(article => article.Locale.Code == "tr-TR" && article.Status == PublicationStatus.Published),
+            uncategorizedCount = db.ArticleLocalizations.Count(article => article.Locale.Code == "tr-TR" && article.Status == PublicationStatus.Published && !article.Categories.Any()),
+            uncategorized = db.ArticleLocalizations.AsNoTracking()
+                .Where(article => article.Locale.Code == "tr-TR" && article.Status == PublicationStatus.Published && !article.Categories.Any())
+                .OrderByDescending(article => article.PublishedAt).Take(12)
+                .Select(article => new { article.Id, article.Slug, article.Title, article.PublishedAt }).ToArray()
+        }
     });
 
     private static async Task<IResult> CreateCategoryAsync(NamedLocaleRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext db, CancellationToken token)
