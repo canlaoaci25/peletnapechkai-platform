@@ -89,7 +89,7 @@ public static class PublicContentEndpoints
                     .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } })
                     .ToArray()
             }).ToListAsync(token);
-        var tags = await database.Tags.AsNoTracking().Where(item => item.Locale.Code == locale && item.Articles.Any(article => article.Status == PublicationStatus.Published)).OrderBy(item => item.Name).Select(item => new { item.Slug, title = item.Name }).ToListAsync(token);
+        var tags = await database.Tags.AsNoTracking().Where(item => item.Locale.Code == locale && item.Articles.Any(article => article.Status == PublicationStatus.Published)).OrderBy(item => item.Name).Select(item => new { item.Slug, title = item.Name, translationKey = item.SourceTagId ?? item.Id }).ToListAsync(token);
         var authors = await database.Authors.AsNoTracking().Where(item => database.ArticleLocalizations.Any(article => article.Locale.Code == locale && article.Status == PublicationStatus.Published && article.ArticleGroup.Authors.Any(author => author.Id == item.Id))).OrderBy(item => item.DisplayName).Select(item => new { item.Slug, title = item.DisplayName }).ToListAsync(token);
         return Results.Ok(new { categories, tags, authors });
     }
@@ -117,9 +117,14 @@ public static class PublicContentEndpoints
                     .ToArrayAsync(token);
                 break;
             case "tags":
-                title = await database.Tags.AsNoTracking().Where(item => item.Locale.Code == locale && item.Slug == slug).Select(item => item.Name).SingleOrDefaultAsync(token);
-                if (title is null) return Results.NotFound();
+                var tag = await database.Tags.AsNoTracking().Where(item => item.Locale.Code == locale && item.Slug == slug).Select(item => new { item.Id, item.SourceTagId, item.Name }).SingleOrDefaultAsync(token);
+                if (tag is null) return Results.NotFound();
+                title = tag.Name;
                 query = query.Where(article => article.Tags.Any(item => item.Slug == slug));
+                var tagTranslationKey = tag.SourceTagId ?? tag.Id;
+                translations = await database.Tags.AsNoTracking()
+                    .Where(item => (item.Id == tagTranslationKey || item.SourceTagId == tagTranslationKey) && item.Locale.IsEnabled && item.Articles.Any(article => article.Status == PublicationStatus.Published))
+                    .OrderBy(item => item.Locale.Code).Select(item => new { locale = item.Locale.Code, item.Slug }).ToArrayAsync(token);
                 break;
             case "authors":
                 var author = await database.Authors.AsNoTracking().Where(item => item.Slug == slug).Select(item => new { item.DisplayName, item.Bio }).SingleOrDefaultAsync(token);

@@ -41,11 +41,14 @@ internal sealed class TagConfiguration : IEntityTypeConfiguration<Tag>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
         builder.Property(x => x.LocaleId).HasColumnName("locale_id");
+        builder.Property(x => x.SourceTagId).HasColumnName("source_tag_id");
         builder.Property(x => x.Slug).HasColumnName("slug").HasMaxLength(160);
         builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(160);
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.HasOne(x => x.Locale).WithMany().HasForeignKey(x => x.LocaleId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.SourceTag).WithMany(x => x.Translations).HasForeignKey(x => x.SourceTagId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(x => new { x.LocaleId, x.Slug }).IsUnique().HasDatabaseName("ux_tags_locale_slug");
+        builder.HasIndex(x => new { x.SourceTagId, x.LocaleId }).IsUnique().HasDatabaseName("ux_tags_source_locale");
     }
 }
 

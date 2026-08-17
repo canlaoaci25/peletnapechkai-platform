@@ -49,6 +49,7 @@ export function LanguageList({
   const pending = enabled.reduce((total, item) => total + item.reviewPendingCount, 0);
   const stale = enabled.reduce((total, item) => total + item.staleTranslationCount, 0);
   const missingCategories = enabled.reduce((total, item) => total + item.missingCategoryCount, 0);
+  const missingTags = enabled.reduce((total, item) => total + item.missingTagCount, 0);
   const translated = enabled.filter((item) => !item.isDefault);
   const coverage = translated.length === 0 ? 100 : Math.round(translated.reduce((total, item) => total + (item.sourcePublishedCount ? item.publishedCount / item.sourcePublishedCount * 100 : 100), 0) / translated.length);
   return (
@@ -60,6 +61,7 @@ export function LanguageList({
         <article className={pending ? "needs-attention" : ""}><small>Editör incelemesi</small><strong>{pending}</strong><span>yayın öncesi kontrol</span></article>
         <article className={stale ? "needs-attention" : ""}><small>Güncellik farkı</small><strong>{stale}</strong><span>kaynak yazıdan geride</span></article>
         <article className={missingCategories ? "needs-attention" : ""}><small>Eksik kategori</small><strong>{missingCategories}</strong><span>yerelleştirilmemiş konu yolu</span></article>
+        <article className={missingTags ? "needs-attention" : ""}><small>Eksik etiket</small><strong>{missingTags}</strong><span>locale geçişi olmayan arşiv</span></article>
       </div>
       <div className="language-list-page">
       {locales.map((item) => (
@@ -89,6 +91,7 @@ export function LanguageList({
             <i><span style={{width:`${item.isDefault || !item.sourcePublishedCount ? 100 : Math.min(100, item.publishedCount / item.sourcePublishedCount * 100)}%`}} /></i>
             <small>{item.isDefault ? `${item.sourceCategoryCount} kaynak kategori` : `${item.missingTranslationCount} eksik · ${item.staleTranslationCount} güncel değil`}</small>
             {!item.isDefault && <small className={item.missingCategoryCount ? "taxonomy-debt" : ""}>{item.linkedCategoryCount}/{item.sourceCategoryCount} kategori bağlı · {item.reviewPendingCount} incelemede</small>}
+            {!item.isDefault && <small className={item.missingTagCount ? "taxonomy-debt" : ""}>{item.linkedTagCount}/{item.sourceTagCount} etiket bağlı</small>}
           </span>
           <b aria-hidden>→</b>
         </Link>

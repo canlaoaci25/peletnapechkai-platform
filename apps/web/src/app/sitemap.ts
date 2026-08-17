@@ -16,15 +16,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const articles: MetadataRoute.Sitemap = collections.flatMap(({ locale, articles }) => articles.map(article => ({ url: absoluteUrl(`/${locale}/articles/${article.slug}`), lastModified: article.updatedAt, changeFrequency: "weekly" as const, priority: .7, alternates: { languages: groups.get(article.articleGroupId) ?? {} } })));
   const archiveCollections = await Promise.all(locales.map(async locale => ({ locale, index: await getPublicArchiveIndex(locale) })));
   const categoryLanguages = new Map<string, Record<string, string>>();
+  const tagLanguages = new Map<string, Record<string, string>>();
   for (const { locale, index } of archiveCollections) for (const category of index.categories) {
     const languages = categoryLanguages.get(category.translationKey) ?? {};
     languages[locale] = absoluteUrl(`/${locale}/categories/${category.slug}`);
     categoryLanguages.set(category.translationKey, languages);
   }
+  for (const { locale, index } of archiveCollections) for (const tag of index.tags) {
+    const languages = tagLanguages.get(tag.translationKey) ?? {};
+    languages[locale] = absoluteUrl(`/${locale}/tags/${tag.slug}`);
+    tagLanguages.set(tag.translationKey, languages);
+  }
   for (const languages of categoryLanguages.values()) languages["x-default"] = languages["tr-TR"] ?? Object.values(languages)[0];
+  for (const languages of tagLanguages.values()) languages["x-default"] = languages["tr-TR"] ?? Object.values(languages)[0];
   const archives: MetadataRoute.Sitemap = archiveCollections.flatMap(({locale,index}) => [
     ...index.categories.map(item=>({path:`categories/${item.slug}`,languages:categoryLanguages.get(item.translationKey)})),
-    ...index.tags.map(item=>({path:`tags/${item.slug}`,languages:undefined})),
+    ...index.tags.map(item=>({path:`tags/${item.slug}`,languages:tagLanguages.get(item.translationKey)})),
     ...index.authors.map(item=>({path:`authors/${item.slug}`,languages:undefined})),
   ].map(item=>({url:absoluteUrl(`/${locale}/${item.path}`),changeFrequency:"weekly" as const,priority:.5,alternates:item.languages?{languages:item.languages}:undefined})));
   const sourceCollections=await Promise.all(locales.map(async locale=>({locale,index:await getPublicSourceIndex(locale)})));

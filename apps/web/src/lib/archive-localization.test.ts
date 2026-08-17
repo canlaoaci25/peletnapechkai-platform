@@ -16,6 +16,13 @@ test("links translated categories and uses Turkish as x-default", () => {
 });
 
 test("does not infer translation relationships for unlinked taxonomy", () => {
-  assert.equal(archiveLanguages("tags", [{ locale: "en-US", slug: "ai" }]), undefined);
+  assert.deepEqual(archiveLanguages("tags", [
+    { locale: "tr-TR", slug: "gizlilik" },
+    { locale: "en-US", slug: "privacy" },
+  ]), {
+    "tr-TR": "/tr-TR/tags/gizlilik",
+    "en-US": "/en-US/tags/privacy",
+    "x-default": "/tr-TR/tags/gizlilik",
+  });
   assert.equal(archiveLanguages("categories", []), undefined);
 });

@@ -82,6 +82,8 @@ public static class LocaleManagementEndpoints
         var sourceCategoryCount = await database.Categories.AsNoTracking()
             .CountAsync(category => category.Locale.IsDefault &&
                 category.Articles.Any(article => article.Status == PublicationStatus.Published), token);
+        var sourceTagCount = await database.Tags.AsNoTracking()
+            .CountAsync(tag => tag.Locale.IsDefault && tag.Articles.Any(article => article.Status == PublicationStatus.Published), token);
         var locales = await database.Locales.AsNoTracking()
             .OrderByDescending(locale => locale.IsDefault).ThenBy(locale => locale.Code)
             .Select(locale => new
@@ -92,7 +94,7 @@ public static class LocaleManagementEndpoints
                 publishedCount = locale.ArticleLocalizations.Count(article => article.Status == PublicationStatus.Published),
                 draftCount = locale.ArticleLocalizations.Count(article => article.Status == PublicationStatus.Draft),
                 sourcePublishedCount,
-                sourceCategoryCount,
+                sourceCategoryCount, sourceTagCount,
                 missingTranslationCount = locale.IsDefault ? 0 : database.ArticleLocalizations.Count(source =>
                     source.Locale.IsDefault && source.Status == PublicationStatus.Published &&
                     !database.ArticleLocalizations.Any(translation => translation.ArticleGroupId == source.ArticleGroupId &&
@@ -110,6 +112,11 @@ public static class LocaleManagementEndpoints
                 missingCategoryCount = locale.IsDefault ? 0 : database.Categories.Count(source =>
                     source.Locale.IsDefault && source.Articles.Any(article => article.Status == PublicationStatus.Published) &&
                     !database.Categories.Any(translation => translation.LocaleId == locale.Id && translation.SourceCategoryId == source.Id)),
+                linkedTagCount = locale.IsDefault ? sourceTagCount : database.Tags.Count(tag =>
+                    tag.LocaleId == locale.Id && tag.SourceTagId != null && tag.Articles.Any(article => article.Status == PublicationStatus.Published)),
+                missingTagCount = locale.IsDefault ? 0 : database.Tags.Count(source =>
+                    source.Locale.IsDefault && source.Articles.Any(article => article.Status == PublicationStatus.Published) &&
+                    !database.Tags.Any(translation => translation.LocaleId == locale.Id && translation.SourceTagId == source.Id)),
                 countries = locale.Countries.OrderByDescending(item => item.CountryId == locale.RegionId).ThenBy(item => item.Country.Name)
                     .Select(item => new { code = item.Country.Code, item.Country.Name, item.Country.CurrencyCode, item.IsRequired, item.IsEnabled, isPrimary = item.CountryId == locale.RegionId })
             }).ToListAsync(token);

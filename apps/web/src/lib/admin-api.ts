@@ -184,11 +184,14 @@ export type ManagedLocale = {
   draftCount: number;
   sourcePublishedCount: number;
   sourceCategoryCount: number;
+  sourceTagCount: number;
   missingTranslationCount: number;
   reviewPendingCount: number;
   staleTranslationCount: number;
   linkedCategoryCount: number;
   missingCategoryCount: number;
+  linkedTagCount: number;
+  missingTagCount: number;
   countries: {
     code: string;
     name: string;

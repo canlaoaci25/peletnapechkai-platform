@@ -1,5 +1,14 @@
 # Delivery roadmap
 
+## Cycle 46 — International tag archive integrity
+
+Tag archives now have durable source relationships across Turkish, English, German, and
+French editions. Existing published taxonomy is localized through an audited migration,
+translated articles inherit the matching tag, and public archive metadata plus the XML
+sitemap expose only real reciprocal locale alternatives. Reliable field-level source
+snapshots, culturally adapted visual review, and locale search-intent measurement remain
+the next international publishing milestones.
+
 ## Cycle 45 — Public source trust and discovery
 
 The public publication now turns real citation evidence into a multilingual Sources &

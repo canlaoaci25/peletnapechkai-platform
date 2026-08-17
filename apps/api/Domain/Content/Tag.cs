@@ -6,7 +6,7 @@ public sealed class Tag
 {
     private Tag() { }
 
-    public Tag(Locale locale, string slug, string name, DateTimeOffset createdAt)
+    public Tag(Locale locale, string slug, string name, DateTimeOffset createdAt, Tag? sourceTag = null)
     {
         ArgumentNullException.ThrowIfNull(locale);
         ArgumentException.ThrowIfNullOrWhiteSpace(slug);
@@ -17,6 +17,8 @@ public sealed class Tag
         Slug = slug.Trim();
         Name = name.Trim();
         CreatedAt = createdAt;
+        SourceTag = sourceTag;
+        SourceTagId = sourceTag?.Id;
     }
 
     public void Update(string slug, string name)
@@ -29,6 +31,9 @@ public sealed class Tag
 
     public Guid Id { get; private set; }
     public Guid LocaleId { get; private set; }
+    public Guid? SourceTagId { get; private set; }
+    public Tag? SourceTag { get; private set; }
+    public ICollection<Tag> Translations { get; } = [];
     public Locale Locale { get; private set; } = null!;
     public string Slug { get; private set; } = string.Empty;
     public string Name { get; private set; } = string.Empty;
