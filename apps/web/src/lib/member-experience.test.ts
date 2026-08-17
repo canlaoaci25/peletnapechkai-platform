@@ -37,3 +37,16 @@ test("topic following and personal feed cover every locale", () => {
   assert.match(account, /personal-discovery/);
   assert.match(account, /followed-topic-grid/);
 });
+
+test("reading progress offers a locale-complete return journey", () => {
+  for (const copy of Object.values(memberCopy)) {
+    assert.ok(copy.continueTitle.length > 3);
+    assert.ok(copy.continueAction.length > 3);
+    assert.ok(copy.progress.length > 1);
+  }
+  const tracker = readFileSync(fileURLToPath(new URL("../components/article-engagement.tsx", import.meta.url)), "utf8");
+  const surface = readFileSync(fileURLToPath(new URL("../components/continue-reading.tsx", import.meta.url)), "utf8");
+  assert.match(tracker, /reading-progress/);
+  assert.match(tracker, /x-csrf-token/);
+  assert.match(surface, /continue-meter/);
+});

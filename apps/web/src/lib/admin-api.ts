@@ -294,3 +294,5 @@ export type FollowedCategory={slug:string;title:string;description:string|null;l
 export type PersonalFeedArticle=SavedArticle&{categories:string[]};
 export async function getFollowedCategories(locale:string){return await apiGet<FollowedCategory[]>(`/api/v1/account/following?locale=${encodeURIComponent(locale)}`)??[]}
 export async function getPersonalFeed(locale:string){return await apiGet<PersonalFeedArticle[]>(`/api/v1/account/feed?locale=${encodeURIComponent(locale)}`)??[]}
+export type ReadingProgressArticle={slug:string;title:string;summary:string;locale:string;percent:number;anchor:string|null;lastReadAt:string;cover:null|{url:string;altText:string}};
+export async function getReadingProgress(locale:string){return await apiGet<ReadingProgressArticle[]>(`/api/v1/account/reading-progress?locale=${encodeURIComponent(locale)}`)??[]}

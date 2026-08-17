@@ -26,6 +26,9 @@ public static class MemberAccountEndpoints
         group.MapPut("/following/{locale}/{slug}", FollowCategoryAsync).ValidateAntiforgery();
         group.MapDelete("/following/{locale}/{slug}", UnfollowCategoryAsync).ValidateAntiforgery();
         group.MapGet("/feed", GetPersonalFeedAsync);
+        group.MapGet("/reading-progress", ListReadingProgressAsync);
+        group.MapGet("/reading-progress/{locale}/{slug}", GetReadingProgressAsync);
+        group.MapPut("/reading-progress/{locale}/{slug}", UpdateReadingProgressAsync).ValidateAntiforgery();
         return endpoints;
     }
     private static async Task<IResult> GetAsync(System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,IConfiguration configuration)
@@ -98,6 +101,28 @@ public static class MemberAccountEndpoints
         var items=await db.ArticleLocalizations.AsNoTracking().Where(article=>article.Locale.Code==locale&&article.Status==PublicationStatus.Published&&article.Categories.Any(category=>db.FollowedCategories.Any(follow=>follow.UserId==user.Id&&follow.CategoryId==category.Id))).OrderByDescending(article=>article.PublishedAt).Take(12).Select(article=>new{article.Slug,article.Title,article.Summary,type=article.ArticleGroup.Type.ToString(),locale=article.Locale.Code,article.PublishedAt,categories=article.Categories.Where(category=>db.FollowedCategories.Any(follow=>follow.UserId==user.Id&&follow.CategoryId==category.Id)).Select(category=>category.Name).ToArray(),cover=article.CoverMediaAssetId==null?null:new{url="/api/media/"+article.CoverMediaAssetId+"?v="+article.CoverMediaAsset!.OptimizedByteLength,altText=article.CoverAltText}}).ToArrayAsync(token);
         return Results.Ok(items);
     }
+    private static async Task<IResult> ListReadingProgressAsync(string locale,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
+        var items=await db.ArticleReadingProgress.AsNoTracking().Where(item=>item.UserId==user.Id&&item.Percent>=5&&item.Percent<95&&item.ArticleLocalization.Locale.Code==locale&&item.ArticleLocalization.Status==PublicationStatus.Published).OrderByDescending(item=>item.LastReadAt).Take(8).Select(item=>new{item.ArticleLocalization.Slug,item.ArticleLocalization.Title,item.ArticleLocalization.Summary,locale=item.ArticleLocalization.Locale.Code,item.Percent,item.Anchor,item.LastReadAt,cover=item.ArticleLocalization.CoverMediaAssetId==null?null:new{url="/api/media/"+item.ArticleLocalization.CoverMediaAssetId+"?v="+item.ArticleLocalization.CoverMediaAsset!.OptimizedByteLength,altText=item.ArticleLocalization.CoverAltText}}).ToArrayAsync(token);
+        return Results.Ok(items);
+    }
+    private static async Task<IResult> GetReadingProgressAsync(string locale,string slug,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
+        var progress=await db.ArticleReadingProgress.AsNoTracking().Where(item=>item.UserId==user.Id&&item.ArticleLocalization.Locale.Code==locale&&item.ArticleLocalization.Slug==slug&&item.ArticleLocalization.Status==PublicationStatus.Published).Select(item=>new{item.Percent,item.Anchor,item.LastReadAt}).SingleOrDefaultAsync(token);
+        return progress is null?Results.Ok(new{percent=0,anchor=(string?)null,lastReadAt=(DateTimeOffset?)null}):Results.Ok(progress);
+    }
+    private static async Task<IResult> UpdateReadingProgressAsync(string locale,string slug,ReadingProgressRequest request,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
+        if(request.Percent is <0 or >100||request.Anchor?.Length>160)return Results.BadRequest();
+        var article=await db.ArticleLocalizations.SingleOrDefaultAsync(item=>item.Locale.Code==locale&&item.Slug==slug&&item.Status==PublicationStatus.Published,token);if(article is null)return Results.NotFound();
+        var progress=await db.ArticleReadingProgress.SingleOrDefaultAsync(item=>item.UserId==user.Id&&item.ArticleLocalizationId==article.Id,token);var now=DateTimeOffset.UtcNow;
+        if(progress is null){db.ArticleReadingProgress.Add(new ArticleReadingProgress(user,article,request.Percent,request.Anchor,now));db.AuditLogs.Add(new AuditLog(user.Id,"member.article_reading_started",nameof(ArticleLocalization),article.Id,null,now));}else progress.Update(request.Percent,request.Anchor,now);
+        await db.SaveChangesAsync(token);return Results.NoContent();
+    }
     public sealed record ProfileRequest(string? DisplayName);
     public sealed record PasswordRequest(string? CurrentPassword,string? NewPassword);
+    public sealed record ReadingProgressRequest(int Percent,string? Anchor);
 }

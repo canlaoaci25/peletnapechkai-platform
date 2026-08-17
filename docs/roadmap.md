@@ -2,6 +2,13 @@
 
 ## Execution status
 
+Cycle 35 launches account-bound reading continuity: signed-in readers now retain article
+progress and the last meaningful section across devices, see a localized live progress rail,
+and receive an image-led “continue reading” shelf in their account. Ownership, published
+locale isolation, CSRF protection, bounded anchors, indexed retrieval, and first-read audit
+evidence protect the workflow. Consented digest delivery and privacy self-service remain
+the next membership milestones.
+
 Cycle 34 completes a taxonomy integrity and deep-archive discovery phase: localized
 category archives now expose every published story through stable, self-canonical
 pagination; administrators receive a live Turkish taxonomy coverage desk and prioritized
