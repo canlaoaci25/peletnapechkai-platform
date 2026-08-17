@@ -79,6 +79,8 @@ internal sealed class SourceConfiguration : IEntityTypeConfiguration<Source>
         builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
         builder.Property(x => x.Name).HasColumnName("name").HasMaxLength(200);
         builder.Property(x => x.Url).HasColumnName("url").HasMaxLength(2048);
+        builder.Property(x => x.Kind).HasColumnName("kind").HasConversion<string>().HasMaxLength(40);
+        builder.Property(x => x.LastReviewedAt).HasColumnName("last_reviewed_at");
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.HasIndex(x => x.Url).IsUnique().HasDatabaseName("ux_sources_url");
     }

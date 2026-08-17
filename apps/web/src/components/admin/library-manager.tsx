@@ -41,6 +41,11 @@ export function LibraryManager({
       setMessage(copy.error);
     }
   }
+  async function reviewSource(event: FormEvent<HTMLFormElement>, id:string) {
+    event.preventDefault(); setMessage("");
+    try { const data=new FormData(event.currentTarget); const response=await fetch(`/api/admin/supporting/sources/${id}/review`,{method:"PUT",headers:{"content-type":"application/json","x-csrf-token":await token()},body:JSON.stringify({kind:data.get("kind")})}); if(!response.ok)throw new Error();setMessage(copy.success);router.refresh(); }
+    catch { setMessage(copy.error); }
+  }
   async function upload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
@@ -138,7 +143,7 @@ export function LibraryManager({
         </section>
         <section className="admin-panel">
           <h2>{copy.source}</h2>
-          {list(library.sources)}
+          {library.sources.length?<ul className="library-list">{library.sources.map(source=><li key={source.id}><strong>{source.name}</strong><small>{source.url}</small><form className="source-review-form" onSubmit={event=>reviewSource(event,source.id)}><label>{copy.sourceKind}<select name="kind" defaultValue={source.kind}><option value="Unclassified" disabled>{copy.unclassified}</option><option value="OfficialInstitution">{copy.officialInstitution}</option><option value="PrimaryResearch">{copy.primaryResearch}</option><option value="IndustryData">{copy.industryData}</option><option value="NewsPublication">{copy.newsPublication}</option><option value="Other">{copy.otherSource}</option></select></label><button className="button-secondary">{copy.reviewSource}</button>{source.lastReviewedAt&&<small>{copy.lastReviewed}: {new Intl.DateTimeFormat(undefined,{dateStyle:"medium"}).format(new Date(source.lastReviewedAt))}</small>}</form></li>)}</ul>:<p className="muted">{copy.empty}</p>}
         </section>
       </div>
       <section className="admin-panel media-panel">

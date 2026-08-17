@@ -21,6 +21,13 @@ public sealed class Source
         CreatedAt = createdAt;
     }
 
+    public void Review(SourceKind kind, DateTimeOffset reviewedAt)
+    {
+        if (!Enum.IsDefined(kind) || kind == SourceKind.Unclassified) throw new ArgumentOutOfRangeException(nameof(kind));
+        Kind = kind;
+        LastReviewedAt = reviewedAt;
+    }
+
     public static bool TryNormalizePublicUrl(Uri? url, out string normalizedUrl)
     {
         normalizedUrl = string.Empty;
@@ -55,5 +62,9 @@ public sealed class Source
     public Guid Id { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public string Url { get; private set; } = string.Empty;
+    public SourceKind Kind { get; private set; }
+    public DateTimeOffset? LastReviewedAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 }
+
+public enum SourceKind { Unclassified, OfficialInstitution, PrimaryResearch, IndustryData, NewsPublication, Other }

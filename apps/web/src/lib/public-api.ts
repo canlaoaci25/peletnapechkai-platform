@@ -7,8 +7,9 @@ export type PublicArticle = Omit<PublicArticleSummary, "articleGroupId"|"cover">
 export type PublicArchive = { kind:string; slug:string; title:string; description:string|null; translations?:{locale:string;slug:string}[]; articleCount:number; page:number; pageSize:number; totalPages:number; typeCounts:{type:string;count:number}[]; relatedCategories:{slug:string;title:string;articleCount:number}[]; articles:PublicArticleSummary[] };
 export type PublicArchiveIndex = { categories:{slug:string;title:string;description:string|null;translationKey:string;articleCount:number;parent:{slug:string;title:string}|null;children:{slug:string;title:string;articleCount:number}[];featured:PublicArticleSummary[]}[]; tags:{slug:string;title:string;translationKey:string}[]; authors:{slug:string;title:string}[] };
 export type PublicHomepage = { lead:PublicArticleSummary|null;secondary:PublicArticleSummary[];trending:PublicArticleSummary[];editors:PublicArticleSummary[];latest:PublicArticleSummary[];mode:"Automatic"|"Hybrid" };
-export type PublicSourceIndex = { totalSources:number;totalCitations:number;sources:{domain:string;sourceName:string;articleCount:number;citationCount:number;latestCitationAt:string}[] };
-export type PublicSourceArchive = { domain:string;names:string[];articleCount:number;citationCount:number;latestCitationAt:string;articles:PublicArticleSummary[] };
+export type SourceKind="Unclassified"|"OfficialInstitution"|"PrimaryResearch"|"IndustryData"|"NewsPublication"|"Other";
+export type PublicSourceIndex = { totalSources:number;totalCitations:number;sources:{domain:string;sourceName:string;kind:SourceKind;lastReviewedAt:string|null;articleCount:number;citationCount:number;latestCitationAt:string}[] };
+export type PublicSourceArchive = { domain:string;names:string[];kind:SourceKind;lastReviewedAt:string|null;articleCount:number;citationCount:number;latestCitationAt:string;articles:PublicArticleSummary[] };
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 

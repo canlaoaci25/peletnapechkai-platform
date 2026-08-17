@@ -24,11 +24,12 @@ public static class PublicContentEndpoints
     {
         var rows = await database.ArticleLocalizations.AsNoTracking()
             .Where(article => article.Locale.Code == locale && article.Locale.IsEnabled && article.Status == PublicationStatus.Published)
-            .SelectMany(article => article.ArticleGroup.Sources.Select(source => new { article.Id, source.Name, source.Url, article.PublishedAt }))
+            .SelectMany(article => article.ArticleGroup.Sources.Select(source => new { article.Id, source.Name, source.Url, source.Kind, source.LastReviewedAt, article.PublishedAt }))
             .ToListAsync(token);
         var sources = rows.Select(row => new { Row = row, Domain = SourceArchivePolicy.GetCanonicalDomain(row.Url) })
             .Where(item => item.Domain is not null).GroupBy(item => item.Domain!)
             .Select(group => new { domain = group.Key, sourceName = group.GroupBy(item => item.Row.Name).OrderByDescending(names => names.Count()).ThenBy(names => names.Key).First().Key,
+                kind = group.Where(item=>item.Row.Kind!=SourceKind.Unclassified).GroupBy(item=>item.Row.Kind).OrderByDescending(kinds=>kinds.Count()).Select(kinds=>kinds.Key.ToString()).FirstOrDefault() ?? SourceKind.Unclassified.ToString(), lastReviewedAt=group.Max(item=>item.Row.LastReviewedAt),
                 articleCount = group.Select(item => item.Row.Id).Distinct().Count(), citationCount = group.Count(), latestCitationAt = group.Max(item => item.Row.PublishedAt) })
             .OrderByDescending(item => item.articleCount).ThenBy(item => item.domain).ToArray();
         return Results.Ok(new { totalSources = sources.Length, totalCitations = sources.Sum(item => item.citationCount), sources });
@@ -43,13 +44,14 @@ public static class PublicContentEndpoints
             .Where(article => article.ArticleGroup.Sources.Count > 0)
             .Select(article => new { article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt,
                 cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText },
-                sources = article.ArticleGroup.Sources.Select(source => new { source.Name, source.Url }).ToArray() })
+                sources = article.ArticleGroup.Sources.Select(source => new { source.Name, source.Url, source.Kind, source.LastReviewedAt }).ToArray() })
             .OrderByDescending(article => article.PublishedAt).ToListAsync(token);
         var matches = rows.Select(row => new { Row = row, Sources = row.sources.Where(source => SourceArchivePolicy.GetCanonicalDomain(source.Url) == domain).ToArray() })
             .Where(item => item.Sources.Length > 0).ToArray();
         if (matches.Length == 0) return Results.NotFound();
         var names = matches.SelectMany(item => item.Sources).GroupBy(source => source.Name).OrderByDescending(group => group.Count()).ThenBy(group => group.Key).Select(group => group.Key).Take(4).ToArray();
-        return Results.Ok(new { domain, names, articleCount = matches.Length, citationCount = matches.Sum(item => item.Sources.Length), latestCitationAt = matches.Max(item => item.Row.PublishedAt),
+        var reviewed=matches.SelectMany(item=>item.Sources).Where(source=>source.Kind!=SourceKind.Unclassified).OrderByDescending(source=>source.LastReviewedAt).FirstOrDefault();
+        return Results.Ok(new { domain, names, kind=(reviewed?.Kind??SourceKind.Unclassified).ToString(), lastReviewedAt=reviewed?.LastReviewedAt, articleCount = matches.Length, citationCount = matches.Sum(item => item.Sources.Length), latestCitationAt = matches.Max(item => item.Row.PublishedAt),
             articles = matches.Select(item => item.Row).ToArray() });
     }
 

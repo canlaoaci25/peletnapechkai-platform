@@ -1,5 +1,14 @@
 # Delivery roadmap
 
+## Cycle 53 — Source authority and editorial review
+
+The public Sources & Trust Center now distinguishes official institutions, primary research,
+industry data, news publications, and other reviewed sources while explicitly labelling legacy
+records as unclassified. Authorized editors classify each source through a CSRF-protected,
+append-only audited review action; the public API exposes only durable review evidence and dates.
+Source ownership, scheduled SSRF-safe link health, and Search Console query matching remain the
+next source-quality milestones.
+
 ## Cycle 52 — Reversible editorial workload management
 
 The editorial control center now turns capacity insight into a safe management action: authorized

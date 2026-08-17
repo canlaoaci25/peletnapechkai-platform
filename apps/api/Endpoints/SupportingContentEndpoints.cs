@@ -28,6 +28,7 @@ public static partial class SupportingContentEndpoints
         supporting.MapDelete("/tags/{tagId:guid}", DeleteTagAsync).ValidateAntiforgery();
         supporting.MapPost("/authors", CreateAuthorAsync).ValidateAntiforgery();
         supporting.MapPost("/sources", CreateSourceAsync).ValidateAntiforgery();
+        supporting.MapPut("/sources/{sourceId:guid}/review", ReviewSourceAsync).ValidateAntiforgery();
 
         var media = endpoints.MapGroup("/api/v1/admin/media").WithTags("Media")
             .RequireAuthorization(AuthorizationPolicies.ManageEditorial);
@@ -50,7 +51,7 @@ public static partial class SupportingContentEndpoints
         }).ToListAsync(token),
         tags = await db.Tags.AsNoTracking().OrderBy(x => x.Locale.Code).ThenBy(x => x.Name).Select(x => new { x.Id, locale = x.Locale.Code, x.Slug, x.Name }).ToListAsync(token),
         authors = await db.Authors.AsNoTracking().OrderBy(x => x.DisplayName).Select(x => new { x.Id, x.Slug, x.DisplayName }).ToListAsync(token),
-        sources = await db.Sources.AsNoTracking().OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.Url }).ToListAsync(token),
+        sources = await db.Sources.AsNoTracking().OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.Url, kind=x.Kind.ToString(), x.LastReviewedAt }).ToListAsync(token),
         taxonomyHealth = new
         {
             publishedCount = db.ArticleLocalizations.Count(article => article.Locale.Code == "tr-TR" && article.Status == PublicationStatus.Published),
@@ -126,6 +127,16 @@ public static partial class SupportingContentEndpoints
         if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length > 200 ||
             !Uri.TryCreate(request.Url, UriKind.Absolute, out var url) || !Source.TryNormalizePublicUrl(url, out _)) return Task.FromResult(Invalid());
         return AddAsync(new Source(request.Name, url, DateTimeOffset.UtcNow), "supporting.source_created", principal, users, db, token);
+    }
+
+    private static async Task<IResult> ReviewSourceAsync(Guid sourceId, SourceReviewRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext db, CancellationToken token)
+    {
+        var actor = await users.GetUserAsync(principal); if (actor is null) return Results.Unauthorized();
+        if (!Enum.TryParse<SourceKind>(request.Kind, true, out var kind) || kind == SourceKind.Unclassified) return Invalid();
+        var source = await db.Sources.SingleOrDefaultAsync(x => x.Id == sourceId, token); if (source is null) return Results.NotFound();
+        source.Review(kind, DateTimeOffset.UtcNow);
+        db.AuditLogs.Add(new AuditLog(actor.Id, "supporting.source_reviewed", nameof(Source), source.Id, JsonSerializer.Serialize(new { kind = kind.ToString() }), DateTimeOffset.UtcNow));
+        await db.SaveChangesAsync(token); return Results.Ok(new { source.Id, kind = source.Kind.ToString(), source.LastReviewedAt });
     }
 
     private static async Task<IResult> AddAsync<T>(T item, string action, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext db, CancellationToken token) where T : class
@@ -219,6 +230,7 @@ public static partial class SupportingContentEndpoints
     private sealed record NamedLocaleRequest(string Locale, string Slug, string Name);
     private sealed record NamedRequest(string Slug, string Name, Guid? ParentCategoryId = null);
     private sealed record SourceRequest(string Name, string Url);
+    private sealed record SourceReviewRequest(string Kind);
 }
 
 public static class MediaUploadValidator
