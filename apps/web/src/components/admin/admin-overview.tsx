@@ -33,19 +33,91 @@ export function AdminOverview({
       ),
   ).sort((a, b) => b[1] - a[1]);
   const health = status?.productionHealth;
-  const healthState = !health?.available ? "unavailable" : health.stale ? "stale" : health.healthy ? "healthy" : "failed";
-  const healthLabel = {healthy:"Tüm kapılar açık",failed:"Müdahale gerekiyor",stale:"Kontrol bayat",unavailable:"Sağlık verisi yok"}[healthState];
-  const deployText={
-    "tr-TR":{title:"SÜRÜM KURTARMA MERKEZİ",empty:"Henüz doğrulanmış dağıtım kaydı yok.",history:"Dağıtım geçmişi",success:"Başarılı",recovered:"Otomatik kurtarıldı",attention:"Müdahale",latest:"Son 12 sürüm"},
-    "en-US":{title:"RELEASE RECOVERY CENTER",empty:"No verified deployment record yet.",history:"Deployment history",success:"Successful",recovered:"Auto-recovered",attention:"Needs attention",latest:"Latest 12 releases"},
-    "de-DE":{title:"RELEASE-WIEDERHERSTELLUNG",empty:"Noch keine verifizierte Bereitstellung.",history:"Bereitstellungsverlauf",success:"Erfolgreich",recovered:"Automatisch wiederhergestellt",attention:"Eingriff nötig",latest:"Letzte 12 Versionen"},
-    "fr-FR":{title:"CENTRE DE REPRISE DES VERSIONS",empty:"Aucun déploiement vérifié.",history:"Historique des déploiements",success:"Réussis",recovered:"Récupérés automatiquement",attention:"Intervention requise",latest:"12 dernières versions"},
-  }[locale]??{title:"SÜRÜM KURTARMA MERKEZİ",empty:"Henüz doğrulanmış dağıtım kaydı yok.",history:"Dağıtım geçmişi",success:"Başarılı",recovered:"Otomatik kurtarıldı",attention:"Müdahale",latest:"Son 12 sürüm"};
-  const deployStatus:Record<string,string>={Started:"Hazırlanıyor",Verifying:"Kapılar çalışıyor",Succeeded:"Yayında",RolledBack:"Geri alındı",RollbackFailed:"Kurtarma başarısız",Failed:"Başarısız"};
-  const deploymentHistory=status?.deploymentHistory??[];
-  const successfulDeployments=deploymentHistory.filter(item=>item.status==="Succeeded").length;
-  const recoveredDeployments=deploymentHistory.filter(item=>item.status==="RolledBack").length;
-  const riskyDeployments=deploymentHistory.filter(item=>!["Succeeded","RolledBack"].includes(item.status)).length;
+  const healthState = !health?.available
+    ? "unavailable"
+    : health.stale
+      ? "stale"
+      : health.healthy
+        ? "healthy"
+        : "failed";
+  const healthLabel = {
+    healthy: "Tüm kapılar açık",
+    failed: "Müdahale gerekiyor",
+    stale: "Kontrol bayat",
+    unavailable: "Sağlık verisi yok",
+  }[healthState];
+  const deployText = {
+    "tr-TR": {
+      title: "SÜRÜM KURTARMA MERKEZİ",
+      empty: "Henüz doğrulanmış dağıtım kaydı yok.",
+      history: "Dağıtım geçmişi",
+      success: "Başarılı",
+      recovered: "Otomatik kurtarıldı",
+      attention: "Müdahale",
+      latest: "Son 12 sürüm",
+    },
+    "en-US": {
+      title: "RELEASE RECOVERY CENTER",
+      empty: "No verified deployment record yet.",
+      history: "Deployment history",
+      success: "Successful",
+      recovered: "Auto-recovered",
+      attention: "Needs attention",
+      latest: "Latest 12 releases",
+    },
+    "de-DE": {
+      title: "RELEASE-WIEDERHERSTELLUNG",
+      empty: "Noch keine verifizierte Bereitstellung.",
+      history: "Bereitstellungsverlauf",
+      success: "Erfolgreich",
+      recovered: "Automatisch wiederhergestellt",
+      attention: "Eingriff nötig",
+      latest: "Letzte 12 Versionen",
+    },
+    "fr-FR": {
+      title: "CENTRE DE REPRISE DES VERSIONS",
+      empty: "Aucun déploiement vérifié.",
+      history: "Historique des déploiements",
+      success: "Réussis",
+      recovered: "Récupérés automatiquement",
+      attention: "Intervention requise",
+      latest: "12 dernières versions",
+    },
+  }[locale] ?? {
+    title: "SÜRÜM KURTARMA MERKEZİ",
+    empty: "Henüz doğrulanmış dağıtım kaydı yok.",
+    history: "Dağıtım geçmişi",
+    success: "Başarılı",
+    recovered: "Otomatik kurtarıldı",
+    attention: "Müdahale",
+    latest: "Son 12 sürüm",
+  };
+  const deployStatus: Record<string, string> = {
+    Started: "Hazırlanıyor",
+    Verifying: "Kapılar çalışıyor",
+    Succeeded: "Yayında",
+    RolledBack: "Geri alındı",
+    RollbackFailed: "Kurtarma başarısız",
+    Failed: "Başarısız",
+  };
+  const deploymentHistory = status?.deploymentHistory ?? [];
+  const successfulDeployments = deploymentHistory.filter(
+    (item) => item.status === "Succeeded",
+  ).length;
+  const recoveredDeployments = deploymentHistory.filter(
+    (item) => item.status === "RolledBack",
+  ).length;
+  const riskyDeployments = deploymentHistory.filter(
+    (item) => !["Succeeded", "RolledBack"].includes(item.status),
+  ).length;
+  const reliability = status?.deploymentReliability;
+  const reliabilityText =
+    {
+      "tr-TR": { score: "Başarı SLO'su", median: "Ortanca süre", p95: "P95 süre", streak: "Sağlam seri", sample: "son dağıtım", failure: "müdahale" },
+      "en-US": { score: "Success SLO", median: "Median time", p95: "P95 time", streak: "Healthy streak", sample: "recent releases", failure: "interventions" },
+      "de-DE": { score: "Erfolgs-SLO", median: "Medianzeit", p95: "P95-Zeit", streak: "Stabile Serie", sample: "letzte Releases", failure: "Eingriffe" },
+      "fr-FR": { score: "SLO de réussite", median: "Durée médiane", p95: "Durée P95", streak: "Série saine", sample: "versions récentes", failure: "interventions" },
+    }[locale] ?? { score: "Başarı SLO'su", median: "Ortanca süre", p95: "P95 süre", streak: "Sağlam seri", sample: "son dağıtım", failure: "müdahale" };
   return (
     <div className="overview-grid">
       <section
@@ -121,26 +193,59 @@ export function AdminOverview({
         </dl>
       </section>
       {status && (
-        <section className={`admin-panel overview-system health-${healthState}`}>
+        <section
+          className={`admin-panel overview-system health-${healthState}`}
+        >
           <header className="health-heading">
-            <div><p className="section-kicker">CANLI YAYIN GÜVENİ</p><h2>Production kapıları</h2></div>
-            <strong><span className="health-dot" />{healthLabel}</strong>
+            <div>
+              <p className="section-kicker">CANLI YAYIN GÜVENİ</p>
+              <h2>Production kapıları</h2>
+            </div>
+            <strong>
+              <span className="health-dot" />
+              {healthLabel}
+            </strong>
           </header>
           <dl>
             <div>
-              <dt>Servisler</dt><dd>{health?.servicesHealthy ?? 0} / {health?.servicesTotal ?? 0}</dd>
+              <dt>Servisler</dt>
+              <dd>
+                {health?.servicesHealthy ?? 0} / {health?.servicesTotal ?? 0}
+              </dd>
             </div>
             <div>
-              <dt>Public uçlar</dt><dd>{health?.endpointsHealthy ?? 0} / {health?.endpointsTotal ?? 0}</dd>
+              <dt>Public uçlar</dt>
+              <dd>
+                {health?.endpointsHealthy ?? 0} / {health?.endpointsTotal ?? 0}
+              </dd>
             </div>
             <div>
-              <dt>TLS süresi</dt><dd>{health?.certificateDaysRemaining == null ? "—" : `${health.certificateDaysRemaining} gün`}</dd>
+              <dt>TLS süresi</dt>
+              <dd>
+                {health?.certificateDaysRemaining == null
+                  ? "—"
+                  : `${health.certificateDaysRemaining} gün`}
+              </dd>
             </div>
             <div>
-              <dt>Boş disk</dt><dd>{health?.freeDiskGb == null ? `${(status.diskFreeBytes / 1024 / 1024 / 1024).toFixed(1)} GB` : `${health.freeDiskGb.toFixed(1)} GB`}</dd>
+              <dt>Boş disk</dt>
+              <dd>
+                {health?.freeDiskGb == null
+                  ? `${(status.diskFreeBytes / 1024 / 1024 / 1024).toFixed(1)} GB`
+                  : `${health.freeDiskGb.toFixed(1)} GB`}
+              </dd>
             </div>
           </dl>
-          {!!health?.failures.length && <ul className="health-failures" aria-label="Sağlık kontrolü hataları">{health.failures.map((failure)=><li key={failure}>{failure}</li>)}</ul>}
+          {!!health?.failures.length && (
+            <ul
+              className="health-failures"
+              aria-label="Sağlık kontrolü hataları"
+            >
+              {health.failures.map((failure) => (
+                <li key={failure}>{failure}</li>
+              ))}
+            </ul>
+          )}
           <time dateTime={health?.checkedAt ?? status.checkedAt}>
             Son production kontrolü:{" "}
             {new Intl.DateTimeFormat("tr-TR", {
@@ -150,7 +255,110 @@ export function AdminOverview({
           </time>
         </section>
       )}
-      {status && <section className="admin-panel overview-releases"><header><div><p className="section-kicker">{deployText.title}</p><h2>Web + API</h2></div><span>{status.deployments.length}/4</span></header>{status.deployments.length===0?<p className="muted">{deployText.empty}</p>:<div className="release-grid">{status.deployments.map(item=><article className={item.status==="Succeeded"?"release-safe":item.status==="RolledBack"?"release-recovered":"release-risk"} key={`${item.environment}-${item.component}`}><header><strong>{item.environment} · {item.component}</strong><span>{deployStatus[item.status]??item.status}</span></header><p><code>{item.commit||"—"}</code> · {item.durationSeconds}s</p>{item.message&&<small>{item.message}</small>}<time dateTime={item.updatedAt}>{new Intl.DateTimeFormat(locale,{dateStyle:"medium",timeStyle:"short"}).format(new Date(item.updatedAt))}</time></article>)}</div>}{deploymentHistory.length>0&&<div className="release-history"><header><div><p className="section-kicker">{deployText.history}</p><h3>{deployText.latest}</h3></div><dl><div><dt>{deployText.success}</dt><dd>{successfulDeployments}</dd></div><div><dt>{deployText.recovered}</dt><dd>{recoveredDeployments}</dd></div><div className={riskyDeployments?"history-risk":""}><dt>{deployText.attention}</dt><dd>{riskyDeployments}</dd></div></dl></header><ol>{deploymentHistory.map(item=><li key={item.deploymentId}><span className={item.status==="Succeeded"?"release-dot-safe":item.status==="RolledBack"?"release-dot-recovered":"release-dot-risk"}/><strong>{item.environment} · {item.component}</strong><code>{item.commit||"—"}</code><span>{deployStatus[item.status]??item.status}</span><time dateTime={item.updatedAt}>{new Intl.DateTimeFormat(locale,{dateStyle:"medium",timeStyle:"short"}).format(new Date(item.updatedAt))}</time></li>)}</ol></div>}</section>}
+      {status && (
+        <section className={`admin-panel overview-releases reliability-${reliability?.state.toLowerCase() ?? "nodata"}`}>
+          <header>
+            <div>
+              <p className="section-kicker">{deployText.title}</p>
+              <h2>Web + API</h2>
+            </div>
+            <span>{status.deployments.length}/4</span>
+          </header>
+          {reliability && reliability.sampleSize > 0 && (
+            <div className="release-slo" aria-label={deployText.title}>
+              <article><span>{reliabilityText.score}</span><strong>%{reliability.successRate}</strong><small>{reliability.sampleSize} {reliabilityText.sample}</small></article>
+              <article><span>{reliabilityText.median}</span><strong>{reliability.medianDurationSeconds}s</strong><small>p50</small></article>
+              <article><span>{reliabilityText.p95}</span><strong>{reliability.p95DurationSeconds}s</strong><small>p95</small></article>
+              <article><span>{reliabilityText.streak}</span><strong>{reliability.healthyStreak}</strong><small>{reliability.failed} {reliabilityText.failure}</small></article>
+            </div>
+          )}
+          {status.deployments.length === 0 ? (
+            <p className="muted">{deployText.empty}</p>
+          ) : (
+            <div className="release-grid">
+              {status.deployments.map((item) => (
+                <article
+                  className={
+                    item.status === "Succeeded"
+                      ? "release-safe"
+                      : item.status === "RolledBack"
+                        ? "release-recovered"
+                        : "release-risk"
+                  }
+                  key={`${item.environment}-${item.component}`}
+                >
+                  <header>
+                    <strong>
+                      {item.environment} · {item.component}
+                    </strong>
+                    <span>{deployStatus[item.status] ?? item.status}</span>
+                  </header>
+                  <p>
+                    <code>{item.commit || "—"}</code> · {item.durationSeconds}s
+                  </p>
+                  {item.message && <small>{item.message}</small>}
+                  <time dateTime={item.updatedAt}>
+                    {new Intl.DateTimeFormat(locale, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }).format(new Date(item.updatedAt))}
+                  </time>
+                </article>
+              ))}
+            </div>
+          )}
+          {deploymentHistory.length > 0 && (
+            <div className="release-history">
+              <header>
+                <div>
+                  <p className="section-kicker">{deployText.history}</p>
+                  <h3>{deployText.latest}</h3>
+                </div>
+                <dl>
+                  <div>
+                    <dt>{deployText.success}</dt>
+                    <dd>{successfulDeployments}</dd>
+                  </div>
+                  <div>
+                    <dt>{deployText.recovered}</dt>
+                    <dd>{recoveredDeployments}</dd>
+                  </div>
+                  <div className={riskyDeployments ? "history-risk" : ""}>
+                    <dt>{deployText.attention}</dt>
+                    <dd>{riskyDeployments}</dd>
+                  </div>
+                </dl>
+              </header>
+              <ol>
+                {deploymentHistory.map((item) => (
+                  <li key={item.deploymentId}>
+                    <span
+                      className={
+                        item.status === "Succeeded"
+                          ? "release-dot-safe"
+                          : item.status === "RolledBack"
+                            ? "release-dot-recovered"
+                            : "release-dot-risk"
+                      }
+                    />
+                    <strong>
+                      {item.environment} · {item.component}
+                    </strong>
+                    <code>{item.commit || "—"}</code>
+                    <span>{deployStatus[item.status] ?? item.status}</span>
+                    <time dateTime={item.updatedAt}>
+                      {new Intl.DateTimeFormat(locale, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }).format(new Date(item.updatedAt))}
+                    </time>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </section>
+      )}
       <section className="admin-panel overview-recent">
         <header>
           <div>

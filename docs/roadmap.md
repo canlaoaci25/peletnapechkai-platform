@@ -2,6 +2,12 @@
 
 ## Execution status
 
+Cycle 40 turns deployment evidence into an actionable Release Reliability Center: the
+admin home now calculates a bounded 50-release success SLO, automatic-recovery and failure
+debt, median/P95 deployment duration, and the current healthy streak from sanitized journal
+records. Risk states are localized and responsive. Alert delivery, authorized manual
+rollback, retention automation, and canary traffic remain later operational controls.
+
 Cycle 39 closes the unsafe gap between visual briefs and publication: Visual Renewal
 Studio now accepts an optimized candidate media asset with provider, licence, attribution,
 natural locale alt text, and explicit topic/text/crop/originality evidence; shows a responsive
