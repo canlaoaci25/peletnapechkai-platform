@@ -50,6 +50,20 @@ test("localization debt exposes durable source snapshots and field-level differe
   assert.match(model, /SHA256\.HashData/);
 });
 
+test("localization editors can compare source and target without mutating publication state", () => {
+  const manager = read("../components/admin/language-manager.tsx");
+  const comparison = read("../app/[locale]/admin/languages/work/[articleGroupId]/[targetLocaleId]/page.tsx");
+  const endpoint = read("../../../api/Endpoints/LocaleManagementEndpoints.cs");
+  const css = read("../app/globals.css");
+  assert.match(manager, /localization-compare-link/);
+  assert.match(comparison, /getLocalizationWorkDetail/);
+  assert.match(comparison, /This workspace does not change or publish content/);
+  assert.doesNotMatch(comparison, /dangerouslySetInnerHTML/);
+  assert.match(endpoint, /WorkDetailAsync/);
+  assert.match(endpoint, /Status != PublicationStatus\.Archived/);
+  assert.match(css, /@media\(max-width:800px\)\{\.localization-compare-grid\{grid-template-columns:1fr\}/);
+});
+
 test("localized tag archives expose reciprocal locale routes and parity debt", () => {
   const endpoint = read("../../../api/Endpoints/PublicContentEndpoints.cs");
   const manager = read("../components/admin/language-manager.tsx");

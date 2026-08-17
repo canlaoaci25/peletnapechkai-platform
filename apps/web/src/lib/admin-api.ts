@@ -53,11 +53,36 @@ export type ManagedUser = {
 };
 
 export type SupportingLibrary = {
-  categories: { id: string; locale: string; slug: string; name: string; parentCategoryId:string|null;parentName:string|null;childCount:number; articleCount:number; publishedCount:number }[];
+  categories: {
+    id: string;
+    locale: string;
+    slug: string;
+    name: string;
+    parentCategoryId: string | null;
+    parentName: string | null;
+    childCount: number;
+    articleCount: number;
+    publishedCount: number;
+  }[];
   tags: { id: string; locale: string; slug: string; name: string }[];
   authors: { id: string; slug: string; displayName: string }[];
-  sources: { id: string; name: string; url: string; kind:string; lastReviewedAt:string|null }[];
-  taxonomyHealth:{publishedCount:number;uncategorizedCount:number;uncategorized:{id:string;slug:string;title:string;publishedAt:string}[]};
+  sources: {
+    id: string;
+    name: string;
+    url: string;
+    kind: string;
+    lastReviewedAt: string | null;
+  }[];
+  taxonomyHealth: {
+    publishedCount: number;
+    uncategorizedCount: number;
+    uncategorized: {
+      id: string;
+      slug: string;
+      title: string;
+      publishedAt: string;
+    }[];
+  };
 };
 export type MediaItem = {
   id: string;
@@ -97,15 +122,66 @@ export type SystemStatus = {
   };
   deployments: DeploymentSnapshot[];
   deploymentHistory: DeploymentSnapshot[];
-  deploymentReliability: { sampleSize:number; successful:number; recovered:number; failed:number; successRate:number; medianDurationSeconds:number; p95DurationSeconds:number; healthyStreak:number; stalled:number; state:"NoData"|"AtRisk"|"Watch"|"Healthy" };
+  deploymentReliability: {
+    sampleSize: number;
+    successful: number;
+    recovered: number;
+    failed: number;
+    successRate: number;
+    medianDurationSeconds: number;
+    p95DurationSeconds: number;
+    healthyStreak: number;
+    stalled: number;
+    state: "NoData" | "AtRisk" | "Watch" | "Healthy";
+  };
 };
-export type DeploymentSnapshot = { deploymentId: string; environment: "Staging" | "Production"; component: "Web" | "Api"; status: string; commit: string; message: string; startedAt: string; updatedAt: string; durationSeconds: number };
+export type DeploymentSnapshot = {
+  deploymentId: string;
+  environment: "Staging" | "Production";
+  component: "Web" | "Api";
+  status: string;
+  commit: string;
+  message: string;
+  startedAt: string;
+  updatedAt: string;
+  durationSeconds: number;
+};
 export type EditorialCommandCenter = {
   checkedAt: string;
-  summary: { overdue: number; dueSoon: number; inReview: number; incompleteQuality: number; personalOpen: number; personalOverdue: number; personalDueSoon: number; unassigned:number; teamMembers:number };
-  workloads:{userId:string;displayName:string;open:number;overdue:number;dueSoon:number}[];
-  users:{id:string;displayName:string}[];
-  items: { articleId: string; title: string; locale: string; kind: string; dueAt: string; taskTitle: string | null; assignee: string | null; assigneeUserId:string|null; priority: string | null; taskId: string | null; status: string | null; isMine: boolean; missingGates:string[]|null }[];
+  summary: {
+    overdue: number;
+    dueSoon: number;
+    inReview: number;
+    incompleteQuality: number;
+    personalOpen: number;
+    personalOverdue: number;
+    personalDueSoon: number;
+    unassigned: number;
+    teamMembers: number;
+  };
+  workloads: {
+    userId: string;
+    displayName: string;
+    open: number;
+    overdue: number;
+    dueSoon: number;
+  }[];
+  users: { id: string; displayName: string }[];
+  items: {
+    articleId: string;
+    title: string;
+    locale: string;
+    kind: string;
+    dueAt: string;
+    taskTitle: string | null;
+    assignee: string | null;
+    assigneeUserId: string | null;
+    priority: string | null;
+    taskId: string | null;
+    status: string | null;
+    isMine: boolean;
+    missingGates: string[] | null;
+  }[];
 };
 export type KnowledgeLink = {
   id: string;
@@ -201,7 +277,55 @@ export type ManagedLocale = {
     isPrimary: boolean;
   }[];
 };
-export type LocalizationWork = { checkedAt:string; users:{id:string;displayName:string}[]; items:{articleGroupId:string;targetLocaleId:string;targetLocale:string;sourceTitle:string;translationTitle:string|null;kind:"Missing"|"Untracked"|"Stale"|"Review";sourceSnapshotAt:string|null;changedFields:("Title"|"Summary"|"Body"|"Seo"|"Untracked")[];sla:"Unassigned"|"Overdue"|"DueSoon"|"OnTrack";assignment:null|{assigneeUserId:string;assignee:string|null;dueAt:string;status:string}}[] };
+export type LocalizationWork = {
+  checkedAt: string;
+  users: { id: string; displayName: string }[];
+  items: {
+    articleGroupId: string;
+    targetLocaleId: string;
+    targetLocale: string;
+    sourceTitle: string;
+    translationTitle: string | null;
+    kind: "Missing" | "Untracked" | "Stale" | "Review";
+    sourceSnapshotAt: string | null;
+    changedFields: ("Title" | "Summary" | "Body" | "Seo" | "Untracked")[];
+    sla: "Unassigned" | "Overdue" | "DueSoon" | "OnTrack";
+    assignment: null | {
+      assigneeUserId: string;
+      assignee: string | null;
+      dueAt: string;
+      status: string;
+    };
+  }[];
+};
+export type LocalizationWorkDetail = {
+  articleGroupId: string;
+  targetLocaleId: string;
+  targetLocale: string;
+  source: {
+    id: string;
+    locale: string;
+    title: string;
+    summary: string;
+    body: string;
+    seoTitle: string | null;
+    seoDescription: string | null;
+    updatedAt: string;
+  };
+  translation: null | {
+    id: string;
+    locale: string;
+    title: string;
+    summary: string;
+    body: string;
+    seoTitle: string | null;
+    seoDescription: string | null;
+    status: string;
+    updatedAt: string;
+    sourceSnapshotUpdatedAt: string | null;
+  };
+  changedFields: ("Title" | "Summary" | "Body" | "Seo" | "Untracked" | "Missing")[];
+};
 export type LocaleCatalogItem = {
   code: string;
   displayName: string;
@@ -209,7 +333,22 @@ export type LocaleCatalogItem = {
   countryCode: string;
   countryName: string;
 };
-export type HomepageAdminData={mode:"Automatic"|"Hybrid";placements:{section:string;position:number;articleLocalizationId:string}[];articles:{id:string;title:string;type:string;publishedAt:string;views:number;score:number}[]};
+export type HomepageAdminData = {
+  mode: "Automatic" | "Hybrid";
+  placements: {
+    section: string;
+    position: number;
+    articleLocalizationId: string;
+  }[];
+  articles: {
+    id: string;
+    title: string;
+    type: string;
+    publishedAt: string;
+    views: number;
+    score: number;
+  }[];
+};
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
 
@@ -221,8 +360,7 @@ async function apiGet<T>(path: string): Promise<T | null> {
   });
 
   if (response.status === 401 || response.status === 403) return null;
-  if (!response.ok)
-    throw new Error(`Admin API request failed (${response.status}).`);
+  if (!response.ok) throw new Error(`Admin API request failed (${response.status}).`);
   return (await response.json()) as T;
 }
 
@@ -235,21 +373,13 @@ export async function getArticles() {
 }
 
 export function getArticle(id: string) {
-  return apiGet<ArticleDetail>(
-    `/api/v1/admin/articles/${encodeURIComponent(id)}`,
-  );
+  return apiGet<ArticleDetail>(`/api/v1/admin/articles/${encodeURIComponent(id)}`);
 }
 export async function getArticleRevisions(id: string) {
-  return (
-    (await apiGet<ArticleRevision[]>(
-      `/api/v1/admin/articles/${encodeURIComponent(id)}/revisions`,
-    )) ?? []
-  );
+  return (await apiGet<ArticleRevision[]>(`/api/v1/admin/articles/${encodeURIComponent(id)}/revisions`)) ?? [];
 }
 export function getArticleCollaboration(id: string) {
-  return apiGet<ArticleCollaboration>(
-    `/api/v1/admin/articles/${encodeURIComponent(id)}/collaboration/`,
-  );
+  return apiGet<ArticleCollaboration>(`/api/v1/admin/articles/${encodeURIComponent(id)}/collaboration/`);
 }
 
 export async function getUsers() {
@@ -263,7 +393,11 @@ export async function getSupportingLibrary() {
       tags: [],
       authors: [],
       sources: [],
-      taxonomyHealth:{publishedCount:0,uncategorizedCount:0,uncategorized:[]},
+      taxonomyHealth: {
+        publishedCount: 0,
+        uncategorizedCount: 0,
+        uncategorized: [],
+      },
     }
   );
 }
@@ -284,26 +418,179 @@ export async function getManagedLocales() {
   return (await apiGet<ManagedLocale[]>("/api/v1/admin/locales/")) ?? [];
 }
 export async function getLocaleCatalog() {
+  return (await apiGet<LocaleCatalogItem[]>("/api/v1/admin/locales/catalog")) ?? [];
+}
+export async function getLocalizationWork() {
   return (
-    (await apiGet<LocaleCatalogItem[]>("/api/v1/admin/locales/catalog")) ?? []
+    (await apiGet<LocalizationWork>("/api/v1/admin/locales/work")) ?? {
+      checkedAt: new Date().toISOString(),
+      users: [],
+      items: [],
+    }
   );
 }
-export async function getLocalizationWork(){return (await apiGet<LocalizationWork>("/api/v1/admin/locales/work"))??{checkedAt:new Date().toISOString(),users:[],items:[]}}
-export function getHomepageAdmin(locale:string){return apiGet<HomepageAdminData>(`/api/v1/admin/homepage/${encodeURIComponent(locale)}`)}
-type AuthorityRisk="missing_sources"|"single_source"|"single_domain"|"insecure_source"|"missing_seo"|"missing_cover"|"missing_category"|"missing_tags";
-export type TrafficDashboard={locale:string;checkedAt:string;published:number;totalViews:number;totalEngagedSeconds:number;averageEngagedSeconds:number;authority:{strong:number;needsWork:number;critical:number;averageScore:number;withoutSources:number;singleSource:number};sourceDomains:{domain:string;articles:number;citations:number}[];measurement:{internalAnalytics:boolean;ga4:boolean;clarity:boolean;searchConsole:boolean};searchConsole:null|{startDate:string;endDate:string;clicks:number;impressions:number;ctr:number;averagePosition:number;queries:{query:string;clicks:number;impressions:number;ctr:number;position:number}[]};top:{slug:string;title:string;views:number;engagedSeconds:number}[];opportunities:{id:string;slug:string;title:string;views:number;engagedSeconds:number;hasSeo:boolean;hasCover:boolean;tagCount:number;sourceCount:number;domainCount:number;authorityScore:number;risks:AuthorityRisk[]}[];clusters:{name:string;articles:number;views:number;engagedSeconds:number}[]};
-export function getTrafficDashboard(locale:string){return apiGet<TrafficDashboard>(`/api/v1/admin/traffic/${encodeURIComponent(locale)}`)}
-export type DevelopmentStatus={task:string;phase:string;status:string;steps:string[];currentStep:number;lastAction:string;commit:string;startedAt:string|null;updatedAt:string|null;machine:string};
-export async function getDevelopmentStatus(){return await apiGet<DevelopmentStatus>("/api/v1/admin/development/status")??{task:"Bekleyen Codex görevi yok",phase:"Hazır",status:"Paused",steps:[],currentStep:0,lastAction:"—",commit:"",startedAt:null,updatedAt:null,machine:"—"}}
-export type SavedArticle={slug:string;title:string;summary:string;type:string;locale:string;publishedAt:string;savedAt:string;cover:null|{url:string;altText:string}};
-export type MemberAccount={id:string;email:string;displayName:string;emailConfirmed:boolean;roles:string[];verificationAvailable:boolean;createdAt:string};
-export function getMemberAccount(){return apiGet<MemberAccount>("/api/v1/account/")}
-export async function getSavedArticles(locale:string){return await apiGet<SavedArticle[]>(`/api/v1/account/saved?locale=${encodeURIComponent(locale)}`)??[]}
-export type FollowedCategory={slug:string;title:string;description:string|null;locale:string;followedAt:string;articleCount:number};
-export type PersonalFeedArticle=SavedArticle&{categories:string[]};
-export async function getFollowedCategories(locale:string){return await apiGet<FollowedCategory[]>(`/api/v1/account/following?locale=${encodeURIComponent(locale)}`)??[]}
-export async function getPersonalFeed(locale:string){return await apiGet<PersonalFeedArticle[]>(`/api/v1/account/feed?locale=${encodeURIComponent(locale)}`)??[]}
-export type ReadingProgressArticle={slug:string;title:string;summary:string;locale:string;percent:number;anchor:string|null;lastReadAt:string;cover:null|{url:string;altText:string}};
-export async function getReadingProgress(locale:string){return await apiGet<ReadingProgressArticle[]>(`/api/v1/account/reading-progress?locale=${encodeURIComponent(locale)}`)??[]}
-export type ReadingRitual={goal:number;completed:number;activeDays:number;weekStartsAt:string;next:null|{slug:string;title:string;summary:string;cover:null|{url:string;altText:string}}};
-export async function getReadingRitual(locale:string){return await apiGet<ReadingRitual>(`/api/v1/account/reading-ritual?locale=${encodeURIComponent(locale)}`)}
+export function getLocalizationWorkDetail(articleGroupId: string, targetLocaleId: string) {
+  return apiGet<LocalizationWorkDetail>(`/api/v1/admin/locales/work/${encodeURIComponent(articleGroupId)}/${encodeURIComponent(targetLocaleId)}`);
+}
+export function getHomepageAdmin(locale: string) {
+  return apiGet<HomepageAdminData>(`/api/v1/admin/homepage/${encodeURIComponent(locale)}`);
+}
+type AuthorityRisk = "missing_sources" | "single_source" | "single_domain" | "insecure_source" | "missing_seo" | "missing_cover" | "missing_category" | "missing_tags";
+export type TrafficDashboard = {
+  locale: string;
+  checkedAt: string;
+  published: number;
+  totalViews: number;
+  totalEngagedSeconds: number;
+  averageEngagedSeconds: number;
+  authority: {
+    strong: number;
+    needsWork: number;
+    critical: number;
+    averageScore: number;
+    withoutSources: number;
+    singleSource: number;
+  };
+  sourceDomains: { domain: string; articles: number; citations: number }[];
+  measurement: {
+    internalAnalytics: boolean;
+    ga4: boolean;
+    clarity: boolean;
+    searchConsole: boolean;
+  };
+  searchConsole: null | {
+    startDate: string;
+    endDate: string;
+    clicks: number;
+    impressions: number;
+    ctr: number;
+    averagePosition: number;
+    queries: {
+      query: string;
+      clicks: number;
+      impressions: number;
+      ctr: number;
+      position: number;
+    }[];
+  };
+  top: { slug: string; title: string; views: number; engagedSeconds: number }[];
+  opportunities: {
+    id: string;
+    slug: string;
+    title: string;
+    views: number;
+    engagedSeconds: number;
+    hasSeo: boolean;
+    hasCover: boolean;
+    tagCount: number;
+    sourceCount: number;
+    domainCount: number;
+    authorityScore: number;
+    risks: AuthorityRisk[];
+  }[];
+  clusters: {
+    name: string;
+    articles: number;
+    views: number;
+    engagedSeconds: number;
+  }[];
+};
+export function getTrafficDashboard(locale: string) {
+  return apiGet<TrafficDashboard>(`/api/v1/admin/traffic/${encodeURIComponent(locale)}`);
+}
+export type DevelopmentStatus = {
+  task: string;
+  phase: string;
+  status: string;
+  steps: string[];
+  currentStep: number;
+  lastAction: string;
+  commit: string;
+  startedAt: string | null;
+  updatedAt: string | null;
+  machine: string;
+};
+export async function getDevelopmentStatus() {
+  return (
+    (await apiGet<DevelopmentStatus>("/api/v1/admin/development/status")) ?? {
+      task: "Bekleyen Codex görevi yok",
+      phase: "Hazır",
+      status: "Paused",
+      steps: [],
+      currentStep: 0,
+      lastAction: "—",
+      commit: "",
+      startedAt: null,
+      updatedAt: null,
+      machine: "—",
+    }
+  );
+}
+export type SavedArticle = {
+  slug: string;
+  title: string;
+  summary: string;
+  type: string;
+  locale: string;
+  publishedAt: string;
+  savedAt: string;
+  cover: null | { url: string; altText: string };
+};
+export type MemberAccount = {
+  id: string;
+  email: string;
+  displayName: string;
+  emailConfirmed: boolean;
+  roles: string[];
+  verificationAvailable: boolean;
+  createdAt: string;
+};
+export function getMemberAccount() {
+  return apiGet<MemberAccount>("/api/v1/account/");
+}
+export async function getSavedArticles(locale: string) {
+  return (await apiGet<SavedArticle[]>(`/api/v1/account/saved?locale=${encodeURIComponent(locale)}`)) ?? [];
+}
+export type FollowedCategory = {
+  slug: string;
+  title: string;
+  description: string | null;
+  locale: string;
+  followedAt: string;
+  articleCount: number;
+};
+export type PersonalFeedArticle = SavedArticle & { categories: string[] };
+export async function getFollowedCategories(locale: string) {
+  return (await apiGet<FollowedCategory[]>(`/api/v1/account/following?locale=${encodeURIComponent(locale)}`)) ?? [];
+}
+export async function getPersonalFeed(locale: string) {
+  return (await apiGet<PersonalFeedArticle[]>(`/api/v1/account/feed?locale=${encodeURIComponent(locale)}`)) ?? [];
+}
+export type ReadingProgressArticle = {
+  slug: string;
+  title: string;
+  summary: string;
+  locale: string;
+  percent: number;
+  anchor: string | null;
+  lastReadAt: string;
+  cover: null | { url: string; altText: string };
+};
+export async function getReadingProgress(locale: string) {
+  return (await apiGet<ReadingProgressArticle[]>(`/api/v1/account/reading-progress?locale=${encodeURIComponent(locale)}`)) ?? [];
+}
+export type ReadingRitual = {
+  goal: number;
+  completed: number;
+  activeDays: number;
+  weekStartsAt: string;
+  next: null | {
+    slug: string;
+    title: string;
+    summary: string;
+    cover: null | { url: string; altText: string };
+  };
+};
+export async function getReadingRitual(locale: string) {
+  return await apiGet<ReadingRitual>(`/api/v1/account/reading-ritual?locale=${encodeURIComponent(locale)}`);
+}

@@ -23,6 +23,7 @@ public static class LocaleManagementEndpoints
         group.MapPut("/{localeId:guid}", UpdateAsync).ValidateAntiforgery();
         group.MapPut("/{localeId:guid}/countries/{countryCode}", UpdateCountryAsync).ValidateAntiforgery();
         group.MapGet("/work", WorkAsync);
+        group.MapGet("/work/{articleGroupId:guid}/{targetLocaleId:guid}", WorkDetailAsync);
         group.MapPut("/work/{articleGroupId:guid}/{targetLocaleId:guid}", AssignWorkAsync).ValidateAntiforgery();
         return endpoints;
     }
@@ -55,6 +56,25 @@ public static class LocaleManagementEndpoints
             }
         }
         return Results.Ok(new { checkedAt = now, users, items = items.Take(80) });
+    }
+
+    private static async Task<IResult> WorkDetailAsync(Guid articleGroupId, Guid targetLocaleId, PublishingDbContext database, CancellationToken token)
+    {
+        var source = await database.ArticleLocalizations.AsNoTracking().Include(x => x.Locale)
+            .SingleOrDefaultAsync(x => x.ArticleGroupId == articleGroupId && x.Locale.IsDefault && x.Status == PublicationStatus.Published, token);
+        var target = await database.Locales.AsNoTracking().SingleOrDefaultAsync(x => x.Id == targetLocaleId && x.IsEnabled && !x.IsDefault, token);
+        if (source is null || target is null) return Results.NotFound();
+        var translation = await database.ArticleLocalizations.AsNoTracking().Include(x => x.Locale)
+            .SingleOrDefaultAsync(x => x.ArticleGroupId == articleGroupId && x.LocaleId == targetLocaleId && x.Status != PublicationStatus.Archived, token);
+        return Results.Ok(new
+        {
+            articleGroupId,
+            targetLocaleId,
+            targetLocale = target.Code,
+            source = new { source.Id, locale = source.Locale.Code, source.Title, source.Summary, source.Body, source.SeoTitle, source.SeoDescription, source.UpdatedAt },
+            translation = translation is null ? null : new { translation.Id, locale = translation.Locale.Code, translation.Title, translation.Summary, translation.Body, translation.SeoTitle, translation.SeoDescription, status = translation.Status.ToString(), translation.UpdatedAt, translation.SourceSnapshotUpdatedAt },
+            changedFields = translation?.ChangedSourceFields(source) ?? ["Missing"]
+        });
     }
 
     private static async Task<IResult> AssignWorkAsync(Guid articleGroupId, Guid targetLocaleId, AssignmentRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
