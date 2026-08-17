@@ -10,9 +10,18 @@ public sealed class EditorialCommandPriorityTests
     [InlineData("OverdueTask", "Urgent", "EditorialReview", null)]
     [InlineData("OverdueTask", "Normal", "Task", "Urgent")]
     [InlineData("EditorialReview", null, "SeoReview", null)]
+    [InlineData("SeoReview", null, "QualityGate", null)]
+    [InlineData("QualityGate", null, "Task", "Normal")]
     public void Higher_risk_work_is_ranked_first(string firstKind, string? firstPriority, string secondKind, string? secondPriority)
     {
         Assert.True(EditorialCommandPriority.Score(firstKind, firstPriority) > EditorialCommandPriority.Score(secondKind, secondPriority));
+    }
+
+    [Fact]
+    public void Quality_debt_reports_only_missing_gates_in_editorial_order()
+    {
+        Assert.Equal(["SourcesVerified", "SeoMetadata", "CoverAccessibility"],
+            EditorialQualityDebt.Missing(true, false, true, false, false, true, true, true));
     }
 
     [Fact]

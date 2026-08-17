@@ -49,6 +49,17 @@ public static class EditorialCommandCenterEndpoints
             .CountAsync(item => !item.TitleAndSummary || !item.SourcesVerified || !item.AuthorAndTaxonomy ||
                 !item.SeoMetadata || !item.CoverAccessibility || !item.CommercialDisclosure ||
                 !item.TranslationReviewed || !item.LegalEditorialReview, token);
+        var qualityItems = await database.ArticleQualityChecklists.AsNoTracking()
+            .Where(item => !item.TitleAndSummary || !item.SourcesVerified || !item.AuthorAndTaxonomy ||
+                !item.SeoMetadata || !item.CoverAccessibility || !item.CommercialDisclosure ||
+                !item.TranslationReviewed || !item.LegalEditorialReview)
+            .OrderBy(item => item.Article.UpdatedAt)
+            .Select(item => new EditorialCommandItem(item.ArticleLocalizationId, item.Article.Title, item.Article.Locale.Code,
+                "QualityGate", item.UpdatedAt ?? item.Article.UpdatedAt, null, null, null, null, null, null, false,
+                EditorialQualityDebt.Missing(item.TitleAndSummary, item.SourcesVerified, item.AuthorAndTaxonomy,
+                    item.SeoMetadata, item.CoverAccessibility, item.CommercialDisclosure,
+                    item.TranslationReviewed, item.LegalEditorialReview)))
+            .Take(24).ToListAsync(token);
         var activeUsers = await database.Users.AsNoTracking().Where(user => user.IsActive).OrderBy(user => user.DisplayName)
             .Select(user => new { user.Id, user.DisplayName }).ToListAsync(token);
         var workloadCounts = await openTasks.GroupBy(task => task.AssigneeUserId).Select(group => new {
@@ -60,7 +71,7 @@ public static class EditorialCommandCenterEndpoints
         }).OrderByDescending(item => item.Overdue).ThenByDescending(item => item.Open).ThenBy(item => item.DisplayName).ToArray();
         var activeIds = activeUsers.Select(user => user.Id).ToHashSet();
         var unassigned = workloadCounts.Where(item => !activeIds.Contains(item.UserId)).Sum(item => item.Open);
-        var items = taskItems.Concat(reviewItems).OrderByDescending(item => item.IsMine)
+        var items = taskItems.Concat(reviewItems).Concat(qualityItems).OrderByDescending(item => item.IsMine)
             .ThenByDescending(item => EditorialCommandPriority.Score(item.Kind, item.Priority))
             .ThenBy(item => item.DueAt).Take(60).ToArray();
         return Results.Ok(new { checkedAt = now, summary = new {
@@ -148,7 +159,8 @@ public static class EditorialCommandCenterEndpoints
 }
 
 public sealed record EditorialCommandItem(Guid ArticleId, string Title, string Locale, string Kind,
-    DateTimeOffset DueAt, string? TaskTitle, string? Assignee, Guid? AssigneeUserId, string? Priority, Guid? TaskId, string? Status, bool IsMine);
+    DateTimeOffset DueAt, string? TaskTitle, string? Assignee, Guid? AssigneeUserId, string? Priority, Guid? TaskId, string? Status, bool IsMine,
+    string[]? MissingGates = null);
 public sealed record EditorialWorkload(Guid UserId, string DisplayName, int Open, int Overdue, int DueSoon);
 public sealed record ReassignRequest(Guid AssigneeUserId);
 public sealed record BulkReassignRequest(Guid[] TaskIds, Guid AssigneeUserId);
@@ -185,5 +197,23 @@ public static class EditorialCommandPriority
     public static int Score(string kind, string? priority) => kind switch {
         "OverdueTask" when priority == "Urgent" => 500, "OverdueTask" => 400,
         "Task" when priority == "Urgent" => 300, "EditorialReview" => 220,
-        "SeoReview" => 210, "Task" => 100, _ => 0 };
+        "SeoReview" => 210, "QualityGate" => 200, "Task" => 100, _ => 0 };
+}
+
+public static class EditorialQualityDebt
+{
+    public static string[] Missing(bool titleAndSummary, bool sourcesVerified, bool authorAndTaxonomy,
+        bool seoMetadata, bool coverAccessibility, bool commercialDisclosure, bool translationReviewed, bool legalEditorialReview)
+    {
+        var gates = new List<string>(8);
+        if (!titleAndSummary) gates.Add("TitleAndSummary");
+        if (!sourcesVerified) gates.Add("SourcesVerified");
+        if (!authorAndTaxonomy) gates.Add("AuthorAndTaxonomy");
+        if (!seoMetadata) gates.Add("SeoMetadata");
+        if (!coverAccessibility) gates.Add("CoverAccessibility");
+        if (!commercialDisclosure) gates.Add("CommercialDisclosure");
+        if (!translationReviewed) gates.Add("TranslationReviewed");
+        if (!legalEditorialReview) gates.Add("LegalEditorialReview");
+        return [.. gates];
+    }
 }

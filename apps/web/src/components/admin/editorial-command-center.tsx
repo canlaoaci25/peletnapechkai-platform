@@ -16,6 +16,7 @@ const copy = {
     soon: "48 saatte",
     review: "İncelemede",
     quality: "Eksik kalite kapısı",
+    qualityFilter: "Kalite borcu", QualityGate: "Kalite kapısı", missing: "Eksik kontroller",
     openTasks: "Açık görevim",
     empty: "Bu görünüm temiz",
     emptyBody: "Seçili filtrede bekleyen iş bulunmuyor.",
@@ -47,6 +48,7 @@ const copy = {
     soon: "Due in 48h",
     review: "In review",
     quality: "Quality gates open",
+    qualityFilter: "Quality debt", QualityGate: "Quality gate", missing: "Missing checks",
     openTasks: "My open tasks",
     empty: "This view is clear",
     emptyBody: "There is no pending work in this filter.",
@@ -78,6 +80,7 @@ const copy = {
     soon: "In 48 Std.",
     review: "In Prüfung",
     quality: "Offene Qualitätsprüfungen",
+    qualityFilter: "Qualitätslücken", QualityGate: "Qualitätsprüfung", missing: "Fehlende Prüfungen",
     openTasks: "Meine offenen Aufgaben",
     empty: "Diese Ansicht ist leer",
     emptyBody: "Für diesen Filter gibt es keine offenen Arbeiten.",
@@ -109,6 +112,7 @@ const copy = {
     soon: "Sous 48 h",
     review: "En révision",
     quality: "Contrôles ouverts",
+    qualityFilter: "Dette qualité", QualityGate: "Contrôle qualité", missing: "Contrôles manquants",
     openTasks: "Mes tâches ouvertes",
     empty: "Cette vue est vide",
     emptyBody: "Aucun travail en attente pour ce filtre.",
@@ -130,7 +134,13 @@ const copy = {
   },
 } as const;
 type Scope = "mine" | "team";
-type Filter = "all" | "overdue" | "soon" | "review";
+type Filter = "all" | "overdue" | "soon" | "review" | "quality";
+const gateCopy={
+  "tr-TR":{TitleAndSummary:"Başlık ve özet",SourcesVerified:"Kaynak doğrulama",AuthorAndTaxonomy:"Yazar ve kategori",SeoMetadata:"SEO metadata",CoverAccessibility:"Kapak ve alt metin",CommercialDisclosure:"Ticari açıklama",TranslationReviewed:"Çeviri incelemesi",LegalEditorialReview:"Hukuk/editoryal inceleme"},
+  "en-US":{TitleAndSummary:"Title and summary",SourcesVerified:"Source verification",AuthorAndTaxonomy:"Author and taxonomy",SeoMetadata:"SEO metadata",CoverAccessibility:"Cover and alt text",CommercialDisclosure:"Commercial disclosure",TranslationReviewed:"Translation review",LegalEditorialReview:"Legal/editorial review"},
+  "de-DE":{TitleAndSummary:"Titel und Zusammenfassung",SourcesVerified:"Quellenprüfung",AuthorAndTaxonomy:"Autor und Taxonomie",SeoMetadata:"SEO-Metadaten",CoverAccessibility:"Titelbild und Alternativtext",CommercialDisclosure:"Werbekennzeichnung",TranslationReviewed:"Übersetzungsprüfung",LegalEditorialReview:"Rechtliche/redaktionelle Prüfung"},
+  "fr-FR":{TitleAndSummary:"Titre et résumé",SourcesVerified:"Vérification des sources",AuthorAndTaxonomy:"Auteur et taxonomie",SeoMetadata:"Métadonnées SEO",CoverAccessibility:"Image et texte alternatif",CommercialDisclosure:"Mention commerciale",TranslationReviewed:"Révision de traduction",LegalEditorialReview:"Révision juridique/éditoriale"},
+} as const;
 export function EditorialCommandCenterView({
   locale,
   data,
@@ -163,6 +173,7 @@ export function EditorialCommandCenterView({
           );
         if (filter === "review")
           return item.kind === "EditorialReview" || item.kind === "SeoReview";
+        if (filter === "quality") return item.kind === "QualityGate";
         return true;
       }),
     [data.checkedAt, data.items, filter, scope],
@@ -229,6 +240,7 @@ export function EditorialCommandCenterView({
       scope === "mine" ? data.summary.personalDueSoon : data.summary.dueSoon,
     ],
     ["review", c.review, scope === "mine" ? 0 : data.summary.inReview],
+    ["quality", c.qualityFilter, scope === "mine" ? 0 : data.summary.incompleteQuality],
   ];
   return (
     <section
@@ -330,6 +342,7 @@ export function EditorialCommandCenterView({
                 </span>
                 <h3>{item.taskTitle ?? item.title}</h3>
                 {item.taskTitle && <p>{item.title}</p>}
+                {item.kind==="QualityGate"&&item.missingGates&&<div className="quality-debt-gates" aria-label={c.missing}>{item.missingGates.map(gate=><span key={gate}>{gateCopy[locale as keyof typeof gateCopy]?.[gate as keyof typeof gateCopy["tr-TR"]]??gate}</span>)}</div>}
                 <small>
                   {item.locale}
                   {item.assignee ? ` · ${c.assigned}: ${item.assignee}` : ""}

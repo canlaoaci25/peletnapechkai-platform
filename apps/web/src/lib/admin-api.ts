@@ -105,7 +105,7 @@ export type EditorialCommandCenter = {
   summary: { overdue: number; dueSoon: number; inReview: number; incompleteQuality: number; personalOpen: number; personalOverdue: number; personalDueSoon: number; unassigned:number; teamMembers:number };
   workloads:{userId:string;displayName:string;open:number;overdue:number;dueSoon:number}[];
   users:{id:string;displayName:string}[];
-  items: { articleId: string; title: string; locale: string; kind: string; dueAt: string; taskTitle: string | null; assignee: string | null; assigneeUserId:string|null; priority: string | null; taskId: string | null; status: string | null; isMine: boolean }[];
+  items: { articleId: string; title: string; locale: string; kind: string; dueAt: string; taskTitle: string | null; assignee: string | null; assigneeUserId:string|null; priority: string | null; taskId: string | null; status: string | null; isMine: boolean; missingGates:string[]|null }[];
 };
 export type KnowledgeLink = {
   id: string;
