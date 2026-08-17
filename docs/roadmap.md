@@ -1,5 +1,14 @@
 # Delivery roadmap
 
+## Cycle 52 — Reversible editorial workload management
+
+The editorial control center now turns capacity insight into a safe management action: authorized
+editors can select up to 25 visible open tasks, preview every affected story and owner transition,
+and reassign the set atomically. Each transition is append-only audited under one batch identity;
+the initiating editor can undo it for ten minutes only while every task still matches the audited
+result, preventing partial or stale rollback. Measured completion-time p50/p95 trends, configurable
+capacity thresholds, and skill-aware assignment recommendations remain the next operations milestones.
+
 ## Cycle 51 — Member reading rhythm
 
 The account now turns completed reading into a user-controlled weekly return ritual: members

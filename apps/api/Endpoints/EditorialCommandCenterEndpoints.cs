@@ -16,6 +16,10 @@ public static class EditorialCommandCenterEndpoints
             .WithTags("Editorial").RequireAuthorization(AuthorizationPolicies.WriteContent);
         endpoints.MapPost("/api/v1/admin/editorial/tasks/{taskId:guid}/assignee", ReassignAsync)
             .WithTags("Editorial").RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
+        endpoints.MapPost("/api/v1/admin/editorial/tasks/bulk-assignee", BulkReassignAsync)
+            .WithTags("Editorial").RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
+        endpoints.MapPost("/api/v1/admin/editorial/tasks/bulk-assignee/undo", UndoBulkReassignAsync)
+            .WithTags("Editorial").RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         return endpoints;
     }
 
@@ -84,12 +88,97 @@ public static class EditorialCommandCenterEndpoints
         await database.SaveChangesAsync(token);
         return Results.Ok();
     }
+
+    private static async Task<IResult> BulkReassignAsync(BulkReassignRequest request,
+        System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
+    {
+        var actor = await users.GetUserAsync(principal);
+        if (actor is null) return Results.Unauthorized();
+        var taskIds = EditorialBulkAssignment.Normalize(request.TaskIds);
+        if (taskIds is null) return Results.ValidationProblem(new Dictionary<string, string[]> { ["taskIds"] = ["Select between 1 and 25 unique tasks."] });
+        var assignee = await database.Users.SingleOrDefaultAsync(user => user.Id == request.AssigneeUserId && user.IsActive, token);
+        if (assignee is null) return Results.ValidationProblem(new Dictionary<string, string[]> { ["assigneeUserId"] = ["An active assignee is required."] });
+        var tasks = await database.EditorialTasks.Where(item => taskIds.Contains(item.Id) && item.Status != EditorialTaskStatus.Completed).ToListAsync(token);
+        if (tasks.Count != taskIds.Length) return Results.Conflict(new { error = "One or more tasks are missing or no longer open. Refresh the queue." });
+        var now = DateTimeOffset.UtcNow;
+        var batchId = Guid.CreateVersion7();
+        var changed = 0;
+        await using var transaction = await database.Database.BeginTransactionAsync(token);
+        foreach (var task in tasks)
+        {
+            var previousAssigneeUserId = task.AssigneeUserId;
+            if (previousAssigneeUserId == assignee.Id) continue;
+            task.Reassign(assignee.Id, now);
+            database.AuditLogs.Add(new AuditLog(actor.Id, "editorial.task_bulk_reassigned", nameof(EditorialTask), task.Id,
+                System.Text.Json.JsonSerializer.Serialize(new { batchId, task.ArticleLocalizationId, previousAssigneeUserId, assigneeUserId = assignee.Id }), now));
+            changed++;
+        }
+        await database.SaveChangesAsync(token);
+        await transaction.CommitAsync(token);
+        return Results.Ok(new { batchId = changed > 0 ? batchId : (Guid?)null, changed, assignee = assignee.DisplayName, undoUntil = changed > 0 ? now.AddMinutes(10) : (DateTimeOffset?)null });
+    }
+
+    private static async Task<IResult> UndoBulkReassignAsync(UndoBulkReassignRequest request,
+        System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
+    {
+        var actor = await users.GetUserAsync(principal);
+        if (actor is null) return Results.Unauthorized();
+        var now = DateTimeOffset.UtcNow;
+        var recent = await database.AuditLogs.AsNoTracking()
+            .Where(log => log.ActorUserId == actor.Id && log.Action == "editorial.task_bulk_reassigned" && log.OccurredAt >= now.AddMinutes(-10))
+            .OrderByDescending(log => log.OccurredAt).Take(100).ToListAsync(token);
+        var assignments = recent.Select(EditorialBulkAssignment.Read).Where(item => item is not null && item.BatchId == request.BatchId).Cast<BulkAssignmentAudit>().ToArray();
+        if (assignments.Length == 0) return Results.Conflict(new { error = "This reassignment can no longer be undone." });
+        var taskIds = assignments.Select(item => item.TaskId).ToArray();
+        var tasks = await database.EditorialTasks.Where(task => taskIds.Contains(task.Id)).ToDictionaryAsync(task => task.Id, token);
+        if (assignments.Any(item => !tasks.TryGetValue(item.TaskId, out var task) || task.AssigneeUserId != item.AssigneeUserId))
+            return Results.Conflict(new { error = "A selected task changed after this reassignment. Nothing was undone." });
+        await using var transaction = await database.Database.BeginTransactionAsync(token);
+        foreach (var assignment in assignments)
+        {
+            var task = tasks[assignment.TaskId];
+            task.Reassign(assignment.PreviousAssigneeUserId, now);
+            database.AuditLogs.Add(new AuditLog(actor.Id, "editorial.task_bulk_reassignment_undone", nameof(EditorialTask), task.Id,
+                System.Text.Json.JsonSerializer.Serialize(new { request.BatchId, assignment.AssigneeUserId, restoredAssigneeUserId = assignment.PreviousAssigneeUserId }), now));
+        }
+        await database.SaveChangesAsync(token);
+        await transaction.CommitAsync(token);
+        return Results.Ok(new { restored = assignments.Length });
+    }
 }
 
 public sealed record EditorialCommandItem(Guid ArticleId, string Title, string Locale, string Kind,
     DateTimeOffset DueAt, string? TaskTitle, string? Assignee, Guid? AssigneeUserId, string? Priority, Guid? TaskId, string? Status, bool IsMine);
 public sealed record EditorialWorkload(Guid UserId, string DisplayName, int Open, int Overdue, int DueSoon);
 public sealed record ReassignRequest(Guid AssigneeUserId);
+public sealed record BulkReassignRequest(Guid[] TaskIds, Guid AssigneeUserId);
+public sealed record UndoBulkReassignRequest(Guid BatchId);
+public sealed record BulkAssignmentAudit(Guid BatchId, Guid TaskId, Guid PreviousAssigneeUserId, Guid AssigneeUserId);
+
+public static class EditorialBulkAssignment
+{
+    public static Guid[]? Normalize(Guid[]? taskIds)
+    {
+        if (taskIds is null) return null;
+        var normalized = taskIds.Where(id => id != Guid.Empty).Distinct().ToArray();
+        return normalized.Length is >= 1 and <= 25 && normalized.Length == taskIds.Length ? normalized : null;
+    }
+
+    public static BulkAssignmentAudit? Read(AuditLog log)
+    {
+        if (string.IsNullOrWhiteSpace(log.DetailsJson)) return null;
+        try
+        {
+            using var json = System.Text.Json.JsonDocument.Parse(log.DetailsJson);
+            var root = json.RootElement;
+            return new(root.GetProperty("batchId").GetGuid(), log.EntityId,
+                root.GetProperty("previousAssigneeUserId").GetGuid(), root.GetProperty("assigneeUserId").GetGuid());
+        }
+        catch (System.Text.Json.JsonException) { return null; }
+        catch (KeyNotFoundException) { return null; }
+        catch (InvalidOperationException) { return null; }
+    }
+}
 
 public static class EditorialCommandPriority
 {

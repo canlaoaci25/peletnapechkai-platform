@@ -33,6 +33,7 @@ const copy = {
     updateError: "Görev durumu güncellenemedi.",
     priority: "Öncelik",
     capacity: "Ekip kapasitesi", capacityIntro: "Açık iş ve SLA riskini kişi bazında görün; yoğunluğu gecikme oluşmadan dengeleyin.", noOwner: "Sahipsiz iş", teamMembers: "Aktif ekip", reassign: "Sorumluyu değiştir", reassignError: "Görev yeniden atanamadı.", openShort: "açık", overdueShort: "gecikmiş", soonShort: "yaklaşan",
+    bulkTitle:"Toplu iş yönetimi",bulkIntro:"Görevleri seçin, etkiyi görün ve tek işlemle güvenle yeniden dağıtın.",selected:"seçili görev",selectTask:"Görevi seç",selectVisible:"Görünen görevleri seç",target:"Yeni sorumlu",preview:"Değişiklikleri önizle",confirm:"Görevleri yeniden ata",cancel:"Vazgeç",undo:"Geri al",bulkSuccess:"görev yeniden atandı",undoSuccess:"Toplu atama geri alındı.",previewTitle:"İşlem önizlemesi",previewBody:"Aşağıdaki açık görevlerin sorumlusu değişecek. İçerik, durum ve teslim tarihi korunur.",bulkError:"Toplu atama tamamlanamadı; kuyruğu yenileyip tekrar deneyin.",undoError:"Atama geri alınamadı; görevlerden biri daha sonra değişmiş olabilir.",
   },
   "en-US": {
     kicker: "DAILY EDITORIAL WORKSPACE",
@@ -63,6 +64,7 @@ const copy = {
     updateError: "Task status could not be updated.",
     priority: "Priority",
     capacity: "Team capacity", capacityIntro: "See open work and SLA risk by person; rebalance before delays grow.", noOwner: "Unowned work", teamMembers: "Active team", reassign: "Change owner", reassignError: "Task could not be reassigned.", openShort: "open", overdueShort: "overdue", soonShort: "due soon",
+    bulkTitle:"Bulk work management",bulkIntro:"Select tasks, review the impact, and rebalance them safely in one action.",selected:"tasks selected",selectTask:"Select task",selectVisible:"Select visible tasks",target:"New owner",preview:"Preview changes",confirm:"Reassign tasks",cancel:"Cancel",undo:"Undo",bulkSuccess:"tasks reassigned",undoSuccess:"Bulk assignment was undone.",previewTitle:"Change preview",previewBody:"The owner of these open tasks will change. Content, status, and due dates stay intact.",bulkError:"Bulk assignment failed; refresh the queue and try again.",undoError:"Assignment could not be undone; a task may have changed afterwards.",
   },
   "de-DE": {
     kicker: "TÄGLICHER REDAKTIONSARBEITSPLATZ",
@@ -93,6 +95,7 @@ const copy = {
     updateError: "Aufgabenstatus konnte nicht aktualisiert werden.",
     priority: "Priorität",
     capacity: "Teamkapazität", capacityIntro: "Offene Arbeit und SLA-Risiken pro Person erkennen und rechtzeitig ausgleichen.", noOwner: "Nicht zugeordnet", teamMembers: "Aktives Team", reassign: "Verantwortung ändern", reassignError: "Aufgabe konnte nicht neu zugewiesen werden.", openShort: "offen", overdueShort: "überfällig", soonShort: "bald fällig",
+    bulkTitle:"Mehrere Aufgaben verwalten",bulkIntro:"Aufgaben auswählen, Auswirkung prüfen und sicher gemeinsam neu verteilen.",selected:"Aufgaben ausgewählt",selectTask:"Aufgabe auswählen",selectVisible:"Sichtbare Aufgaben auswählen",target:"Neue verantwortliche Person",preview:"Änderungen prüfen",confirm:"Aufgaben neu zuweisen",cancel:"Abbrechen",undo:"Rückgängig",bulkSuccess:"Aufgaben neu zugewiesen",undoSuccess:"Die Sammelzuweisung wurde rückgängig gemacht.",previewTitle:"Änderungsvorschau",previewBody:"Verantwortung ändert sich; Inhalt, Status und Frist bleiben erhalten.",bulkError:"Die Sammelzuweisung ist fehlgeschlagen. Bitte Liste aktualisieren.",undoError:"Die Zuweisung konnte nicht rückgängig gemacht werden.",
   },
   "fr-FR": {
     kicker: "ESPACE ÉDITORIAL QUOTIDIEN",
@@ -123,6 +126,7 @@ const copy = {
     updateError: "Le statut n’a pas pu être mis à jour.",
     priority: "Priorité",
     capacity: "Capacité de l’équipe", capacityIntro: "Visualisez la charge et le risque SLA par personne, puis rééquilibrez avant les retards.", noOwner: "Sans responsable", teamMembers: "Équipe active", reassign: "Changer le responsable", reassignError: "La tâche n’a pas pu être réattribuée.", openShort: "ouvertes", overdueShort: "en retard", soonShort: "bientôt dues",
+    bulkTitle:"Gestion groupée",bulkIntro:"Sélectionnez des tâches, vérifiez l’impact et redistribuez-les en une action sûre.",selected:"tâches sélectionnées",selectTask:"Sélectionner la tâche",selectVisible:"Sélectionner les tâches visibles",target:"Nouveau responsable",preview:"Prévisualiser",confirm:"Réattribuer les tâches",cancel:"Annuler",undo:"Annuler l’attribution",bulkSuccess:"tâches réattribuées",undoSuccess:"L’attribution groupée a été annulée.",previewTitle:"Aperçu des changements",previewBody:"Le responsable change; le contenu, le statut et l’échéance restent inchangés.",bulkError:"L’attribution groupée a échoué. Actualisez la file.",undoError:"Impossible d’annuler l’attribution.",
   },
 } as const;
 type Scope = "mine" | "team";
@@ -141,7 +145,11 @@ export function EditorialCommandCenterView({
     [scope, setScope] = useState<Scope>("mine"),
     [filter, setFilter] = useState<Filter>("all"),
     [busy, setBusy] = useState<string | null>(null),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [selected,setSelected]=useState<Set<string>>(new Set()),
+    [bulkOwner,setBulkOwner]=useState(""),
+    [preview,setPreview]=useState(false),
+    [notice,setNotice]=useState<{text:string;batchId?:string}|null>(null);
   const items = useMemo(
     () =>
       data.items.filter((item) => {
@@ -195,6 +203,15 @@ export function EditorialCommandCenterView({
       if(!response.ok)throw new Error();router.refresh();
     }catch{setError(c.reassignError)}finally{setBusy(null)}
   }
+  function toggle(taskId:string){setSelected(current=>{const next=new Set(current);if(next.has(taskId))next.delete(taskId);else if(next.size<25)next.add(taskId);return next})}
+  async function bulkReassign(){if(!bulkOwner||selected.size===0)return;setBusy("bulk");setError("");
+    try{const csrf=await fetch("/api/admin/auth/csrf",{cache:"no-store"}),{token}=await csrf.json() as {token:string};
+      const response=await fetch("/api/admin/editorial/tasks/bulk-assignee",{method:"POST",headers:{"content-type":"application/json","x-csrf-token":token},body:JSON.stringify({taskIds:[...selected],assigneeUserId:bulkOwner})});
+      if(!response.ok)throw new Error();const result=await response.json() as {batchId:string|null;changed:number};setNotice({text:`${result.changed} ${c.bulkSuccess}`,...(result.batchId?{batchId:result.batchId}:{})});setSelected(new Set());setPreview(false);router.refresh();
+    }catch{setError(c.bulkError)}finally{setBusy(null)}}
+  async function undo(batchId:string){setBusy("undo");setError("");try{const csrf=await fetch("/api/admin/auth/csrf",{cache:"no-store"}),{token}=await csrf.json() as {token:string};
+    const response=await fetch("/api/admin/editorial/tasks/bulk-assignee/undo",{method:"POST",headers:{"content-type":"application/json","x-csrf-token":token},body:JSON.stringify({batchId})});if(!response.ok)throw new Error();setNotice({text:c.undoSuccess});router.refresh();
+  }catch{setError(c.undoError)}finally{setBusy(null)}}
   const filters: [Filter, string, number][] = [
     [
       "all",
@@ -283,11 +300,14 @@ export function EditorialCommandCenterView({
           </button>
         ))}
       </nav>
+      {canReassign&&scope==="team"&&<section className="bulk-assignment" aria-labelledby="bulk-assignment-title"><header><div><h3 id="bulk-assignment-title">{c.bulkTitle}</h3><p>{c.bulkIntro}</p></div><strong>{selected.size} {c.selected}</strong></header><div className="bulk-controls"><label className="bulk-select-all"><input type="checkbox" checked={items.filter(item=>item.taskId).length>0&&items.filter(item=>item.taskId).every(item=>selected.has(item.taskId!))} onChange={event=>setSelected(event.target.checked?new Set(items.flatMap(item=>item.taskId?[item.taskId]:[]).slice(0,25)):new Set())}/><span>{c.selectVisible}</span></label><label><span>{c.target}</span><select value={bulkOwner} onChange={event=>setBulkOwner(event.target.value)}><option value="">—</option>{data.users.map(user=><option key={user.id} value={user.id}>{user.displayName}</option>)}</select></label><button type="button" disabled={!bulkOwner||selected.size===0} onClick={()=>setPreview(true)}>{c.preview}</button></div></section>}
       {error && (
         <p className="desk-error" role="alert">
           {error}
         </p>
       )}
+      {notice&&<div className="bulk-notice" role="status"><strong>{notice.text}</strong>{notice.batchId&&<button type="button" disabled={busy==="undo"} onClick={()=>void undo(notice.batchId!)}>{c.undo}</button>}</div>}
+      {preview&&<div className="bulk-preview" role="dialog" aria-modal="true" aria-labelledby="bulk-preview-title"><div><h3 id="bulk-preview-title">{c.previewTitle}</h3><p>{c.previewBody}</p><ul>{items.filter(item=>item.taskId&&selected.has(item.taskId)).map(item=><li key={item.taskId}><strong>{item.taskTitle}</strong><span>{item.title} · {item.assignee} → {data.users.find(user=>user.id===bulkOwner)?.displayName}</span></li>)}</ul><footer><button type="button" className="secondary-button" onClick={()=>setPreview(false)}>{c.cancel}</button><button type="button" disabled={busy==="bulk"} onClick={()=>void bulkReassign()}>{c.confirm}</button></footer></div></div>}
       {items.length === 0 ? (
         <div className="command-empty">
           <strong>{c.empty}</strong>
@@ -300,6 +320,7 @@ export function EditorialCommandCenterView({
               key={`${item.taskId ?? item.articleId}-${item.kind}`}
               data-kind={item.kind}
             >
+              {canReassign&&scope==="team"&&item.taskId&&<label className="task-selector"><input type="checkbox" checked={selected.has(item.taskId)} onChange={()=>toggle(item.taskId!)} aria-label={`${c.selectTask}: ${item.taskTitle??item.title}`}/></label>}
               <div className="command-rank">
                 {String(index + 1).padStart(2, "0")}
               </div>
