@@ -5,7 +5,7 @@
     { "id": "browser-push", "title": "Tarayıcı ve telefon push bildirimleri", "outcome": "İzin veren üyeye yeni Türkçe içerik ve doğrulanmış site güncellemelerini Web Push ile gönder; konu tercihleri, sessiz saatler ve abonelikten çıkma ekle.", "status": "queued" },
     { "id": "visual-service", "title": "Bağımsız görsel üretim servisi", "outcome": "Makale bağlamından yazısız, konuya uygun kapak ve gövde görselleri üret; kalite kapıları ve sağlayıcı yedeği ekle.", "status": "active" },
     { "id": "visual-backfill", "title": "Mevcut yayınların görsel yenilemesi", "outcome": "Eksik veya alakasız yayın görsellerini checkpoint ve geri dönüş korumasıyla yeniden üret.", "status": "queued" },
-    { "id": "home-discovery", "title": "Ana sayfa keşif mimarisi", "outcome": "Manşet, güncel akış, editör seçkisi, kategori şeritleri ve evergreen merkezlerini dinamik verilerle zenginleştir.", "status": "queued" },
+    { "id": "home-discovery", "title": "Ana sayfa keşif mimarisi", "outcome": "Manşet, güncel akış, editör seçkisi, kategori şeritleri ve evergreen merkezlerini dinamik verilerle zenginleştir.", "status": "completed" },
     { "id": "taxonomy-growth", "title": "Kategori ve konu genişlemesi", "outcome": "Arşiv ve arama niyeti boşluklarından yeni Türkçe kategori, etiket ve seri fırsatlarını belirleyip yerelleştir.", "status": "queued" },
     { "id": "membership-retention", "title": "Üyelik ve geri dönüş deneyimi", "outcome": "Kaydetme, takip, kişisel akış ve bildirim tercihleriyle ziyaretçinin geri dönmesini sağlayan akışları tamamla.", "status": "queued" },
     { "id": "search-recommendation", "title": "Arama ve öneri kalitesi", "outcome": "Yazım toleransı, ilgili içerik, konu kümeleri ve boş sonuç kurtarmasıyla keşfi geliştir.", "status": "queued" },
