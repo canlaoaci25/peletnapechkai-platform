@@ -1,5 +1,12 @@
 # Delivery roadmap
 
+## Cycle 43 — Member reading hub
+
+The member account now unifies continue, personal-feed, saved-story, and followed-topic
+counts as direct navigation. Signed-in readers can search saved stories with locale-aware
+matching and filter by real story format. Verified digest delivery, privacy self-service,
+and consented return-funnel measurement remain the next membership milestones.
+
 ## Execution status
 
 Cycle 42 transforms the public topic directory into an editorial discovery desk: readers

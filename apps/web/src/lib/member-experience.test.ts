@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { memberCopy } from "../i18n/member-copy.ts";
+import { memberCopy, memberHubCopy } from "../i18n/member-copy.ts";
 
 test("member reading-list copy covers every supported locale", () => {
   assert.deepEqual(Object.keys(memberCopy).sort(), ["de-DE", "en-US", "fr-FR", "tr-TR"]);
@@ -11,6 +11,20 @@ test("member reading-list copy covers every supported locale", () => {
     assert.ok(copy.signInToSave.length > 0);
     assert.ok(copy.savedEmpty.length > 0);
   }
+});
+
+test("member hub provides locale-complete navigation and library discovery", () => {
+  assert.deepEqual(Object.keys(memberHubCopy).sort(), ["de-DE", "en-US", "fr-FR", "tr-TR"]);
+  for (const copy of Object.values(memberHubCopy)) {
+    assert.ok(copy.title.length > 3);
+    assert.ok(copy.searchPlaceholder.length > 8);
+    assert.ok(copy.noResults.length > 8);
+  }
+  const account = readFileSync(fileURLToPath(new URL("../components/account-dashboard.tsx", import.meta.url)), "utf8");
+  assert.match(account, /className="member-hub-nav"/);
+  assert.match(account, /type="search"/);
+  assert.match(account, /toLocaleLowerCase\(locale\)/);
+  assert.match(account, /aria-live="polite"/);
 });
 
 test("article save control is a csrf-protected accessible toggle", () => {
