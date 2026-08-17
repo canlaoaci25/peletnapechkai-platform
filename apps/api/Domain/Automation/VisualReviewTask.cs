@@ -8,7 +8,7 @@ public sealed class VisualReviewTask
 
     public VisualReviewTask(Guid articleLocalizationId, Guid? currentMediaAssetId, int qualityScore,
         string risks, string sectionContext, string visualPurpose, string proposedPrompt,
-        string negativePrompt, string idempotencyKey, DateTimeOffset now)
+        string negativePrompt, string idempotencyKey, DateTimeOffset now, Guid? automationJobId = null)
     {
         if (articleLocalizationId == Guid.Empty) throw new ArgumentOutOfRangeException(nameof(articleLocalizationId));
         ArgumentException.ThrowIfNullOrWhiteSpace(risks);
@@ -20,11 +20,12 @@ public sealed class VisualReviewTask
         Id = Guid.CreateVersion7(); ArticleLocalizationId = articleLocalizationId; CurrentMediaAssetId = currentMediaAssetId;
         QualityScore = Math.Clamp(qualityScore, 0, 100); Risks = risks; SectionContext = sectionContext.Trim();
         VisualPurpose = visualPurpose.Trim(); ProposedPrompt = proposedPrompt.Trim(); NegativePrompt = negativePrompt.Trim();
-        IdempotencyKey = idempotencyKey.Trim(); Status = VisualReviewStatus.Pending; CreatedAt = now; UpdatedAt = now;
+        IdempotencyKey = idempotencyKey.Trim(); AutomationJobId = automationJobId; Status = VisualReviewStatus.Pending; CreatedAt = now; UpdatedAt = now;
     }
 
     public Guid Id { get; private set; }
     public Guid ArticleLocalizationId { get; private set; }
+    public Guid? AutomationJobId { get; private set; }
     public Guid? CurrentMediaAssetId { get; private set; }
     public Guid? CandidateMediaAssetId { get; private set; }
     public int QualityScore { get; private set; }

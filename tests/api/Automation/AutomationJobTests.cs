@@ -5,6 +5,22 @@ namespace Peletnapechkai.Api.Tests.Automation;
 public sealed class AutomationJobTests
 {
     [Fact]
+    public void Visual_renewal_batch_can_pause_and_resume_without_losing_checkpoint()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var job = new AutomationJob(AutomationJobType.VisualRenewal, ["tr-TR", "en-US"], 12, Guid.CreateVersion7(), now);
+        job.Start(1, now.AddSeconds(1));
+        job.ReportProgress(5, 1, 2, "Six visuals reviewed.", now.AddSeconds(2));
+        job.Pause(now.AddSeconds(3));
+        job.Resume(now.AddSeconds(4));
+
+        Assert.Equal(AutomationJobStatus.Queued, job.Status);
+        Assert.Equal(5, job.CompletedItems);
+        Assert.Equal(1, job.FailedItems);
+        Assert.Equal(2, job.CurrentPhase);
+    }
+
+    [Fact]
     public void Ready_content_job_can_be_marked_as_automatically_scheduled()
     {
         var job = new AutomationJob(AutomationJobType.ReadyContentGeneration, ["de-DE"], 1, Guid.CreateVersion7(), DateTimeOffset.UtcNow);

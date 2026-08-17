@@ -24,6 +24,7 @@ public static class AutomationEndpoints
         group.MapGet("/scan", ScanAsync);
         group.MapGet("/visual-quality", VisualQualityAsync);
         group.MapPost("/visual-quality/queue", QueueVisualReviewsAsync).ValidateAntiforgery();
+        group.MapPost("/visual-quality/batch/{jobId:guid}/{action}", ChangeVisualBatchAsync).ValidateAntiforgery();
         group.MapPost("/visual-quality/{taskId:guid}/{action}", ChangeVisualReviewAsync).ValidateAntiforgery();
         group.MapPost("/", CreateAsync).ValidateAntiforgery();
         group.MapPost("/ready-content", CreateReadyContentAsync).ValidateAntiforgery();
@@ -48,6 +49,11 @@ public static class AutomationEndpoints
                 categories = article.Categories.Select(category => category.Name).ToArray()
             }).ToListAsync(token);
         var taskRows = await database.VisualReviewTasks.AsNoTracking().ToListAsync(token);
+        var activeBatch = await database.AutomationJobs.AsNoTracking()
+            .Where(job => job.Type == AutomationJobType.VisualRenewal && job.Status != AutomationJobStatus.Cancelled)
+            .OrderByDescending(job => job.CreatedAt)
+            .Select(job => new { job.Id, status = job.Status.ToString(), job.TotalItems, job.CompletedItems, job.FailedItems,
+                job.CurrentPhase, job.LastMessage, job.UpdatedAt }).FirstOrDefaultAsync(token);
         var tasks = taskRows.GroupBy(task => task.ArticleLocalizationId).ToDictionary(group => group.Key, group => group.OrderByDescending(task => task.CreatedAt).First());
         var items = rows.Select(row =>
         {
@@ -67,12 +73,25 @@ public static class AutomationEndpoints
             needsReview = items.Count(item => item.risks.Length > 0), missingCover = items.Count(item => item.risks.Contains("missing-cover")),
             textRisk = items.Count(item => item.risks.Contains("text-risk")), averageScore = items.Length == 0 ? 0 : Math.Round(items.Average(item => item.score), 1),
             queued = taskRows.Count(task => task.Status is VisualReviewStatus.Pending or VisualReviewStatus.InReview or VisualReviewStatus.RetryRequested),
-            approved = taskRows.Count(task => task.Status == VisualReviewStatus.Approved), items
+            approved = taskRows.Count(task => task.Status == VisualReviewStatus.Approved),
+            rejected = taskRows.Count(task => task.Status == VisualReviewStatus.Rejected),
+            batch = activeBatch == null ? null : new { activeBatch.Id, activeBatch.status, activeBatch.TotalItems,
+                processed = taskRows.Count(task => task.AutomationJobId == activeBatch.Id && task.Status is VisualReviewStatus.Approved or VisualReviewStatus.Rejected),
+                remaining = taskRows.Count(task => task.AutomationJobId == activeBatch.Id && task.Status is VisualReviewStatus.Pending or VisualReviewStatus.InReview or VisualReviewStatus.RetryRequested),
+                successful = taskRows.Count(task => task.AutomationJobId == activeBatch.Id && task.Status == VisualReviewStatus.Approved),
+                rejected = taskRows.Count(task => task.AutomationJobId == activeBatch.Id && task.Status == VisualReviewStatus.Rejected),
+                activeArticle = items.FirstOrDefault(item => item.visualTask != null && taskRows.Any(task => task.Id == item.visualTask.Id && task.AutomationJobId == activeBatch.Id && task.Status is VisualReviewStatus.Pending or VisualReviewStatus.InReview or VisualReviewStatus.RetryRequested))?.Title,
+                activeBatch.CurrentPhase, activeBatch.LastMessage, activeBatch.UpdatedAt }, items
         });
     }
 
-    private static async Task<IResult> QueueVisualReviewsAsync(PublishingDbContext database, CancellationToken token)
+    private static async Task<IResult> QueueVisualReviewsAsync(System.Security.Claims.ClaimsPrincipal principal,
+        UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
     {
+        var actor = await users.GetUserAsync(principal); if (actor is null) return Results.Unauthorized();
+        var existingBatch = await database.AutomationJobs.AnyAsync(job => job.Type == AutomationJobType.VisualRenewal &&
+            job.Status != AutomationJobStatus.Completed && job.Status != AutomationJobStatus.Cancelled && job.Status != AutomationJobStatus.Failed, token);
+        if (existingBatch) return Results.Conflict(new { message = "An active visual renewal batch already exists." });
         var rows = await database.ArticleLocalizations
             .Where(article => article.Status == PublicationStatus.Published)
             .Select(article => new { article.Id, article.Title, article.Summary, article.Body, locale = article.Locale.Code,
@@ -82,19 +101,52 @@ public static class AutomationEndpoints
                 optimizedBytes = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.OptimizedByteLength,
                 categories = article.Categories.Select(category => category.Name).ToArray() }).ToListAsync(token);
         var keys = await database.VisualReviewTasks.Select(task => task.IdempotencyKey).ToHashSetAsync(token);
+        var assessments = rows.Select(row => new { row, quality = ArticleVisualQualityPolicy.Assess(new(row.Title, row.Summary, row.Body, row.CoverAltText, row.CoverCredit, row.width, row.height, row.optimizedBytes, row.coverId is not null)) })
+            .Where(item => item.quality.Score < 80 || item.quality.Risks.Length > 0).ToArray();
+        var candidates = assessments.Select(item => new { item.row, item.quality,
+            key = $"cover:{item.row.Id}:{string.Join('-', item.quality.Risks.Order())}" })
+            .Where(item => !keys.Contains(item.key)).ToArray();
+        if (candidates.Length == 0) return Results.Ok(new { id = (Guid?)null, created = 0, skipped = rows.Count, total = 0 });
         var now = DateTimeOffset.UtcNow; var created = 0;
-        foreach (var row in rows)
+        var batch = new AutomationJob(AutomationJobType.VisualRenewal, candidates.Select(item => item.row.locale), candidates.Length, actor.Id, now);
+        database.AutomationJobs.Add(batch);
+        foreach (var item in candidates)
         {
-            var quality = ArticleVisualQualityPolicy.Assess(new(row.Title, row.Summary, row.Body, row.CoverAltText, row.CoverCredit, row.width, row.height, row.optimizedBytes, row.coverId is not null));
-            if (quality.Score >= 80 && quality.Risks.Length == 0) continue;
-            var key = $"cover:{row.Id}:{string.Join('-', quality.Risks.Order())}";
-            if (!keys.Add(key)) continue;
+            var row = item.row; var quality = item.quality;
             var brief = VisualBriefBuilder.Build(row.Title, row.Summary, row.Body, row.locale, row.categories);
-            database.VisualReviewTasks.Add(new(row.Id, row.coverId, quality.Score, string.Join(',', quality.Risks), brief.SectionContext, brief.Purpose, brief.Prompt, brief.NegativePrompt, key, now));
+            database.VisualReviewTasks.Add(new(row.Id, row.coverId, quality.Score, string.Join(',', quality.Risks), brief.SectionContext, brief.Purpose, brief.Prompt, brief.NegativePrompt, item.key, now, batch.Id));
             created++;
         }
+        database.AuditLogs.Add(new AuditLog(actor.Id, "visual-renewal.batch_created", nameof(AutomationJob), batch.Id,
+            JsonSerializer.Serialize(new { total = candidates.Length, created, locales = batch.TargetLocales }), now));
         await database.SaveChangesAsync(token);
-        return Results.Ok(new { created, skipped = rows.Count - created });
+        return Results.Ok(new { batch.Id, created, skipped = rows.Count - created, total = candidates.Length });
+    }
+
+    private static async Task<IResult> ChangeVisualBatchAsync(Guid jobId, string action,
+        System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users,
+        PublishingDbContext database, CancellationToken token)
+    {
+        var actor = await users.GetUserAsync(principal); if (actor is null) return Results.Unauthorized();
+        var job = await database.AutomationJobs.SingleOrDefaultAsync(candidate => candidate.Id == jobId && candidate.Type == AutomationJobType.VisualRenewal, token);
+        if (job is null) return Results.NotFound();
+        var now = DateTimeOffset.UtcNow;
+        try
+        {
+            switch (action.ToLowerInvariant())
+            {
+                case "start": job.Start(Math.Max(1, job.CurrentPhase), now); break;
+                case "pause": job.Pause(now); break;
+                case "resume": job.Resume(now); break;
+                case "cancel": job.Cancel(now); break;
+                default: return Results.ValidationProblem(new Dictionary<string, string[]> { ["action"] = ["Unsupported batch action."] });
+            }
+        }
+        catch (InvalidOperationException error) { return Results.Conflict(new { message = error.Message }); }
+        database.AuditLogs.Add(new AuditLog(actor.Id, $"visual-renewal.batch_{action.ToLowerInvariant()}", nameof(AutomationJob), job.Id,
+            JsonSerializer.Serialize(new { status = job.Status.ToString(), job.CurrentPhase }), now));
+        await database.SaveChangesAsync(token);
+        return Results.Ok(new { job.Id, status = job.Status.ToString(), job.CurrentPhase, job.UpdatedAt });
     }
 
     private static async Task<IResult> ChangeVisualReviewAsync(Guid taskId, string action, VisualReviewActionRequest request,

@@ -38,6 +38,8 @@ export type VisualQualityReport = {
   averageScore: number;
   queued: number;
   approved: number;
+  rejected: number;
+  batch: null | { id: string; status: string; totalItems: number; processed: number; remaining: number; successful: number; rejected: number; activeArticle: string | null; currentPhase: number; lastMessage: string | null; updatedAt: string };
   items: {
     id: string;
     locale: string;
@@ -96,6 +98,17 @@ const base = {
   originalityGate: "Originality",
   submitCandidate: "Send candidate to gates",
   promoteCandidate: "Approve and publish",
+  operation: "Archive renewal operation",
+  processed: "Processed",
+  remaining: "Remaining",
+  successful: "Successful",
+  rejectedCount: "Rejected",
+  activeStory: "Active story",
+  noActiveStory: "Waiting for the next story",
+  start: "Start",
+  pause: "Pause",
+  resume: "Resume",
+  cancel: "Cancel safely",
 };
 const copy = {
   "tr-TR": {
@@ -150,6 +163,17 @@ const copy = {
     originalityGate: "Özgünlük",
     submitCandidate: "Adayı kapılara gönder",
     promoteCandidate: "Onayla ve yayına al",
+    operation: "Arşiv yenileme operasyonu",
+    processed: "İşlenen",
+    remaining: "Kalan",
+    successful: "Başarılı",
+    rejectedCount: "Reddedilen",
+    activeStory: "Aktif makale",
+    noActiveStory: "Sıradaki makale bekleniyor",
+    start: "Başlat",
+    pause: "Duraklat",
+    resume: "Devam ettir",
+    cancel: "Güvenle iptal et",
   },
   "en-US": {
     ...base,
@@ -192,6 +216,17 @@ const copy = {
     note: "Redaktionelle Entscheidungsnotiz",
     queued: "Dauerhafte Warteschlange",
     approved: "Freigegeben",
+    operation: "Archivweite Bilderneuerung",
+    processed: "Bearbeitet",
+    remaining: "Verbleibend",
+    successful: "Erfolgreich",
+    rejectedCount: "Abgelehnt",
+    activeStory: "Aktiver Beitrag",
+    noActiveStory: "Nächster Beitrag wartet",
+    start: "Starten",
+    pause: "Pausieren",
+    resume: "Fortsetzen",
+    cancel: "Sicher abbrechen",
   },
   "fr-FR": {
     ...base,
@@ -219,6 +254,17 @@ const copy = {
     note: "Note de décision éditoriale",
     queued: "File persistante",
     approved: "Approuvés",
+    operation: "Renouvellement visuel des archives",
+    processed: "Traités",
+    remaining: "Restants",
+    successful: "Réussis",
+    rejectedCount: "Rejetés",
+    activeStory: "Article actif",
+    noActiveStory: "En attente du prochain article",
+    start: "Démarrer",
+    pause: "Suspendre",
+    resume: "Reprendre",
+    cancel: "Annuler en sécurité",
   },
 } satisfies Record<Locale, Record<string, string>>;
 
@@ -315,6 +361,25 @@ export function VisualQualityDesk({
           <span>/ 100</span>
         </div>
       </header>
+      {report.batch && (
+        <section className="admin-panel visual-operation" aria-label={c.operation}>
+          <header>
+            <div><p className="section-kicker">{c.operation}</p><h2>{report.batch.status}</h2><p>{report.batch.lastMessage}</p></div>
+            <strong>{report.batch.processed} / {report.batch.totalItems}</strong>
+          </header>
+          <div className="visual-operation-meter" aria-hidden="true"><span style={{width: `${report.batch.totalItems ? report.batch.processed / report.batch.totalItems * 100 : 0}%`}} /></div>
+          <div className="visual-operation-stats">
+            {[[c.processed,report.batch.processed],[c.remaining,report.batch.remaining],[c.successful,report.batch.successful],[c.rejectedCount,report.batch.rejected]].map(([label,value])=><article key={label}><small>{label}</small><strong>{value}</strong></article>)}
+          </div>
+          <p><b>{c.activeStory}:</b> {report.batch.activeArticle ?? c.noActiveStory}</p>
+          <div className="visual-actions">
+            {report.batch.status === "Queued" && <button type="button" disabled={Boolean(busy)} onClick={()=>void send(`batch/${report.batch!.id}/start`)}>{c.start}</button>}
+            {report.batch.status === "Running" && <button type="button" disabled={Boolean(busy)} onClick={()=>void send(`batch/${report.batch!.id}/pause`)}>{c.pause}</button>}
+            {report.batch.status === "Paused" && <button type="button" disabled={Boolean(busy)} onClick={()=>void send(`batch/${report.batch!.id}/resume`)}>{c.resume}</button>}
+            {!["Completed","Cancelled"].includes(report.batch.status) && <button type="button" disabled={Boolean(busy)} onClick={()=>void send(`batch/${report.batch!.id}/cancel`)}>{c.cancel}</button>}
+          </div>
+        </section>
+      )}
       <section className="visual-quality-summary" aria-label={c.title}>
         {[
           [c.total, report.total],

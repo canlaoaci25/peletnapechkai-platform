@@ -1,5 +1,16 @@
 # Delivery roadmap
 
+## Cycle 47 — Visual generation operations center
+
+Visual Renewal Studio now manages archive-wide renewal as a durable, resumable operation:
+administrators see real total, processed, remaining, successful, rejected, and active-story
+state, and can start, pause, resume, or safely cancel with authorization, antiforgery, and
+audit evidence. Review tasks retain an indexed batch checkpoint, duplicate active runs are
+blocked, and generated cover/body flows no longer publish an abstract fallback when the
+licensed provider cannot return a verified topic-specific image. Automated vision scoring,
+perceptual similarity, and a production AI provider adapter remain the next visual-service
+milestones.
+
 ## Cycle 46 — International tag archive integrity
 
 Tag archives now have durable source relationships across Turkish, English, German, and

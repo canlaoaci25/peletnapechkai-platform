@@ -7,7 +7,8 @@ public enum AutomationJobType
     SiteLocalization,
     SystemReport,
     ReadyContentGeneration,
-    CategoryLocalization
+    CategoryLocalization,
+    VisualRenewal
 }
 
 public enum AutomationJobStatus
