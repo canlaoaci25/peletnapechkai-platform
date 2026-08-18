@@ -123,6 +123,13 @@ const base = {
   pause: "Pause",
   resume: "Resume",
   cancel: "Cancel safely",
+  proofMatrix: "Public crop proof",
+  proofHelp: "Check the focal subject in every crop used by the public edition.",
+  heroCrop: "Article hero · 16:9",
+  leadCrop: "Desktop lead",
+  mobileCrop: "Mobile card · 1:1",
+  atlasCrop: "Topic card · 4:3",
+  feedCrop: "Latest feed · 16:10",
 };
 const copy = {
   "tr-TR": {
@@ -192,6 +199,13 @@ const copy = {
     rejectedCount: "Reddedilen",
     activeStory: "Aktif makale",
     noActiveStory: "Sıradaki makale bekleniyor",
+    proofMatrix: "Public kırpma kanıtı",
+    proofHelp: "Ana öznenin yayında kullanılan her kadrajda eksiksiz kaldığını denetleyin.",
+    heroCrop: "Makale kapağı · 16:9",
+    leadCrop: "Masaüstü manşet",
+    mobileCrop: "Mobil kart · 1:1",
+    atlasCrop: "Konu kartı · 4:3",
+    feedCrop: "Güncel akış · 16:10",
     start: "Başlat",
     pause: "Duraklat",
     resume: "Devam ettir",
@@ -258,6 +272,13 @@ const copy = {
     rejectedCount: "Abgelehnt",
     activeStory: "Aktiver Beitrag",
     noActiveStory: "Nächster Beitrag wartet",
+    proofMatrix: "Nachweis öffentlicher Zuschnitte",
+    proofHelp: "Prüfen Sie das Hauptmotiv in jedem Zuschnitt der öffentlichen Ausgabe.",
+    heroCrop: "Artikelbild · 16:9",
+    leadCrop: "Desktop-Aufmacher",
+    mobileCrop: "Mobile Karte · 1:1",
+    atlasCrop: "Themenkarte · 4:3",
+    feedCrop: "Aktueller Feed · 16:10",
     start: "Starten",
     pause: "Pausieren",
     resume: "Fortsetzen",
@@ -304,6 +325,13 @@ const copy = {
     rejectedCount: "Rejetés",
     activeStory: "Article actif",
     noActiveStory: "En attente du prochain article",
+    proofMatrix: "Preuve des recadrages publics",
+    proofHelp: "Vérifiez le sujet principal dans chaque recadrage utilisé par l’édition publique.",
+    heroCrop: "Image d’article · 16:9",
+    leadCrop: "Une sur ordinateur",
+    mobileCrop: "Carte mobile · 1:1",
+    atlasCrop: "Carte thématique · 4:3",
+    feedCrop: "Fil récent · 16:10",
     start: "Démarrer",
     pause: "Suspendre",
     resume: "Reprendre",
@@ -338,6 +366,10 @@ export function VisualQualityDesk({
     (document.getElementById(id) as HTMLInputElement)?.value;
   const checked = (id: string) =>
     (document.getElementById(id) as HTMLInputElement)?.checked;
+  const cropProofs = [
+    ["hero", c.heroCrop], ["lead", c.leadCrop], ["mobile", c.mobileCrop],
+    ["atlas", c.atlasCrop], ["feed", c.feedCrop],
+  ];
   function candidatePayload(id: string) {
     return {
       mediaAssetId: field(`media-${id}`),
@@ -501,28 +533,18 @@ export function VisualQualityDesk({
                     <div className="visual-candidate-form">
                       <h4>{c.candidateEvidence}</h4>
                       {item.visualTask.candidateUrl && (
-                        <div className="visual-before-after">
-                          <div>
-                            <small>{c.current}</small>
-                            {item.coverUrl && (
-                              <Image
-                                src={item.coverUrl}
-                                alt=""
-                                width={320}
-                                height={180}
-                                unoptimized
-                              />
-                            )}
-                          </div>
-                          <div>
-                            <small>{c.candidate}</small>
-                            <Image
-                              src={item.visualTask.candidateUrl}
-                              alt={item.visualTask.candidateAltText ?? ""}
-                              width={320}
-                              height={180}
-                              unoptimized
-                            />
+                        <div className="visual-public-proof">
+                          <header><strong>{c.proofMatrix}</strong><p>{c.proofHelp}</p></header>
+                          <div className="visual-proof-grid">
+                            {cropProofs.map(([crop, label]) => (
+                              <figure className={`visual-proof visual-proof-${crop}`} key={crop}>
+                                <figcaption>{label}</figcaption>
+                                <div className="visual-proof-pair">
+                                  <div><small>{c.current}</small>{item.coverUrl && <Image src={item.coverUrl} alt="" fill sizes="240px" unoptimized />}</div>
+                                  <div><small>{c.candidate}</small><Image src={item.visualTask!.candidateUrl!} alt={item.visualTask!.candidateAltText ?? ""} fill sizes="240px" unoptimized /></div>
+                                </div>
+                              </figure>
+                            ))}
                           </div>
                         </div>
                       )}

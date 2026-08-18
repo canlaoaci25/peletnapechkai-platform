@@ -11,6 +11,14 @@ public enum AutomationJobType
     VisualRenewal
 }
 
+public static class AutomationJobTypePolicy
+{
+    public static readonly AutomationJobType[] GenericWorkerTypes = Enum.GetValues<AutomationJobType>()
+        .Where(type => type != AutomationJobType.VisualRenewal).ToArray();
+
+    public static bool CanBeClaimedByGenericWorker(this AutomationJobType type) => GenericWorkerTypes.Contains(type);
+}
+
 public enum AutomationJobStatus
 {
     Queued,

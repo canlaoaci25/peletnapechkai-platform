@@ -5,6 +5,14 @@ namespace Peletnapechkai.Api.Tests.Automation;
 public sealed class AutomationJobTests
 {
     [Fact]
+    public void Visual_renewal_is_reserved_for_the_checkpointed_editorial_worker()
+    {
+        Assert.False(AutomationJobType.VisualRenewal.CanBeClaimedByGenericWorker());
+        Assert.True(AutomationJobType.ReadyContentGeneration.CanBeClaimedByGenericWorker());
+        Assert.True(AutomationJobType.ContentTranslation.CanBeClaimedByGenericWorker());
+    }
+
+    [Fact]
     public void Visual_renewal_batch_can_pause_and_resume_without_losing_checkpoint()
     {
         var now = DateTimeOffset.UtcNow;

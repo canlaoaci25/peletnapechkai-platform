@@ -35,12 +35,16 @@ public static partial class AutomationWorkerEndpoints
         var now = DateTimeOffset.UtcNow;
         var staleBefore = now.AddMinutes(-30);
         var staleJobs = await database.AutomationJobs
-            .Where(candidate => candidate.Status == AutomationJobStatus.Running && candidate.UpdatedAt < staleBefore)
+            .Where(candidate => AutomationJobTypePolicy.GenericWorkerTypes.Contains(candidate.Type) && candidate.Status == AutomationJobStatus.Running && candidate.UpdatedAt < staleBefore)
             .ToListAsync(token);
         foreach (var staleJob in staleJobs)
             staleJob.Fail("Worker heartbeat 30 dakikadan uzun süre alınamadı; kuyruk kilidini açmak için iş güvenli biçimde zaman aşımına alındı.", now);
         if (staleJobs.Count > 0) await database.SaveChangesAsync(token);
-        var job = await database.AutomationJobs.Where(candidate => candidate.Status == AutomationJobStatus.Queued).OrderBy(candidate => candidate.CreatedAt).FirstOrDefaultAsync(token);
+        // Visual renewal is an editor-controlled, checkpointed workflow. The generic
+        // Codex worker has no visual-provider contract and must never claim or time it out.
+        var job = await database.AutomationJobs
+            .Where(candidate => AutomationJobTypePolicy.GenericWorkerTypes.Contains(candidate.Type) && candidate.Status == AutomationJobStatus.Queued)
+            .OrderBy(candidate => candidate.CreatedAt).FirstOrDefaultAsync(token);
         if (job is null) return Results.NoContent();
         job.Start(job.CurrentPhase + 1, now);
         await database.SaveChangesAsync(token);
