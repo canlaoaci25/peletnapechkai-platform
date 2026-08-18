@@ -1,5 +1,5 @@
 ﻿{
-    "updatedAt":  "2026-08-18T18:40:00.0000000+00:00",
+    "updatedAt":  "2026-08-18T19:15:00.0000000+00:00",
     "items":  [
                   {
                       "id":  "public-sidebar",
@@ -16,7 +16,7 @@
                   {
                       "id":  "visual-service",
                       "title":  "Bağımsız görsel üretim servisi",
-                      "outcome":  "Tam makale ve seçilmiş H2/H3 bağlamından yazısız, konuya uygun kapak ve gövde planları üret; locale-local body yerleşimi, sağlayıcı yetenek/sağlığı, kalite kapıları ve güvenli yedeği tamamla.",
+                      "outcome":  "Tam makale ve seçilmiş H2/H3 bağlamından yazısız, konuya uygun kapak ve gövde işleri üret; locale-local body terfisi tamamlandı, sırada dayanıklı sağlayıcı worker ve kalıcı hak/provenance modeli var.",
                       "status":  "active"
                   },
                   {
@@ -143,6 +143,18 @@
                       "id":  "content-freshness-next-2",
                       "title":  "Ä°Ã§erik tazelik ve gÃ¼ncelleme merkezi",
                       "outcome":  "Eskiyen yayÄ±nlarÄ± kaynak, trafik ve deÄŸiÅŸen bilgi sinyalleriyle bul; revizyon, SEO ve yeniden daÄŸÄ±tÄ±m akÄ±ÅŸÄ±nÄ± tamamla.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "visual-worker-reliability",
+                      "title":  "Görsel worker lease ve hata kurtarma",
+                      "outcome":  "Sağlayıcı çağrılarını atomik lease, sınırlı retry/backoff, dead-letter ve yeniden başlatılabilir attempt geçmişiyle güvenilir çalıştır.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "visual-focal-crops",
+                      "title":  "Kalıcı görsel odak ve kırpma denetimi",
+                      "outcome":  "Editörün seçtiği odak noktasını admin önizlemesinden tüm public hero ve kart kırpmalarına taşı; mobilde ana özneyi koru.",
                       "status":  "queued"
                   }
               ]

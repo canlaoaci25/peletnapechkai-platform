@@ -1,5 +1,11 @@
 # BOECL otonom mimari ve ürün teklifleri
 
+> Çevrim 88 güncellemesi (18 Ağustos 2026): H2/H3 planı artık kalıcı bölüm hedefli göreve ve public gövde
+> görseli terfisine bağlıdır. Başlık değişimi, eksik intrinsic ölçü ve çift yerleşim fail-closed engellenir;
+> alt metin, kaynak, görev checkpoint'i ve audit izi atomik güncellenir. Harici sağlayıcı açılmadı.
+> Sonraki P1 dilimler provider-neutral lease/attempt/backoff/dead-letter worker sözleşmesi ile kalıcı public
+> crop odak modelidir; ücret, lisans ve dış veri aktarımı owner kararı olmadan etkinleştirilmeyecektir.
+
 > Çevrim 87 güncellemesi (18 Ağustos 2026): Görsel Yenileme Stüdyosu artık uzun makaleyi ilk H2'ye
 > indirgemiyor; tam gövdeden ilk/orta/son anlamlı H2/H3 sahnelerini en fazla üç özgün, yazısız bölüm
 > briefine dönüştürüyor. Dış provider açılmadı ve otomatik yayın yapılmadı. Sonraki uygulanabilir dilim

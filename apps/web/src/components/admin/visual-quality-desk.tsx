@@ -8,6 +8,8 @@ import type { Locale } from "@/i18n/config";
 type VisualTask = {
   id: string;
   status: string;
+  target: "Cover" | "BodySection";
+  sectionHeading: string | null;
   sectionContext: string;
   visualPurpose: string;
   visualType: string;
@@ -604,8 +606,9 @@ export function VisualQualityDesk({
                 {item.visualTask && (
                   <details className="visual-brief">
                     <summary>
-                      {c.brief} · {item.visualTask.status}
+                      {c.brief} · {item.visualTask.visualPurpose} · {item.visualTask.status}
                     </summary>
+                    {item.visualTask.sectionHeading && <><strong>{c.sectionPlan}</strong><p>{item.visualTask.sectionHeading}</p></>}
                     <strong>{c.context}</strong>
                     <p>{item.visualTask.sectionContext}</p>
                     <strong>{c.visualType}</strong>

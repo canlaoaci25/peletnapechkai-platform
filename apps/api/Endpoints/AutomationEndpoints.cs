@@ -64,7 +64,7 @@ public static class AutomationEndpoints
                 risks = result.Risks, result.BodyImageCount, coverUrl = row.coverId is null ? null : "/api/media/" + row.coverId,
                 row.CoverAltText, row.width, row.height, row.optimizedBytes,
                 sectionPlan = VisualBriefBuilder.BuildSectionPlan(row.Title, row.Summary, row.Body, row.locale, row.categories),
-                visualTask = tasks.TryGetValue(row.Id, out var task) ? new { task.Id, status = task.Status.ToString(), task.SectionContext, task.VisualPurpose, visualType = InferVisualType(task.ProposedPrompt), task.ProposedPrompt, task.NegativePrompt, task.AttemptCount, task.ReviewerNote, task.UpdatedAt,
+                visualTask = tasks.TryGetValue(row.Id, out var task) ? new { task.Id, status = task.Status.ToString(), target = task.Target.ToString(), task.SectionHeading, task.SectionContext, task.VisualPurpose, visualType = InferVisualType(task.ProposedPrompt), task.ProposedPrompt, task.NegativePrompt, task.AttemptCount, task.ReviewerNote, task.UpdatedAt,
                     task.CandidateMediaAssetId, candidateUrl = task.CandidateMediaAssetId == null ? null : "/api/media/" + task.CandidateMediaAssetId,
                     task.Provider, task.LicenseName, task.Attribution, task.CandidateAltText, task.TopicScore, task.TextSafetyScore, task.CropScore, task.OriginalityScore,
                     candidateEvidenceVersion = task.CandidateMediaAssetId == null ? null : "editorial-attestation-v2", candidateAttestedAt = task.CandidateMediaAssetId == null ? null : task.ReviewedAt,
@@ -110,8 +110,17 @@ public static class AutomationEndpoints
         var keys = await database.VisualReviewTasks.Select(task => task.IdempotencyKey).ToHashSetAsync(token);
         var assessments = rows.Select(row => new { row, quality = ArticleVisualQualityPolicy.Assess(new(row.Title, row.Summary, row.Body, row.CoverAltText, row.CoverCredit, row.width, row.height, row.optimizedBytes, row.coverId is not null)) })
             .Where(item => item.quality.Score < 80 || item.quality.Risks.Length > 0).ToArray();
-        var candidates = assessments.Select(item => new { item.row, item.quality,
-            key = $"cover:{item.row.Id}:{string.Join('-', item.quality.Risks.Order())}" })
+        var candidates = assessments.Select(item =>
+        {
+            var section = item.quality.Risks.Contains("missing-body-visual")
+                ? VisualBriefBuilder.BuildSectionPlan(item.row.Title, item.row.Summary, item.row.Body, item.row.locale, item.row.categories).FirstOrDefault()
+                : null;
+            var target = section is null ? VisualReviewTarget.Cover : VisualReviewTarget.BodySection;
+            var key = target == VisualReviewTarget.Cover
+                ? $"cover:{item.row.Id}:{string.Join('-', item.quality.Risks.Order())}"
+                : $"body:{item.row.Id}:{section!.Heading.ToLowerInvariant()}";
+            return new { item.row, item.quality, section, target, key };
+        })
             .Where(item => !keys.Contains(item.key)).ToArray();
         if (candidates.Length == 0) return Results.Ok(new { id = (Guid?)null, created = 0, skipped = rows.Count, total = 0 });
         var now = DateTimeOffset.UtcNow; var created = 0;
@@ -120,8 +129,12 @@ public static class AutomationEndpoints
         foreach (var item in candidates)
         {
             var row = item.row; var quality = item.quality;
-            var brief = VisualBriefBuilder.Build(row.Title, row.Summary, row.Body, row.locale, row.categories);
-            database.VisualReviewTasks.Add(new(row.Id, row.coverId, quality.Score, string.Join(',', quality.Risks), brief.SectionContext, brief.Purpose, brief.Prompt, brief.NegativePrompt, item.key, now, batch.Id));
+            var brief = item.section is null
+                ? VisualBriefBuilder.Build(row.Title, row.Summary, row.Body, row.locale, row.categories)
+                : new VisualBrief(item.section.Heading, item.section.Purpose, item.section.VisualType, item.section.TypeReason, item.section.Prompt, item.section.NegativePrompt);
+            database.VisualReviewTasks.Add(new(row.Id, item.target == VisualReviewTarget.Cover ? row.coverId : null, quality.Score,
+                string.Join(',', quality.Risks), brief.SectionContext, brief.Purpose, brief.Prompt, brief.NegativePrompt,
+                item.key, now, batch.Id, item.target, item.section?.Heading));
             created++;
         }
         database.AuditLogs.Add(new AuditLog(actor.Id, "visual-renewal.batch_created", nameof(AutomationJob), batch.Id,
@@ -227,11 +240,14 @@ public static class AutomationEndpoints
             var candidate = await database.MediaAssets.SingleOrDefaultAsync(x => x.Id == task.CandidateMediaAssetId, token);
             if (article is null || candidate is null) return Results.NotFound();
             await using var transaction = await database.Database.BeginTransactionAsync(token); var now = DateTimeOffset.UtcNow;
-            article.PromoteReviewedCover(candidate, task.CandidateAltText!, task.Attribution ?? task.LicenseName!, now);
+            if (task.Target == VisualReviewTarget.BodySection)
+                article.PromoteReviewedBodyImage(candidate, task.SectionHeading!, task.CandidateAltText!, task.Attribution ?? task.LicenseName!, now);
+            else
+                article.PromoteReviewedCover(candidate, task.CandidateAltText!, task.Attribution ?? task.LicenseName!, now);
             task.MarkPromoted(actor.Id, request.Note, now);
             await ReconcileVisualBatchAsync(task, database, now, token);
             database.AuditLogs.Add(new AuditLog(actor.Id, "visual-review.promoted", nameof(VisualReviewTask), task.Id,
-                JsonSerializer.Serialize(new { task.ArticleLocalizationId, previousMediaAssetId = task.CurrentMediaAssetId, candidateMediaAssetId = candidate.Id, task.Provider, task.LicenseName }), now));
+                JsonSerializer.Serialize(new { task.ArticleLocalizationId, task.Target, task.SectionHeading, previousMediaAssetId = task.CurrentMediaAssetId, candidateMediaAssetId = candidate.Id, task.Provider, task.LicenseName }), now));
             try { await database.SaveChangesAsync(token); }
             catch (DbUpdateConcurrencyException) { return Results.Conflict(new { message = "The visual review changed. Refresh before retrying." }); }
             await transaction.CommitAsync(token);

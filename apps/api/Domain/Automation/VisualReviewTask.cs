@@ -1,6 +1,7 @@
 namespace Peletnapechkai.Api.Domain.Automation;
 
 public enum VisualReviewStatus { Pending, InReview, Approved, Rejected, RetryRequested }
+public enum VisualReviewTarget { Cover, BodySection }
 
 public sealed class VisualReviewTask
 {
@@ -8,7 +9,8 @@ public sealed class VisualReviewTask
 
     public VisualReviewTask(Guid articleLocalizationId, Guid? currentMediaAssetId, int qualityScore,
         string risks, string sectionContext, string visualPurpose, string proposedPrompt,
-        string negativePrompt, string idempotencyKey, DateTimeOffset now, Guid? automationJobId = null)
+        string negativePrompt, string idempotencyKey, DateTimeOffset now, Guid? automationJobId = null,
+        VisualReviewTarget target = VisualReviewTarget.Cover, string? sectionHeading = null)
     {
         if (articleLocalizationId == Guid.Empty) throw new ArgumentOutOfRangeException(nameof(articleLocalizationId));
         ArgumentException.ThrowIfNullOrWhiteSpace(risks);
@@ -20,6 +22,9 @@ public sealed class VisualReviewTask
         Id = Guid.CreateVersion7(); ArticleLocalizationId = articleLocalizationId; CurrentMediaAssetId = currentMediaAssetId;
         QualityScore = Math.Clamp(qualityScore, 0, 100); Risks = risks; SectionContext = sectionContext.Trim();
         VisualPurpose = visualPurpose.Trim(); ProposedPrompt = proposedPrompt.Trim(); NegativePrompt = negativePrompt.Trim();
+        if (target == VisualReviewTarget.BodySection && string.IsNullOrWhiteSpace(sectionHeading))
+            throw new ArgumentException("A body visual requires its section heading.", nameof(sectionHeading));
+        Target = target; SectionHeading = string.IsNullOrWhiteSpace(sectionHeading) ? null : sectionHeading.Trim();
         IdempotencyKey = idempotencyKey.Trim(); AutomationJobId = automationJobId; Status = VisualReviewStatus.Pending; CreatedAt = now; UpdatedAt = now;
     }
 
@@ -34,6 +39,8 @@ public sealed class VisualReviewTask
     public string VisualPurpose { get; private set; } = "";
     public string ProposedPrompt { get; private set; } = "";
     public string NegativePrompt { get; private set; } = "";
+    public VisualReviewTarget Target { get; private set; }
+    public string? SectionHeading { get; private set; }
     public string IdempotencyKey { get; private set; } = "";
     public VisualReviewStatus Status { get; private set; }
     public int AttemptCount { get; private set; }

@@ -121,6 +121,38 @@ public sealed class ArticleWorkflowTests
     }
 
     [Fact]
+    public void Reviewed_body_visual_is_inserted_once_beneath_its_live_section()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var article = CreateArticle(now, "<p>Giriş</p><h2>Batarya güvenliği</h2><p>Kontrol listesi.</p>");
+        article.SubmitForEditorialReview(now.AddMinutes(1));
+        article.ApproveEditorialReview(now.AddMinutes(2));
+        article.Publish(now.AddMinutes(3));
+        var media = new MediaAsset("visual.webp", "visual.webp", "image/webp", 120_000, now);
+        media.SetImageMetadata(1600, 900, "visual.optimized.webp", 90_000);
+
+        article.PromoteReviewedBodyImage(media, "Batarya güvenliği", "Batarya bağlantılarını denetleyen teknisyen", "BOECL editoryal arşiv", now.AddMinutes(4));
+
+        Assert.Contains($"<h2>Batarya güvenliği</h2><figure", article.Body);
+        Assert.Contains($"/api/media/{media.Id}", article.Body);
+        Assert.Contains("width=\"1600\" height=\"900\" loading=\"lazy\"", article.Body);
+        Assert.Throws<InvalidOperationException>(() => article.PromoteReviewedBodyImage(media, "Batarya güvenliği", "Alt", "Kaynak", now.AddMinutes(5)));
+    }
+
+    [Fact]
+    public void Reviewed_body_visual_fails_closed_when_the_section_changed()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var article = CreateArticle(now, "<h2>Yeni başlık</h2><p>İçerik</p>");
+        article.SubmitForEditorialReview(now.AddMinutes(1)); article.ApproveEditorialReview(now.AddMinutes(2)); article.Publish(now.AddMinutes(3));
+        var media = new MediaAsset("visual.webp", "visual.webp", "image/webp", 120_000, now);
+        media.SetImageMetadata(1600, 900, "visual.optimized.webp", 90_000);
+
+        Assert.Throws<InvalidOperationException>(() => article.PromoteReviewedBodyImage(media, "Eski başlık", "Alt", "Kaynak", now.AddMinutes(4)));
+        Assert.DoesNotContain("<figure", article.Body);
+    }
+
+    [Fact]
     public void ReviewArticle_CanReturnToDraft()
     {
         var now = DateTimeOffset.UtcNow;
@@ -131,11 +163,11 @@ public sealed class ArticleWorkflowTests
         Assert.Equal(PublicationStatus.Draft, article.Status);
     }
 
-    private static ArticleLocalization CreateArticle(DateTimeOffset now)
+    private static ArticleLocalization CreateArticle(DateTimeOffset now, string body = "body")
     {
         var region = new Region(Guid.CreateVersion7(), "TR", "Türkiye", "TRY");
         var locale = new Locale(Guid.CreateVersion7(), "tr-TR", "tr", region, "Turkish", "Türkçe", true);
         var group = new ArticleGroup(ArticleType.News, now);
-        return new ArticleLocalization(group, locale, "draft", "Draft title", "summary", "body", now);
+        return new ArticleLocalization(group, locale, "draft", "Draft title", "summary", body, now);
     }
 }

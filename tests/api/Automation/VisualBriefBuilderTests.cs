@@ -46,6 +46,17 @@ public sealed class VisualBriefBuilderTests
         Assert.Empty(VisualBriefBuilder.BuildSectionPlan("Başlık", "Özet", "<h2>Boş</h2><p>Kısa</p>", "tr-TR", []));
     }
 
+    [Fact]
+    public void Body_section_review_tasks_require_a_stable_heading()
+    {
+        var now = DateTimeOffset.UtcNow;
+        Assert.Throws<ArgumentException>(() => new VisualReviewTask(Guid.NewGuid(), null, 60, "missing-body-visual", "Bölüm", "Section visual", "Prompt", "No text", "body:key", now, target: VisualReviewTarget.BodySection));
+
+        var task = new VisualReviewTask(Guid.NewGuid(), null, 60, "missing-body-visual", "Bölüm", "Section visual", "Prompt", "No text", "body:key:valid", now, target: VisualReviewTarget.BodySection, sectionHeading: "Güvenlik");
+        Assert.Equal(VisualReviewTarget.BodySection, task.Target);
+        Assert.Equal("Güvenlik", task.SectionHeading);
+    }
+
     [Theory]
     [InlineData("Telefon kurulum adımları", "Uygulamayı güvenli biçimde yapılandırın.", "step-by-step editorial illustration")]
     [InlineData("İki dizüstü bilgisayar karşılaştırması", "Modellerin farklarını inceleyin.", "comparison editorial illustration")]

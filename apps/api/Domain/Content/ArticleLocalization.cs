@@ -1,6 +1,8 @@
 using Peletnapechkai.Api.Domain.Localization;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Net;
 
 namespace Peletnapechkai.Api.Domain.Content;
 
@@ -139,6 +141,22 @@ public sealed class ArticleLocalization
         ArgumentNullException.ThrowIfNull(asset); ArgumentException.ThrowIfNullOrWhiteSpace(altText); ArgumentException.ThrowIfNullOrWhiteSpace(credit);
         CoverMediaAsset = asset; CoverMediaAssetId = asset.Id; CoverAltText = altText.Trim(); CoverCaption = null;
         CoverCredit = credit.Trim(); UpdatedAt = updatedAt;
+    }
+
+    public void PromoteReviewedBodyImage(MediaAsset asset, string sectionHeading, string altText, string credit, DateTimeOffset updatedAt)
+    {
+        if (Status != PublicationStatus.Published) throw new InvalidOperationException("Only published articles can receive reviewed body images.");
+        ArgumentNullException.ThrowIfNull(asset); ArgumentException.ThrowIfNullOrWhiteSpace(sectionHeading);
+        ArgumentException.ThrowIfNullOrWhiteSpace(altText); ArgumentException.ThrowIfNullOrWhiteSpace(credit);
+        if (asset.Width is null || asset.Height is null) throw new InvalidOperationException("Reviewed body images require intrinsic dimensions.");
+        var headingPattern = $"(<h(?<level>[23])[^>]*>\\s*{Regex.Escape(sectionHeading.Trim())}\\s*</h\\k<level>>)";
+        var match = Regex.Match(Body, headingPattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (!match.Success) throw new InvalidOperationException("The reviewed section heading no longer exists; refresh the brief before promotion.");
+        var marker = $"data-visual-section=\"{WebUtility.HtmlEncode(sectionHeading.Trim())}\"";
+        if (Body.Contains(marker, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("This section already has a promoted visual.");
+        var figure = $"<figure class=\"article-inline-image\" {marker}><img src=\"/api/media/{asset.Id}?v={asset.OptimizedByteLength}\" alt=\"{WebUtility.HtmlEncode(altText.Trim())}\" width=\"{asset.Width}\" height=\"{asset.Height}\" loading=\"lazy\" decoding=\"async\"><figcaption>{WebUtility.HtmlEncode(credit.Trim())}</figcaption></figure>";
+        Body = Body.Insert(match.Index + match.Length, figure);
+        UpdatedAt = updatedAt;
     }
 
     public void ApproveEditorialReview(DateTimeOffset updatedAt) =>

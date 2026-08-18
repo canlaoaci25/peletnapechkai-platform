@@ -20,6 +20,8 @@ internal sealed class VisualReviewTaskConfiguration : IEntityTypeConfiguration<V
         b.Property(x => x.VisualPurpose).HasColumnName("visual_purpose").HasMaxLength(80);
         b.Property(x => x.ProposedPrompt).HasColumnName("proposed_prompt").HasMaxLength(3000);
         b.Property(x => x.NegativePrompt).HasColumnName("negative_prompt").HasMaxLength(1200);
+        b.Property(x => x.Target).HasColumnName("target").HasConversion<string>().HasMaxLength(24);
+        b.Property(x => x.SectionHeading).HasColumnName("section_heading").HasMaxLength(500);
         b.Property(x => x.IdempotencyKey).HasColumnName("idempotency_key").HasMaxLength(160);
         b.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(24);
         b.Property(x => x.AttemptCount).HasColumnName("attempt_count");
