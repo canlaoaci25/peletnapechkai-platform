@@ -1,5 +1,11 @@
 # BOECL otonom mimari ve ürün teklifleri
 
+> Çevrim 91 güncellemesi (18 Ağustos 2026): Üye okuma merkezi, yarım okumaları, takip edilen
+> konulardaki güncel yayınları ve kaydedilenleri aynı locale içinde açıklanabilir haftalık dönüş
+> rotasında birleştirdi. Tamamlanan yayınlar dışlanır ve son bölüm anchor'ı korunur. Bu site içi
+> özet açık rıza gerektiren e-posta/push teslimini etkinleştirmez; provider, unsubscribe, rate-limit
+> ve teslim kanıtı ayrı owner/operasyon kapısı olarak korunur.
+
 > Çevrim 90 güncellemesi (18 Ağustos 2026): Konu merkezi, yeni ve ince kategori üretmek yerine
 > yayımlanmış içerik sayısıyla sıralanan gerçek çok dilli etiket arşivlerini Etiket Atlası olarak
 > keşfe açtı. Root kategori seçimi deterministik hale geldi. Veri migration'ı yapılmadı. Otonom

@@ -1,5 +1,5 @@
 ﻿{
-    "updatedAt":  "2026-08-18T22:00:00.0000000+00:00",
+    "updatedAt":  "2026-08-18T23:20:00.0000000+00:00",
     "items":  [
                   {
                       "id":  "public-sidebar",
@@ -136,8 +136,8 @@
                   {
                       "id":  "member-reading-digest",
                       "title":  "Üye okuma özeti ve geri dönüş rotası",
-                      "outcome":  "Üyeye takip ettiği konular, yarım kalan okumalar ve yeni kaynaklı yayınlardan açıklanabilir haftalık bir geri dönüş özeti sun.",
-                      "status":  "queued"
+                      "outcome":  "Üyeye takip ettiği konular, yarım kalan okumalar ve yeni kaynaklı yayınlardan açıklanabilir haftalık bir geri dönüş özeti sun; yerel uygulama 34d8f84 ile hazır, runner render ve canlı terfi kanıtı bekleniyor.",
+                      "status":  "blocked"
                   },
                   {
                       "id":  "planning-authority-hub",

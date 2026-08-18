@@ -609,3 +609,16 @@ export type ReadingRitual = {
 export async function getReadingRitual(locale: string) {
   return await apiGet<ReadingRitual>(`/api/v1/account/reading-ritual?locale=${encodeURIComponent(locale)}`);
 }
+export type ReadingDigest = {
+  weekStartsAt: string;
+  generatedAt: string;
+  items: Array<{
+    slug: string; title: string; summary: string; publishedAt: string;
+    reason: "continue" | "followed" | "saved";
+    progress: number | null; anchor: string | null; topic: string | null;
+    cover: null | { url: string; altText: string };
+  }>;
+};
+export async function getReadingDigest(locale: string) {
+  return await apiGet<ReadingDigest>(`/api/v1/account/reading-digest?locale=${encodeURIComponent(locale)}`);
+}

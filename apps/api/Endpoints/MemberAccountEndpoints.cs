@@ -32,6 +32,7 @@ public static class MemberAccountEndpoints
         group.MapPut("/reading-progress/{locale}/{slug}", UpdateReadingProgressAsync).ValidateAntiforgery();
         group.MapGet("/reading-ritual", GetReadingRitualAsync);
         group.MapPut("/reading-ritual", UpdateReadingRitualAsync).ValidateAntiforgery();
+        group.MapGet("/reading-digest", GetReadingDigestAsync);
         return endpoints;
     }
     private static async Task<IResult> GetAsync(System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,IConfiguration configuration)
@@ -149,6 +150,27 @@ public static class MemberAccountEndpoints
     {
         var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();if(request.Goal is not (1 or 3 or 5))return Results.BadRequest(new{message="Weekly reading goal must be 1, 3, or 5."});
         if(user.WeeklyReadingGoal==request.Goal)return Results.NoContent();user.WeeklyReadingGoal=request.Goal;db.AuditLogs.Add(new AuditLog(user.Id,"member.weekly_reading_goal_updated",nameof(ApplicationUser),user.Id,null,DateTimeOffset.UtcNow));await db.SaveChangesAsync(token);return Results.NoContent();
+    }
+    private static async Task<IResult> GetReadingDigestAsync(string locale,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
+        var now=DateTimeOffset.UtcNow;var daysFromMonday=((int)now.DayOfWeek+6)%7;var weekStart=new DateTimeOffset(now.UtcDateTime.Date,TimeSpan.Zero).AddDays(-daysFromMonday);
+        var items=await db.ArticleLocalizations.AsNoTracking()
+            .Where(article=>article.Locale.Code==locale&&article.Status==PublicationStatus.Published
+                &&!db.ArticleReadingProgress.Any(progress=>progress.UserId==user.Id&&progress.ArticleLocalizationId==article.Id&&progress.CompletedAt!=null)
+                &&(db.ArticleReadingProgress.Any(progress=>progress.UserId==user.Id&&progress.ArticleLocalizationId==article.Id&&progress.Percent>=5&&progress.Percent<95)
+                    ||article.Categories.Any(category=>db.FollowedCategories.Any(follow=>follow.UserId==user.Id&&follow.CategoryId==category.Id))
+                    ||db.SavedArticles.Any(saved=>saved.UserId==user.Id&&saved.ArticleLocalizationId==article.Id)))
+            .Select(article=>new{
+                article.Slug,article.Title,article.Summary,article.PublishedAt,
+                reason=db.ArticleReadingProgress.Any(progress=>progress.UserId==user.Id&&progress.ArticleLocalizationId==article.Id&&progress.Percent>=5&&progress.Percent<95)?"continue":article.Categories.Any(category=>db.FollowedCategories.Any(follow=>follow.UserId==user.Id&&follow.CategoryId==category.Id))?"followed":"saved",
+                progress=db.ArticleReadingProgress.Where(progress=>progress.UserId==user.Id&&progress.ArticleLocalizationId==article.Id).Select(progress=>(int?)progress.Percent).FirstOrDefault(),
+                anchor=db.ArticleReadingProgress.Where(progress=>progress.UserId==user.Id&&progress.ArticleLocalizationId==article.Id).Select(progress=>progress.Anchor).FirstOrDefault(),
+                topic=article.Categories.Where(category=>db.FollowedCategories.Any(follow=>follow.UserId==user.Id&&follow.CategoryId==category.Id)).Select(category=>category.Name).FirstOrDefault(),
+                cover=article.CoverMediaAssetId==null?null:new{url="/api/media/"+article.CoverMediaAssetId+"?v="+article.CoverMediaAsset!.OptimizedByteLength,altText=article.CoverAltText}
+            })
+            .OrderBy(item=>item.reason=="continue"?0:item.reason=="followed"?1:2).ThenByDescending(item=>item.PublishedAt).Take(6).ToArrayAsync(token);
+        return Results.Ok(new{weekStartsAt=weekStart,generatedAt=now,items});
     }
     public sealed record ProfileRequest(string? DisplayName);
     public sealed record PasswordRequest(string? CurrentPassword,string? NewPassword);

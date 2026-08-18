@@ -9,6 +9,7 @@ import type {
   PersonalFeedArticle,
   SavedArticle,
   ReadingRitual,
+  ReadingDigest,
 } from "@/lib/admin-api";
 import type { Locale } from "@/i18n/config";
 import { memberCopy, memberHubCopy } from "@/i18n/member-copy";
@@ -21,6 +22,7 @@ export function AccountDashboard({
   initialFeed,
   progressCount,
   initialRitual,
+  initialDigest,
 }: {
   account: MemberAccount;
   locale: Locale;
@@ -29,6 +31,7 @@ export function AccountDashboard({
   initialFeed: PersonalFeedArticle[];
   progressCount: number;
   initialRitual: ReadingRitual | null;
+  initialDigest: ReadingDigest | null;
 }) {
   const copy = memberCopy[locale],
     hub = memberHubCopy[locale],
@@ -114,12 +117,16 @@ export function AccountDashboard({
   return (
     <div className="member-dashboard">
       {ritual&&<section className="reading-ritual" aria-labelledby="reading-ritual-title">
-        <div className="reading-ritual-copy"><p className="section-kicker">{hub.ritualKicker}</p><h1 id="reading-ritual-title">{hub.ritualTitle}</h1><p>{hub.ritualDescription}</p>
+        <div className="reading-ritual-copy"><p className="section-kicker">{hub.ritualKicker}</p><h2 id="reading-ritual-title">{hub.ritualTitle}</h2><p>{hub.ritualDescription}</p>
           <div className="ritual-stats"><span><strong>{ritual.completed}/{ritual.goal}</strong>{hub.ritualCompleted}</span><span><strong>{ritual.activeDays}</strong>{hub.ritualActiveDays}</span></div>
-          <div className="ritual-meter" role="progressbar" aria-valuemin={0} aria-valuemax={ritual.goal} aria-valuenow={Math.min(ritual.completed,ritual.goal)}><i style={{width:`${Math.min(100,(ritual.completed/ritual.goal)*100)}%`}}/></div>
+          <div className="ritual-meter" role="progressbar" aria-label={`${ritual.completed}/${ritual.goal} ${hub.ritualCompleted}`} aria-valuemin={0} aria-valuemax={ritual.goal} aria-valuenow={Math.min(ritual.completed,ritual.goal)}><i style={{width:`${Math.min(100,(ritual.completed/ritual.goal)*100)}%`}}/></div>
           <fieldset><legend>{hub.ritualGoal}</legend>{[1,3,5].map(goal=><button key={goal} type="button" aria-pressed={ritual.goal===goal} onClick={()=>void updateGoal(goal)}>{goal}</button>)}</fieldset>
         </div>
         <div className="ritual-next"><p className="section-kicker">{hub.ritualNext}</p>{ritual.next?<>{ritual.next.cover&&<Link href={`/${locale}/articles/${ritual.next.slug}`} tabIndex={-1}><Image src={ritual.next.cover.url} alt="" width={640} height={360} sizes="(max-width: 760px) calc(100vw - 48px), 36vw"/></Link>}<h2><Link href={`/${locale}/articles/${ritual.next.slug}`}>{ritual.next.title}</Link></h2><p>{ritual.next.summary}</p></>:<Link className="ritual-discover" href={`/${locale}/topics`}>{hub.ritualDiscover} →</Link>}</div>
+      </section>}
+      {initialDigest&&<section className="reading-digest" aria-labelledby="reading-digest-title">
+        <header><p className="section-kicker">{hub.digestKicker}</p><h2 id="reading-digest-title">{hub.digestTitle}</h2><p>{hub.digestDescription}</p></header>
+        {initialDigest.items.length===0?<div className="saved-empty"><p>{hub.digestEmpty}</p><Link href={`/${locale}/topics`}>{hub.ritualDiscover} →</Link></div>:<ol>{initialDigest.items.map((item,index)=>{const href=`/${locale}/articles/${item.slug}${item.anchor?`#${item.anchor}`:""}`;return <li key={item.slug}><span>{String(index+1).padStart(2,"0")}</span>{item.cover&&<Link className="digest-cover" href={href} tabIndex={-1}><Image src={item.cover.url} alt="" fill sizes="(max-width: 700px) 92px, 160px"/></Link>}<div><p className="digest-reason">{item.reason==="continue"?hub.digestContinue:item.reason==="followed"?`${hub.digestFollowed}${item.topic?` · ${item.topic}`:""}`:hub.digestSaved}{item.progress?` · ${item.progress}%`:""}</p><h3><Link href={href}>{item.title}</Link></h3><p>{item.summary}</p></div></li>})}</ol>}
       </section>}
       <section className="account-summary">
         <p className="section-kicker">{copy.membership}</p>
@@ -127,7 +134,9 @@ export function AccountDashboard({
         <p>{hub.description}</p>
         <p>{account.email}</p>
         <span className={account.emailConfirmed ? "verified" : "pending"}>
-          {account.emailConfirmed ? "✓" : "!"}
+          {account.emailConfirmed
+            ? `✓ ${copy.verified}`
+            : `! ${account.verificationAvailable ? copy.verificationPending : copy.verificationUnavailable}`}
         </span>
         <nav className="member-hub-nav" aria-label={hub.title}>
           <a href="#continue-reading-title">

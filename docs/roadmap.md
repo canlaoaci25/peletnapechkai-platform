@@ -1,5 +1,13 @@
 # Delivery roadmap
 
+## Cycle 91 — Explainable weekly member return route
+
+The signed-in reading hub now combines unfinished stories, followed-topic publications, and
+saved reads into one locale-isolated weekly edit. Every recommendation explains why it appears,
+completed stories are excluded, and links retain the reader's last section when available. The
+surface is private and on-site: email or push delivery remains disabled until explicit consent,
+verified delivery, unsubscribe, and operational safeguards exist.
+
 ## Cycle 64 — Cohesive release promotion and drift visibility
 
 The Release Recovery Center now shows whether the latest Web and API evidence is aligned on

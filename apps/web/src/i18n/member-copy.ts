@@ -16,6 +16,7 @@ export const memberHubCopy: Record<
     resultsLabel: string;
     noResults: string;
     ritualKicker:string; ritualTitle:string; ritualDescription:string; ritualCompleted:string; ritualActiveDays:string; ritualGoal:string; ritualSaved:string; ritualNext:string; ritualDiscover:string;
+    digestKicker:string; digestTitle:string; digestDescription:string; digestContinue:string; digestFollowed:string; digestSaved:string; digestEmpty:string;
   }
 > = {
   "tr-TR": {
@@ -33,6 +34,7 @@ export const memberHubCopy: Record<
     resultsLabel: "sonuç",
     noResults: "Bu arama ve türle eşleşen kayıt yok.",
     ritualKicker:"BOECL OKUMA RİTMİ", ritualTitle:"Bu haftaki okuma ritmin", ritualDescription:"Kendi temponu seç, tamamladığın okumaları gör ve sıradaki iyi yazıya geç.", ritualCompleted:"tamamlandı", ritualActiveDays:"aktif gün", ritualGoal:"Haftalık hedef", ritualSaved:"Hedefin kaydedildi.", ritualNext:"Sıradaki okuman", ritualDiscover:"Konu haritasından bir okuma seç",
+    digestKicker:"BOECL HAFTALIK SEÇKİ", digestTitle:"Sana özel dönüş rotası", digestDescription:"Yarım okumaların, takip ettiğin konular ve kaydettiklerinden bu hafta için açıklanabilir bir rota.", digestContinue:"Kaldığın yer", digestFollowed:"Takip ettiğin konu", digestSaved:"Okuma listenden", digestEmpty:"Bu haftalık rota için önce bir konu takip et veya bir yazı kaydet.",
   },
   "en-US": {
     title: "Your reading hub",
@@ -49,6 +51,7 @@ export const memberHubCopy: Record<
     resultsLabel: "results",
     noResults: "No saved stories match this search and format.",
     ritualKicker:"BOECL READING RHYTHM", ritualTitle:"Your reading rhythm this week", ritualDescription:"Choose your pace, see what you finished, and move to your next worthwhile read.", ritualCompleted:"completed", ritualActiveDays:"active days", ritualGoal:"Weekly goal", ritualSaved:"Your goal was saved.", ritualNext:"Your next read", ritualDiscover:"Choose a read from the topic map",
+    digestKicker:"BOECL WEEKLY EDIT", digestTitle:"Your personal return route", digestDescription:"An explainable weekly route from unfinished reads, followed topics, and your saved list.", digestContinue:"Pick up where you left off", digestFollowed:"From a topic you follow", digestSaved:"From your reading list", digestEmpty:"Follow a topic or save a story to shape your weekly route.",
   },
   "de-DE": {
     title: "Deine Lesezentrale",
@@ -64,6 +67,7 @@ export const memberHubCopy: Record<
     resultsLabel: "Ergebnisse",
     noResults: "Keine gespeicherten Beiträge entsprechen der Suche.",
     ritualKicker:"BOECL LESERHYTHMUS", ritualTitle:"Dein Leserhythmus diese Woche", ritualDescription:"Wähle dein Tempo, sieh deine abgeschlossenen Beiträge und lies gezielt weiter.", ritualCompleted:"abgeschlossen", ritualActiveDays:"aktive Tage", ritualGoal:"Wochenziel", ritualSaved:"Dein Ziel wurde gespeichert.", ritualNext:"Als Nächstes", ritualDiscover:"Im Themenatlas weiterlesen",
+    digestKicker:"BOECL WOCHENAUSWAHL", digestTitle:"Dein persönlicher Rückweg", digestDescription:"Eine nachvollziehbare Wochenroute aus angefangenen Beiträgen, gefolgten Themen und deiner Leseliste.", digestContinue:"Hier weiterlesen", digestFollowed:"Aus einem gefolgten Thema", digestSaved:"Aus deiner Leseliste", digestEmpty:"Folge einem Thema oder speichere einen Beitrag für deine Wochenroute.",
   },
   "fr-FR": {
     title: "Votre espace de lecture",
@@ -80,6 +84,7 @@ export const memberHubCopy: Record<
     resultsLabel: "résultats",
     noResults: "Aucun article enregistré ne correspond à cette recherche.",
     ritualKicker:"BOECL RYTHME DE LECTURE", ritualTitle:"Votre rythme de lecture cette semaine", ritualDescription:"Choisissez votre rythme, suivez vos lectures terminées et passez à la prochaine.", ritualCompleted:"terminés", ritualActiveDays:"jours actifs", ritualGoal:"Objectif hebdomadaire", ritualSaved:"Votre objectif est enregistré.", ritualNext:"Votre prochaine lecture", ritualDiscover:"Choisir une lecture dans les thèmes",
+    digestKicker:"SÉLECTION BOECL", digestTitle:"Votre parcours de retour personnalisé", digestDescription:"Un parcours hebdomadaire expliqué, composé de vos lectures en cours, sujets suivis et articles enregistrés.", digestContinue:"Reprendre votre lecture", digestFollowed:"D’un sujet suivi", digestSaved:"De votre liste", digestEmpty:"Suivez un sujet ou enregistrez un article pour composer votre parcours.",
   },
 };
 

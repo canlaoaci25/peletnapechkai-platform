@@ -65,6 +65,19 @@ test("reading progress offers a locale-complete return journey", () => {
   assert.match(surface, /continue-meter/);
 });
 
+test("weekly digest explains each return recommendation", () => {
+  for (const copy of Object.values(memberHubCopy)) {
+    assert.ok(copy.digestTitle.length > 3);
+    assert.ok(copy.digestContinue.length > 3);
+    assert.ok(copy.digestFollowed.length > 3);
+    assert.ok(copy.digestSaved.length > 3);
+  }
+  const account = readFileSync(fileURLToPath(new URL("../components/account-dashboard.tsx", import.meta.url)), "utf8");
+  assert.match(account, /className="reading-digest"/);
+  assert.match(account, /item\.reason==="continue"/);
+  assert.match(account, /item\.topic/);
+});
+
 test("registration starts an accessible locale-complete interest onboarding", () => {
   const form = readFileSync(fileURLToPath(new URL("../components/account-form.tsx", import.meta.url)), "utf8");
   const onboarding = readFileSync(fileURLToPath(new URL("../components/member-onboarding.tsx", import.meta.url)), "utf8");
