@@ -1,5 +1,5 @@
 ﻿{
-    "updatedAt":  "2026-08-18T16:55:00.0000000+00:00",
+    "updatedAt":  "2026-08-18T09:00:37.2344577+00:00",
     "items":  [
                   {
                       "id":  "public-sidebar",
@@ -59,7 +59,7 @@
                       "id":  "locale-coverage",
                       "title":  "Çok dilli yayın bütünlüğü",
                       "outcome":  "Çeviri, kategori eşlemesi, locale SEO ve ülke yönlendirmesi açıklarını otomatik kalite kapılarıyla kapat.",
-                      "status":  "queued"
+                      "status":  "completed"
                   },
                   {
                       "id":  "seo-authority",
@@ -137,6 +137,12 @@
                       "id":  "source-claim-citations",
                       "title":  "İddia düzeyi kaynak bağlantıları",
                       "outcome":  "Kritik makale iddialarını editör onaylı, erişilebilir satır içi atıflarla doğrudan kanıtlarına bağla.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "content-freshness-next-2",
+                      "title":  "Ä°Ã§erik tazelik ve gÃ¼ncelleme merkezi",
+                      "outcome":  "Eskiyen yayÄ±nlarÄ± kaynak, trafik ve deÄŸiÅŸen bilgi sinyalleriyle bul; revizyon, SEO ve yeniden daÄŸÄ±tÄ±m akÄ±ÅŸÄ±nÄ± tamamla.",
                       "status":  "queued"
                   }
               ]

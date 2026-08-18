@@ -1,5 +1,10 @@
 # BOECL otonom mimari ve ürün teklifleri
 
+> Çevrim 78 güncellemesi (18 Ağustos 2026): locale yayın bütünlüğü, makale üzerinde yalnız
+> gerçekten yayımlanmış karşılıkları gösteren görünür dil baskıları şeridiyle public deneyime
+> taşındı. Dört arayüz sözlüğü aynı placeholder sözleşmesiyle doğrulanıyor; mevcut sürüm
+> erişilebilir biçimde işaretleniyor ve eksik çeviri için yapay URL üretilmiyor.
+
 > Çevrim 77 güncellemesi (18 Ağustos 2026): public Kaynak ve Güven Merkezi, yalnız kaynak
 > listesi göstermekten çıkarılıp yayınların kaynak kapsamı, bağımsız alan adı çeşitliliği ve
 > kaynak sınıflandırma/güncellik borcunu ölçen görünür bir kanıt panosuna dönüştürüldü.
@@ -77,7 +82,7 @@ Son güncelleme: 17 Ağustos 2026 — Çevrim 69. Bu kayıt moda odaklı yeniden
 
 ## 7. Locale yayın bütünlüğü kapısı
 
-- **Durum / öncelik:** Uygulanacak / P2
+- **Durum / öncelik:** Uygulandı / P2
 - **Problem ve kanıt:** Dört locale mevcut; çeviri kaynak snapshot’ı olsa da kalite ve kültürel görsel uygunluğu tam otomatik kapı değil.
 - **Değişiklik ve fayda:** TranslationReviewed, kaynak snapshot, taxonomy ve locale-görsel kontrolünü tek yayın sözleşmesinde birleştirir.
 - **Yüzey / kapsam:** API quality gate, language manager, SEO metadata.

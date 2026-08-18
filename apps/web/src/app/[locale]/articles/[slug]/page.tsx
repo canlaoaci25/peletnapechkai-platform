@@ -7,7 +7,7 @@ import { ArticleEngagement } from "@/components/article-engagement";
 import { SaveArticleButton } from "@/components/save-article-button";
 import { siteConfig } from "@/config/site";
 import { commercialCopy } from "@/i18n/commercial-copy";
-import { hasLocale } from "@/i18n/config";
+import { hasLocale, localeLabels, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getPublishedArticle, getRelatedArticles } from "@/lib/public-api";
 import { buildArticleStructuredData, getPublicSource } from "@/lib/article-structured-data";
@@ -88,6 +88,9 @@ export default async function ArticlePage({
   const { bodyHtml, outline } = buildArticleOutline(isHtml ? article.body : markdownBodyToHtml(article.body));
   const publicSources = article.sources.map(getPublicSource).filter((source) => source !== null);
   const articleCopy = dictionary.article;
+  const editions = article.translations.filter(
+    (translation): translation is typeof translation & { locale: keyof typeof localeLabels } => hasLocale(translation.locale),
+  );
   const readingMinutes = estimateReadingMinutes(article.body);
   const hasMeaningfulUpdate = wasMeaningfullyUpdated(article.publishedAt, article.updatedAt);
   const formatDate = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(new Date(value));
@@ -151,6 +154,27 @@ export default async function ArticlePage({
             <p className="section-kicker">{article.type}</p>
             <h1>{article.title}</h1>
             <p className="article-lead">{article.summary}</p>
+            <aside className="article-editions" aria-labelledby="article-editions-title">
+              <div>
+                <span className="article-editions-mark" aria-hidden="true">文</span>
+                <div>
+                  <h2 id="article-editions-title">{articleCopy.editionHeading}</h2>
+                  <p>{interpolate(articleCopy.editionSummary, { available: editions.length, total: locales.length })}</p>
+                </div>
+              </div>
+              <nav aria-label={articleCopy.editionHeading}>
+                {editions.map((edition) => edition.locale === locale ? (
+                  <span key={edition.locale} aria-current="page">
+                    {localeLabels[edition.locale]}
+                    <small>{articleCopy.currentEdition}</small>
+                  </span>
+                ) : (
+                  <Link key={edition.locale} href={`/${edition.locale}/articles/${edition.slug}`} hrefLang={edition.locale} lang={edition.locale}>
+                    {localeLabels[edition.locale]}
+                  </Link>
+                ))}
+              </nav>
+            </aside>
             <div className="article-facts" aria-label={articleCopy.editorialTrust}>
               {article.authors.length > 0 && <div className="article-byline"><span className="article-fact-label">BOECL</span><strong>{article.authors.map((author, index) => <span key={author.slug}>{index > 0 && ", "}<Link href={`/${locale}/authors/${author.slug}`}>{author.displayName}</Link></span>)}</strong></div>}
               <div><span className="article-fact-label">{articleCopy.published}</span><time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time></div>

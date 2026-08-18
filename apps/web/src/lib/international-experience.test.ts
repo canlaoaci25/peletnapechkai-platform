@@ -13,6 +13,18 @@ test("article language menu links only published equivalents and explains missin
   assert.match(header, /translationUnavailable/);
 });
 
+test("article exposes a visible edition rail without inventing translation links", () => {
+  const article = read("../app/[locale]/articles/[slug]/page.tsx");
+  const css = read("../app/globals.css");
+  assert.match(article, /article-editions/);
+  assert.match(article, /article\.translations\.filter/);
+  assert.match(article, /edition\.locale === locale/);
+  assert.match(article, /aria-current="page"/);
+  assert.match(article, /hrefLang=\{edition\.locale\}/);
+  assert.match(css, /\.article-editions/);
+  assert.match(css, /@media\(max-width:600px\)\{\.article-editions/);
+});
+
 test("international publishing dashboard exposes coverage and editorial debt", () => {
   const manager = read("../components/admin/language-manager.tsx");
   assert.match(manager, /missingTranslationCount/);
