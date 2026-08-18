@@ -63,6 +63,7 @@ public static class AutomationEndpoints
             return new { row.Id, row.locale, row.Slug, row.Title, row.PublishedAt, score = result.Score, grade = result.Grade,
                 risks = result.Risks, result.BodyImageCount, coverUrl = row.coverId is null ? null : "/api/media/" + row.coverId,
                 row.CoverAltText, row.width, row.height, row.optimizedBytes,
+                sectionPlan = VisualBriefBuilder.BuildSectionPlan(row.Title, row.Summary, row.Body, row.locale, row.categories),
                 visualTask = tasks.TryGetValue(row.Id, out var task) ? new { task.Id, status = task.Status.ToString(), task.SectionContext, task.VisualPurpose, visualType = InferVisualType(task.ProposedPrompt), task.ProposedPrompt, task.NegativePrompt, task.AttemptCount, task.ReviewerNote, task.UpdatedAt,
                     task.CandidateMediaAssetId, candidateUrl = task.CandidateMediaAssetId == null ? null : "/api/media/" + task.CandidateMediaAssetId,
                     task.Provider, task.LicenseName, task.Attribution, task.CandidateAltText, task.TopicScore, task.TextSafetyScore, task.CropScore, task.OriginalityScore,

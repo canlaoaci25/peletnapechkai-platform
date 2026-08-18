@@ -62,6 +62,7 @@ export type VisualQualityReport = {
     width: number | null;
     height: number | null;
     optimizedBytes: number | null;
+    sectionPlan: { heading: string; headingLevel: number; purpose: string; visualType: string; typeReason: string; prompt: string; negativePrompt: string }[];
     visualTask: VisualTask | null;
   }[];
 };
@@ -143,6 +144,9 @@ const base = {
   mobileCrop: "Mobile card · 1:1",
   atlasCrop: "Topic card · 4:3",
   feedCrop: "Latest feed · 16:10",
+  sectionPlan: "Section art direction",
+  sectionPlanHelp: "A bounded set of H2/H3 scenes selected from the full article; each brief must match its own section.",
+  noSectionPlan: "This story has no substantial section that needs a separate body visual.",
 };
 const copy = {
   "tr-TR": {
@@ -217,6 +221,9 @@ const copy = {
     rejectedCount: "Reddedilen",
     activeStory: "Aktif makale",
     noActiveStory: "Sıradaki makale bekleniyor",
+    sectionPlan: "Bölüm görsel yönetmenliği",
+    sectionPlanHelp: "Tam makaleden seçilen sınırlı H2/H3 sahneleri; her brief yalnız kendi bölümüyle eşleşmelidir.",
+    noSectionPlan: "Bu yazıda ayrı gövde görseli gerektiren yeterli bir bölüm bulunamadı.",
     proofMatrix: "Public kırpma kanıtı",
     proofHelp: "Ana öznenin yayında kullanılan her kadrajda eksiksiz kaldığını denetleyin.",
     heroCrop: "Makale kapağı · 16:9",
@@ -580,6 +587,20 @@ export function VisualQualityDesk({
                     <li className="quality-clean">{c.clean}</li>
                   )}
                 </ul>
+                <details className="visual-section-plan">
+                  <summary>{c.sectionPlan} · {item.sectionPlan.length}</summary>
+                  <p>{c.sectionPlanHelp}</p>
+                  {item.sectionPlan.length ? (
+                    <ol>
+                      {item.sectionPlan.map((section) => (
+                        <li key={`${section.headingLevel}-${section.heading}`}>
+                          <span>H{section.headingLevel}</span>
+                          <div><strong>{section.heading}</strong><small>{section.visualType} · {section.typeReason}</small><p>{section.prompt}</p></div>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : <p>{c.noSectionPlan}</p>}
+                </details>
                 {item.visualTask && (
                   <details className="visual-brief">
                     <summary>

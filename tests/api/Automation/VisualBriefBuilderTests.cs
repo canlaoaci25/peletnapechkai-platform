@@ -28,6 +28,24 @@ public sealed class VisualBriefBuilderTests
         Assert.Equal("natural editorial photograph", brief.VisualType);
     }
 
+    [Fact]
+    public void Builds_a_bounded_section_plan_from_the_full_article()
+    {
+        var body = string.Join("", Enumerable.Range(1, 7).Select(index =>
+            $"<h2>Bölüm {index}</h2><p>{new string((char)('a' + index), 120)}</p>"));
+        var plan = VisualBriefBuilder.BuildSectionPlan("Elektrikli araç rehberi", "Pratik bir rehber.", body, "tr-TR", ["Mobilite"]);
+
+        Assert.Equal(3, plan.Length);
+        Assert.Equal(["Bölüm 1", "Bölüm 4", "Bölüm 7"], plan.Select(item => item.Heading));
+        Assert.All(plan, item => { Assert.Equal(2, item.HeadingLevel); Assert.Contains(item.Heading, item.Prompt); Assert.Contains("text", item.NegativePrompt); });
+    }
+
+    [Fact]
+    public void Omits_too_thin_sections_from_the_visual_plan()
+    {
+        Assert.Empty(VisualBriefBuilder.BuildSectionPlan("Başlık", "Özet", "<h2>Boş</h2><p>Kısa</p>", "tr-TR", []));
+    }
+
     [Theory]
     [InlineData("Telefon kurulum adımları", "Uygulamayı güvenli biçimde yapılandırın.", "step-by-step editorial illustration")]
     [InlineData("İki dizüstü bilgisayar karşılaştırması", "Modellerin farklarını inceleyin.", "comparison editorial illustration")]

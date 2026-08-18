@@ -1,5 +1,10 @@
 # BOECL otonom mimari ve ürün teklifleri
 
+> Çevrim 87 güncellemesi (18 Ağustos 2026): Görsel Yenileme Stüdyosu artık uzun makaleyi ilk H2'ye
+> indirgemiyor; tam gövdeden ilk/orta/son anlamlı H2/H3 sahnelerini en fazla üç özgün, yazısız bölüm
+> briefine dönüştürüyor. Dış provider açılmadı ve otomatik yayın yapılmadı. Sonraki uygulanabilir dilim
+> stable heading anchor'a bağlı locale-local body asset, provenance ve atomik rollback modelidir.
+
 > Çevrim 81 güncellemesi (18 Ağustos 2026): Public yayın navigasyonu masaüstünde kullanıcı
 > tercihini koruyan daraltılabilir raya dönüştürüldü; mobil drawer arka planı erişilebilirlik
 > ağacından izole ediyor, breakpoint değişiminde scroll kilidini bırakıyor ve tüm dokunma

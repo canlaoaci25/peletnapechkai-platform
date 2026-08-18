@@ -21,3 +21,12 @@ test("provider health and public content retain narrow-screen width contracts", 
   assert.match(styles, /\.rich-article-body :where\(p,li,a,blockquote,figcaption\)/);
   assert.match(styles, /overflow-wrap:anywhere;word-break:break-word/);
 });
+
+test("visual studio exposes bounded full-article section art direction", () => {
+  assert.match(component, /item\.sectionPlan\.map/);
+  assert.match(component, /H\{section\.headingLevel\}/);
+  assert.match(component, /section\.visualType/);
+  assert.match(component, /section\.typeReason/);
+  assert.match(component, /section\.prompt/);
+  assert.match(styles, /\.visual-section-plan li\{display:grid;grid-template-columns:38px minmax\(0,1fr\)/);
+});
