@@ -23,7 +23,9 @@ function Write-BoeclDeploymentJournal {
     }
     $target = Join-Path $JournalRoot ("latest-{0}-{1}.json" -f $Environment.ToLowerInvariant(),$Component.ToLowerInvariant())
     if ($DeploymentId -notmatch '^[a-zA-Z0-9-]{1,64}$') { throw 'Deployment id contains unsupported characters.' }
-    $historyTarget = Join-Path $JournalRoot ("deployment-{0}.json" -f $DeploymentId)
+    # A cohort intentionally reuses one id across Web and API. Keep each component's
+    # append-only evidence instead of allowing the second writer to replace the first.
+    $historyTarget = Join-Path $JournalRoot ("deployment-{0}-{1}.json" -f $DeploymentId,$Component.ToLowerInvariant())
     # Persist durable evidence before advancing the latest pointer.
     foreach ($destination in @($historyTarget,$target)) {
         $temporary = Join-Path $JournalRoot (".{0}.tmp" -f [guid]::NewGuid().ToString('N'))

@@ -1,12 +1,13 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][ValidateSet('Staging','Production')][string]$Environment,
-    [string]$RepositoryPath = (Join-Path $PSScriptRoot '..\..')
+    [string]$RepositoryPath = (Join-Path $PSScriptRoot '..\..'),
+    [string]$CohortId = ''
 )
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'DeploymentJournal.ps1')
-$deploymentId = [guid]::NewGuid().ToString('N')
+$deploymentId = if ($CohortId) { $CohortId } else { [guid]::NewGuid().ToString('N') }
 $deploymentStartedAt = [datetimeoffset]::UtcNow
 $commit = (& git.exe -C $RepositoryPath rev-parse --short=12 HEAD 2>$null)
 Write-BoeclDeploymentJournal -Environment $Environment -Component Api -Status Started -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'API release is being published and staged.'
@@ -55,7 +56,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "$Environment API health check failed." }
     Write-BoeclDeploymentJournal -Environment $Environment -Component Api -Status Succeeded -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'API health gate passed.'
     $terminalRecorded = $true
-    [pscustomobject]@{ Environment=$Environment; Active=$active; Rollback=$rollback; Healthy=$true }
+    [pscustomobject]@{ Environment=$Environment; CohortId=$deploymentId; Active=$active; Rollback=$rollback; Healthy=$true }
 }
 catch {
     $failureMessage = $_.Exception.Message

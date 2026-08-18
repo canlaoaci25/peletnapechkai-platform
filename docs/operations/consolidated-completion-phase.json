@@ -2,7 +2,7 @@
   "id": "boecl-complete-all",
   "title": "BOECL tek faz tamamlama programı",
   "status": "active",
-  "updatedAt": "2026-08-18T18:05:00Z",
+  "updatedAt": "2026-08-18T19:35:00Z",
   "policy": {
     "createNewBacklog": false,
     "completeOnlyWhenAllWorkstreamsPass": true,
@@ -91,6 +91,13 @@
       "status": "checkpoint",
       "summary": "Members now have a four-locale, explicit-action Web Push consent and quiet-hours surface backed by an additive per-device subscription model, CSRF-protected account endpoints, append-only audit events and a same-origin service worker. The API remains fail-closed unless public key, private key and subject are all supplied from protected server configuration. Dispatch policy, durable outbox/retry/dead-letter, admin send controls, staging browser evidence and production promotion remain blocked on the recorded owner communication and retention decision; no automatic delivery was enabled.",
       "tests": ["95 web tests", "web lint", "web typecheck", "web production build", "196 API tests", "API Release build"]
+    },
+    {
+      "workstream": "canary-cohort-rollback",
+      "scope": "local",
+      "status": "checkpoint",
+      "summary": "Production promotion can no longer skip staging; Web and API share one release cohort identifier and a Web or aggregate-health failure invokes a path-validated coordinated application rollback. Component histories remain separately auditable. A limited real traffic cohort, database compatibility checkpoint, staging rollback drill and production evidence are still required before completion.",
+      "tests": ["release promotion regression", "deployment journal regression", "PowerShell parse gate", "git diff check"]
     }
   ]
 }

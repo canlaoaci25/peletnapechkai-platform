@@ -1,12 +1,13 @@
 [CmdletBinding()]
 param(
     [ValidateSet('Staging','Production')][string]$Environment,
-    [string]$BuildRoot = (Join-Path $PSScriptRoot '..\..\apps\web')
+    [string]$BuildRoot = (Join-Path $PSScriptRoot '..\..\apps\web'),
+    [string]$CohortId = ''
 )
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'DeploymentJournal.ps1')
-$deploymentId = [guid]::NewGuid().ToString('N')
+$deploymentId = if ($CohortId) { $CohortId } else { [guid]::NewGuid().ToString('N') }
 $deploymentStartedAt = [datetimeoffset]::UtcNow
 $commit = (& git.exe -C (Join-Path $PSScriptRoot '..\..') rev-parse --short=12 HEAD 2>$null)
 Write-BoeclDeploymentJournal -Environment $Environment -Component Web -Status Started -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'Release artifacts are being staged.'
@@ -67,7 +68,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "$Environment public experience check failed." }
     Write-BoeclDeploymentJournal -Environment $Environment -Component Web -Status Succeeded -DeploymentId $deploymentId -Commit $commit -StartedAt $deploymentStartedAt -Message 'Health and public experience gates passed.'
     $terminalRecorded = $true
-    [pscustomobject]@{ Environment=$Environment; Active=$active; Rollback=$rollback; Healthy=$true }
+    [pscustomobject]@{ Environment=$Environment; CohortId=$deploymentId; Active=$active; Rollback=$rollback; Healthy=$true }
 }
 catch {
     $failureMessage = $_.Exception.Message
