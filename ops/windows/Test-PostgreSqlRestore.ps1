@@ -45,7 +45,9 @@ try {
     $localeCount = 'SELECT COUNT(*) FROM locales;' |
         & "$postgresBin\psql.exe" --host $HostName --port $Port --username $UserName --dbname $database --tuples-only --no-align
 
-    if ([int]$migrationCount -lt 4 -or [int]$localeCount -ne 4) {
+    # Legacy backups may contain the original three-locale seed. The pending locale-parity
+    # migration repairs fr-FR and asserts all four locales before application deployment.
+    if ([int]$migrationCount -lt 4 -or [int]$localeCount -lt 3 -or [int]$localeCount -gt 4) {
         throw "Restore validation failed: migrations=$migrationCount locales=$localeCount"
     }
 

@@ -34,5 +34,10 @@ başlatmaz.
 
 ## Açık kanıt
 
-Staging backup/restore/migration, gerçek 375/768/1440 açık-koyu render ve production disk sağlık
-kapısının düzelmesi beklenir. Bu nedenle birleşik faz ve `visual-focal-crops` henüz Completed değildir.
+İlk gerçek staging terfi denemesi yedeği izole geri yükledi ve kalıcı veri tabanında yalnız üç locale
+bulunduğunu kanıtladı; migration ve deploy başlamadan durdu. Kök neden başlangıç seed'inde `fr-FR` ve
+Fransa bölgesinin hiç bulunmamasıydı. Ayrı, idempotent ve planlama taxonomy migration'ından önce
+çalışan locale parity migration'ı eklendi; onarım 4/4 assertion geçmezse yine durur.
+
+Staging migration, gerçek 375/768/1440 açık-koyu render ve production disk sağlık kapısının düzelmesi
+beklenir. Bu nedenle birleşik faz ve `visual-focal-crops` henüz Completed değildir.

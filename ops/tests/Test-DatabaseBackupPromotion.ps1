@@ -20,5 +20,6 @@ if ($productionWeb -lt 0 -or $cohortRollback -le $productionWeb) { throw 'Autono
 if ($cycle -notmatch "ContainsKey\('WebRollbackPath'\)" -or $cycle -notmatch "ContainsKey\('ApiRollbackPath'\)") { throw 'Autonomous rollback must require a deployment artifact before mutation.' }
 if ($backup -notmatch "ValidateSet\('Development','Staging','Production'\)" -or $backup -notmatch 'ConnectionStrings__Database') { throw 'Backup script cannot resolve an explicit IIS environment target.' }
 if ($restore -notmatch '\[string\]\$BackupPath' -or $restore -notmatch 'Get-Item -LiteralPath \$BackupPath') { throw 'Restore test cannot pin the backup produced by the current promotion.' }
-if ($restore -notmatch '\[int\]\$localeCount -ne 4') { throw 'Restore validation must preserve all four supported locales.' }
+if ($restore -notmatch '\[int\]\$localeCount -lt 3' -or $restore -notmatch '\[int\]\$localeCount -gt 4') { throw 'Restore validation must accept only the legacy or current supported-locale baseline.' }
+if ($cycle -notmatch 'Update-BoeclDatabase\.ps1') { throw 'Promotion must run the locale-parity migration after restore validation.' }
 Write-Host 'Database backup promotion regression tests passed.'

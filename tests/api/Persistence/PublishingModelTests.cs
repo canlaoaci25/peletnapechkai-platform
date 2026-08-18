@@ -81,9 +81,10 @@ public sealed class PublishingModelTests
     }
 
     [Fact]
-    public void LocaleSeed_HasOneDefaultAndThreeEnabledLocales()
+    public void LocaleSeed_HasOneDefaultAndEverySupportedLocale()
     {
-        Assert.Equal(3, SeedData.Locales.Length);
+        Assert.Equal(new[] { "de-DE", "en-US", "fr-FR", "tr-TR" }, SeedData.Locales.Select(locale => locale.Code).Order());
+        Assert.Equal(4, SeedData.Regions.Length);
         Assert.Single(SeedData.Locales, locale => locale.IsDefault);
         Assert.All(SeedData.Locales, locale => Assert.True(locale.IsEnabled));
     }
