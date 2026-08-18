@@ -5,7 +5,7 @@ using Peletnapechkai.Api.Infrastructure.Persistence;
 
 namespace Peletnapechkai.Api.Infrastructure.Automation;
 
-public sealed class AutomaticContentWorker(IServiceScopeFactory scopeFactory, TimeProvider timeProvider, ILogger<AutomaticContentWorker> logger) : BackgroundService
+public sealed class AutomaticContentWorker(IServiceScopeFactory scopeFactory, TimeProvider timeProvider, IConfiguration configuration, ILogger<AutomaticContentWorker> logger) : BackgroundService
 {
     private static readonly ArticleType[] Types = [ArticleType.News, ArticleType.Guide, ArticleType.Review, ArticleType.Analysis];
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -26,7 +26,10 @@ public sealed class AutomaticContentWorker(IServiceScopeFactory scopeFactory, Ti
             var busy = await database.AutomationJobs.AnyAsync(job => job.Type == AutomationJobType.ReadyContentGeneration &&
                 (job.Status == AutomationJobStatus.Queued || job.Status == AutomationJobStatus.Running || job.Status == AutomationJobStatus.Paused), token);
             if (busy) return;
-            var categoryIds = await database.Categories.AsNoTracking().Where(category => category.Locale.IsDefault).Select(category => category.Id).ToArrayAsync(token);
+            var campaign=PriorityContentCampaign.Load(configuration,now);
+            var categoryIds = campaign is null
+                ?await database.Categories.AsNoTracking().Where(category => category.Locale.IsDefault).Select(category => category.Id).ToArrayAsync(token)
+                :await database.Categories.AsNoTracking().Where(category => category.Locale.IsDefault&&category.Slug==campaign.CategorySlug).Select(category => category.Id).ToArrayAsync(token);
             if (categoryIds.Length == 0) return;
             var locales = await database.Locales.AsNoTracking().Where(locale => locale.IsEnabled && !locale.IsDefault).Select(locale => locale.Code).Order().ToArrayAsync(token);
             var categoryId = categoryIds[Random.Shared.Next(categoryIds.Length)];

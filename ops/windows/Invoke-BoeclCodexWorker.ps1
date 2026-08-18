@@ -135,6 +135,9 @@ try {
             } else {
                 "Aşağıdaki yayımlanmış içerikler için kendi dilinde doğal SEO başlığı ve açıklaması üret. İçerikte olmayan iddia ekleme; articleId değerini aynen koru. Yalnız şemaya uyan JSON döndür.`r`n$candidateJson"
             }
+            if ($candidateKind -eq 'generation' -and -not [string]::IsNullOrWhiteSpace([string]$candidateSet.contentBrief)) {
+                $instruction = "ZORUNLU ICERIK BRIFI: $([string]$candidateSet.contentBrief)`r`nBu brif genel uretim kurallarindan onceliklidir ve eksiksiz uygulanmalidir.`r`n$instruction"
+            }
             $codexArguments = @()
             if ($candidateKind -eq 'generation') { $codexArguments += '--search' }
             $codexArguments += @('exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--cd', [string]$config.repositoryPath, '--output-schema', $schema, '--output-last-message', $batchResult)

@@ -22,7 +22,7 @@ public static partial class AutomationWorkerEndpoints
         if (job.Status != AutomationJobStatus.Running) return Results.Conflict(new { message = "İş çalışır durumda değil." });
 
         if (job.Type == AutomationJobType.ReadyContentGeneration)
-            return await GetReadyContentCandidatesAsync(job, database, token);
+            return await GetReadyContentCandidatesAsync(job, database, configuration, token);
 
         if (job.Type == AutomationJobType.CategoryLocalization)
         {
@@ -61,7 +61,7 @@ public static partial class AutomationWorkerEndpoints
         return Results.Conflict(new { message = "Bu iş türü yapılandırılmış içerik adayı sağlamaz." });
     }
 
-    private static async Task<IResult> GetReadyContentCandidatesAsync(AutomationJob job, PublishingDbContext database, CancellationToken token)
+    private static async Task<IResult> GetReadyContentCandidatesAsync(AutomationJob job, PublishingDbContext database, IConfiguration configuration, CancellationToken token)
     {
         var sources = await database.ArticleLocalizations.AsNoTracking()
             .Where(article => article.GeneratedByAutomationJobId == job.Id && article.Locale.IsDefault && article.Status == PublicationStatus.Published)
@@ -102,7 +102,9 @@ public static partial class AutomationWorkerEndpoints
                 .OrderByDescending(article => article.CreatedAt).Take(300).Select(article => new { article.Title, article.Summary, article.Slug }).ToArrayAsync(token);
             job.ReportProgress(sources.Count, 0, 2, $"Makale aşaması {sources.Count + 1}/{job.TotalItems}: tek ve kapsamlı Türkçe içerik araştırılıyor.", DateTimeOffset.UtcNow);
             await database.SaveChangesAsync(token);
-            return Results.Ok(new { kind = "generation", requestedCount = 1, category, articleType = job.RequestedArticleType, includeImages = job.IncludeImages, autoSeo = job.AutoSeo, existing });
+            var recipeCampaign=new PriorityContentCampaign("yemek-tarifleri",70,DateTimeOffset.MaxValue);
+            var contentBrief=category.Slug==recipeCampaign.CategorySlug?recipeCampaign.CreateRecipeBrief(job.Id):null;
+            return Results.Ok(new { kind = "generation", requestedCount = 1, category, articleType = job.RequestedArticleType, includeImages = job.IncludeImages, autoSeo = job.AutoSeo, contentBrief, existing });
         }
 
         job.ReportProgress(sources.Count, 0, 6, "Son doğrulama tamamlandı; tüm seçili fazlar eksiksiz.", DateTimeOffset.UtcNow);
