@@ -34,6 +34,11 @@ test("published content freshness debt explains its evidence in every locale", (
   assert.match(component, /item\.freshnessReasons\.map/);
   assert.match(component, /ContentOverOneYear/);
   assert.match(component, /SourcesReviewStale/);
+  assert.match(component, /TrafficEvidenceUnavailable/);
+  assert.match(component, /MeasuredReaderDemand/);
+  assert.match(component, /SeoQualityOpen/);
+  assert.match(component, /\/api\/admin\/editorial\/freshness\/\$\{item\.articleId\}\/task/);
+  assert.match(component, /item\.locale==="tr-TR"/);
   assert.match(styles, /\.freshness-debt-reasons/);
 });
 

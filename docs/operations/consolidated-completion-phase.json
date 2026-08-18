@@ -2,7 +2,7 @@
   "id": "boecl-complete-all",
   "title": "BOECL tek faz tamamlama programı",
   "status": "active",
-  "updatedAt": "2026-08-18T16:28:00Z",
+  "updatedAt": "2026-08-18T18:05:00Z",
   "policy": {
     "createNewBacklog": false,
     "completeOnlyWhenAllWorkstreamsPass": true,
@@ -70,6 +70,13 @@
       "status": "passed",
       "summary": "Locale-specific editor-approved claim citations now bind only sources already attached to the article, persist approval evidence, emit audit events, and render as an accessible reader-facing evidence panel distinct from the general bibliography. Staging backup/restore/migration, light/dark browser captures and production promotion remain required before completion.",
       "tests": ["ArticleClaimCitation domain tests", "187 API tests", "93 web tests", "web lint", "web typecheck", "API Release build"]
+    },
+    {
+      "workstream": "content-freshness",
+      "scope": "local",
+      "status": "passed",
+      "summary": "The admin freshness queue now combines content age, source review, measured on-site reader demand and SEO quality debt without inventing missing traffic. Editors can idempotently claim an audited high-priority revision task only from the published Turkish source edition. Autonomous delivery now blocks all production backup, migration and deployment until the complete changed staging cohort passes health checks. Live render and staging/production promotion evidence are still required before completion.",
+      "tests": ["Editorial freshness policy tests", "93 web tests", "locale consistency", "web lint", "web typecheck", "web production build", "187 API tests", "API Release build", "database backup promotion regression", "release promotion regression"]
     }
   ]
 }

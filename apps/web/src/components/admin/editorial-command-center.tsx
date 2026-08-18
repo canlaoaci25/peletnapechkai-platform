@@ -148,6 +148,12 @@ const gateCopy={
   "de-DE":{TitleAndSummary:"Titel und Zusammenfassung",SourcesVerified:"Quellenprüfung",AuthorAndTaxonomy:"Autor und Taxonomie",SeoMetadata:"SEO-Metadaten",CoverAccessibility:"Titelbild und Alternativtext",CommercialDisclosure:"Werbekennzeichnung",TranslationReviewed:"Übersetzungsprüfung",LegalEditorialReview:"Rechtliche/redaktionelle Prüfung"},
   "fr-FR":{TitleAndSummary:"Titre et résumé",SourcesVerified:"Vérification des sources",AuthorAndTaxonomy:"Auteur et taxonomie",SeoMetadata:"Métadonnées SEO",CoverAccessibility:"Image et texte alternatif",CommercialDisclosure:"Mention commerciale",TranslationReviewed:"Révision de traduction",LegalEditorialReview:"Révision juridique/éditoriale"},
 } as const;
+const freshnessWorkflowCopy={
+  "tr-TR":{why:"Neden şimdi?",TrafficEvidenceUnavailable:"Trafik ölçümü yok; etki tahmin edilmedi",MeasuredReaderDemand:"Ölçülen okur ilgisi yüksek",SeoQualityOpen:"SEO kalite kapısı açık",take:"Revizyon görevini üstlen",error:"Revizyon görevi oluşturulamadı.",sourceOnly:"Revizyon akışı Türkçe kaynak yayından başlar."},
+  "en-US":{why:"Why now?",TrafficEvidenceUnavailable:"No traffic measurement; impact was not estimated",MeasuredReaderDemand:"Measured reader demand is high",SeoQualityOpen:"SEO quality gate is open",take:"Take revision task",error:"The revision task could not be created.",sourceOnly:"Revision work starts from the Turkish source edition."},
+  "de-DE":{why:"Warum jetzt?",TrafficEvidenceUnavailable:"Keine Verkehrsmessung; Wirkung wurde nicht geschätzt",MeasuredReaderDemand:"Gemessenes Leserinteresse ist hoch",SeoQualityOpen:"SEO-Qualitätsprüfung ist offen",take:"Revision übernehmen",error:"Revisionsaufgabe konnte nicht erstellt werden.",sourceOnly:"Revisionen beginnen mit der türkischen Quellausgabe."},
+  "fr-FR":{why:"Pourquoi maintenant ?",TrafficEvidenceUnavailable:"Aucune mesure de trafic ; impact non estimé",MeasuredReaderDemand:"La demande mesurée des lecteurs est forte",SeoQualityOpen:"Le contrôle qualité SEO est ouvert",take:"Prendre la tâche de révision",error:"La tâche de révision n’a pas pu être créée.",sourceOnly:"La révision commence par l’édition source turque."},
+} as const;
 export function EditorialCommandCenterView({
   locale,
   data,
@@ -159,6 +165,7 @@ export function EditorialCommandCenterView({
 }) {
   const c = copy[locale as keyof typeof copy] ?? copy["tr-TR"],
     pc = performanceCopy[locale as keyof typeof performanceCopy] ?? performanceCopy["tr-TR"],
+    fc = freshnessWorkflowCopy[locale as keyof typeof freshnessWorkflowCopy] ?? freshnessWorkflowCopy["tr-TR"],
     router = useRouter(),
     [scope, setScope] = useState<Scope>("mine"),
     [filter, setFilter] = useState<Filter>("all"),
@@ -222,6 +229,10 @@ export function EditorialCommandCenterView({
       const response=await fetch(`/api/admin/editorial/tasks/${item.taskId}/assignee`,{method:"POST",headers:{"content-type":"application/json","x-csrf-token":token},body:JSON.stringify({assigneeUserId})});
       if(!response.ok)throw new Error();router.refresh();
     }catch{setError(c.reassignError)}finally{setBusy(null)}
+  }
+  async function createFreshnessTask(item:EditorialCommandCenter["items"][number]){
+    setBusy(`freshness-${item.articleId}`);setError("");
+    try{const csrf=await fetch("/api/admin/auth/csrf",{cache:"no-store"}),{token}=await csrf.json()as{token:string};const response=await fetch(`/api/admin/editorial/freshness/${item.articleId}/task`,{method:"POST",headers:{"x-csrf-token":token}});if(!response.ok)throw new Error();router.refresh()}catch{setError(fc.error)}finally{setBusy(null)}
   }
   function toggle(taskId:string){setSelected(current=>{const next=new Set(current);if(next.has(taskId))next.delete(taskId);else if(next.size<25)next.add(taskId);return next})}
   async function bulkReassign(){if(!bulkOwner||selected.size===0)return;setBusy("bulk");setError("");
@@ -363,7 +374,7 @@ export function EditorialCommandCenterView({
                 <h3>{item.taskTitle ?? item.title}</h3>
                 {item.taskTitle && <p>{item.title}</p>}
                 {item.kind==="QualityGate"&&item.missingGates&&<div className="quality-debt-gates" aria-label={c.missing}>{item.missingGates.map(gate=><span key={gate}>{gateCopy[locale as keyof typeof gateCopy]?.[gate as keyof typeof gateCopy["tr-TR"]]??gate}</span>)}</div>}
-                {item.kind==="FreshnessDebt"&&item.freshnessReasons&&<div className="freshness-debt-reasons" aria-label={c.freshnessReasons}>{item.freshnessReasons.map(reason=><span key={reason}>{c[reason as keyof typeof c]??reason}</span>)}</div>}
+                {item.kind==="FreshnessDebt"&&item.freshnessReasons&&<div className="freshness-debt-reasons" aria-label={fc.why}>{item.freshnessReasons.map(reason=><span key={reason}>{fc[reason as keyof typeof fc]??c[reason as keyof typeof c]??reason}</span>)}</div>}
                 <small>
                   {item.locale}
                   {item.assignee ? ` · ${c.assigned}: ${item.assignee}` : ""}
@@ -397,6 +408,7 @@ export function EditorialCommandCenterView({
                   </label>
                 )}
                 {item.taskId&&canReassign&&<label><span>{c.reassign}</span><select value={item.assigneeUserId??""} disabled={busy===item.taskId} onChange={event=>void reassign(item,event.target.value)}><option value="" disabled>{c.assigned}</option>{data.users.map(user=><option key={user.id} value={user.id}>{user.displayName}</option>)}</select></label>}
+                {item.kind==="FreshnessDebt"&&(item.locale==="tr-TR"?<button type="button" disabled={busy===`freshness-${item.articleId}`} onClick={()=>void createFreshnessTask(item)}>{fc.take}</button>:<small>{fc.sourceOnly}</small>)}
                 <Link href={`/${locale}/admin/articles/${item.articleId}`}>
                   {c.open} →
                 </Link>

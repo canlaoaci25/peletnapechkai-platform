@@ -201,8 +201,10 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
     if (@(& git.exe -C $cycleRepository status --porcelain).Count -gt 0) { throw 'Otonom cevrim commit edilmemis degisiklik birakti; kurtarma worktree korunuyor.' }
     if ($finalCommit -eq $baselineCommit) { throw 'Otonom cevrim anlamli bir commit uretmedi.' }
     Merge-BoeclAutonomousWorktree -Repository $repository -Context $worktreeContext
-    if ($changedFiles | Where-Object { $_ -like 'apps/api/*' -or $_ -like 'tests/api/*' }) {
-        $hasMigrations = [bool]($changedFiles | Where-Object { $_ -like 'apps/api/Infrastructure/Persistence/Migrations/*' })
+    $apiChanged = [bool]($changedFiles | Where-Object { $_ -like 'apps/api/*' -or $_ -like 'tests/api/*' })
+    $webChanged = [bool]($changedFiles | Where-Object { $_ -like 'apps/web/*' -or $_ -like 'config/supported-locales.json' })
+    $hasMigrations = $apiChanged -and [bool]($changedFiles | Where-Object { $_ -like 'apps/api/Infrastructure/Persistence/Migrations/*' })
+    if ($apiChanged) {
         if ($hasMigrations) {
             $stagingBackup = & (Join-Path $repository 'ops\windows\Backup-PostgreSql.ps1') -Environment Staging
             if (-not $stagingBackup -or $stagingBackup.Result -ne 'Success') { throw 'Staging PostgreSQL yedeği başarısız.' }
@@ -211,6 +213,17 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
             & (Join-Path $repository 'ops\windows\Update-BoeclDatabase.ps1') -Environment Staging -RepositoryPath $repository
         }
         & (Join-Path $repository 'ops\windows\Deploy-AspNetApiRelease.ps1') -Environment Staging -RepositoryPath $repository
+        if ($LASTEXITCODE -ne 0) { throw 'Staging API deployment failed.' }
+    }
+    if ($webChanged) {
+        & (Join-Path $repository 'ops\windows\Deploy-NextWebRelease.ps1') -Environment Staging -BuildRoot (Join-Path $cycleRepository 'apps\web')
+        if ($LASTEXITCODE -ne 0) { throw 'Staging web deployment failed.' }
+    }
+    if ($apiChanged -or $webChanged) {
+        & (Join-Path $repository 'ops\windows\Invoke-StagingHealthCheck.ps1')
+        if ($LASTEXITCODE -ne 0) { throw 'Staging release cohort failed health checks; production promotion was blocked.' }
+    }
+    if ($apiChanged) {
         if ($hasMigrations) {
             $productionBackup = & (Join-Path $repository 'ops\windows\Backup-PostgreSql.ps1') -Environment Production
             if (-not $productionBackup -or $productionBackup.Result -ne 'Success') { throw 'Production PostgreSQL yedeği başarısız.' }
@@ -219,10 +232,15 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
             & (Join-Path $repository 'ops\windows\Update-BoeclDatabase.ps1') -Environment Production -RepositoryPath $repository
         }
         & (Join-Path $repository 'ops\windows\Deploy-AspNetApiRelease.ps1') -Environment Production -RepositoryPath $repository
+        if ($LASTEXITCODE -ne 0) { throw 'Production API deployment failed.' }
     }
-    if ($changedFiles | Where-Object { $_ -like 'apps/web/*' -or $_ -like 'config/supported-locales.json' }) {
-        & (Join-Path $repository 'ops\windows\Deploy-NextWebRelease.ps1') -Environment Staging -BuildRoot (Join-Path $cycleRepository 'apps\web')
+    if ($webChanged) {
         & (Join-Path $repository 'ops\windows\Deploy-NextWebRelease.ps1') -Environment Production -BuildRoot (Join-Path $cycleRepository 'apps\web')
+        if ($LASTEXITCODE -ne 0) { throw 'Production web deployment failed.' }
+    }
+    if ($apiChanged -or $webChanged) {
+        & (Join-Path $repository 'ops\windows\Invoke-ProductionHealthCheck.ps1')
+        if ($LASTEXITCODE -ne 0) { throw 'Production release cohort failed final health checks.' }
     }
 
     Remove-BoeclAutonomousWorktree -Repository $repository -Context $worktreeContext

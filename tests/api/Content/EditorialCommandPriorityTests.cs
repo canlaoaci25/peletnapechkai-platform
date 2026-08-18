@@ -61,11 +61,13 @@ public sealed class EditorialCommandPriorityTests
     public void Freshness_policy_explains_content_and_source_risk_without_hiding_the_cause()
     {
         var now = new DateTimeOffset(2026, 8, 17, 0, 0, 0, TimeSpan.Zero);
-        Assert.Equal(["ContentOverOneYear", "SourcesUnreviewed"],
+        Assert.Equal(["ContentOverOneYear", "SourcesUnreviewed", "TrafficEvidenceUnavailable"],
             EditorialFreshnessPolicy.Assess(now, now.AddDays(-400), 2, 1, null));
-        Assert.Equal(["ContentOverSixMonths", "SourcesReviewStale"],
+        Assert.Equal(["ContentOverSixMonths", "SourcesReviewStale", "TrafficEvidenceUnavailable"],
             EditorialFreshnessPolicy.Assess(now, now.AddDays(-200), 2, 0, now.AddDays(-190)));
         Assert.Empty(EditorialFreshnessPolicy.Assess(now, now.AddDays(-20), 1, 0, now.AddDays(-20)));
+        Assert.Equal(["MeasuredReaderDemand", "SeoQualityOpen"],
+            EditorialFreshnessPolicy.Assess(now, now.AddDays(-20), 1, 0, now.AddDays(-20), 120, true));
     }
 
     [Fact]

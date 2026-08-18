@@ -20,6 +20,8 @@ public static class EditorialCommandCenterEndpoints
             .WithTags("Editorial").RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         endpoints.MapPost("/api/v1/admin/editorial/tasks/bulk-assignee/undo", UndoBulkReassignAsync)
             .WithTags("Editorial").RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
+        endpoints.MapPost("/api/v1/admin/editorial/freshness/{articleId:guid}/task", CreateFreshnessTaskAsync)
+            .WithTags("Editorial").RequireAuthorization(AuthorizationPolicies.WriteContent).ValidateAntiforgery();
         return endpoints;
     }
 
@@ -75,12 +77,16 @@ public static class EditorialCommandCenterEndpoints
                 article.Id, article.Title, Locale = article.Locale.Code, article.UpdatedAt,
                 SourceCount = article.ArticleGroup.Sources.Count,
                 UnreviewedSources = article.ArticleGroup.Sources.Count(source => source.LastReviewedAt == null),
-                OldestSourceReview = article.ArticleGroup.Sources.Min(source => (DateTimeOffset?)source.LastReviewedAt)
+                OldestSourceReview = article.ArticleGroup.Sources.Min(source => (DateTimeOffset?)source.LastReviewedAt),
+                Views = database.ArticleEngagements.Where(metric => metric.ArticleLocalizationId == article.Id)
+                    .Select(metric => (long?)metric.ViewCount).FirstOrDefault(),
+                SeoQualityOpen = database.ArticleQualityChecklists.Any(checklist =>
+                    checklist.ArticleLocalizationId == article.Id && !checklist.SeoMetadata)
             }).ToListAsync(token);
         var freshnessItems = freshnessCandidates.Select(article => new {
                 Article = article,
                 Reasons = EditorialFreshnessPolicy.Assess(now, article.UpdatedAt, article.SourceCount,
-                    article.UnreviewedSources, article.OldestSourceReview)
+                    article.UnreviewedSources, article.OldestSourceReview, article.Views, article.SeoQualityOpen)
             })
             .Where(item => item.Reasons.Length > 0)
             .OrderByDescending(item => EditorialFreshnessPolicy.Score(item.Reasons))
@@ -119,6 +125,32 @@ public static class EditorialCommandCenterEndpoints
             freshnessDebt = freshnessItems.Count, unassigned, teamMembers = workloads.Length,
             scheduled = schedule.Length, scheduleConflicts = schedule.Count(item => item.HasConflict), readyToSchedule },
             performance, schedule, workloads, users = activeUsers, items });
+    }
+
+    private static async Task<IResult> CreateFreshnessTaskAsync(Guid articleId,
+        System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users,
+        PublishingDbContext database, CancellationToken token)
+    {
+        var actor = await users.GetUserAsync(principal);
+        if (actor is null) return Results.Unauthorized();
+        var article = await database.ArticleLocalizations.Include(item => item.Locale)
+            .SingleOrDefaultAsync(item => item.Id == articleId, token);
+        if (article is null) return Results.NotFound();
+        if (article.Status != PublicationStatus.Published || article.Locale.Code != "tr-TR")
+            return Results.ValidationProblem(new Dictionary<string, string[]> {
+                ["articleId"] = ["Freshness work must start from a published Turkish source edition."] });
+        const string title = "Tazelik incelemesi: kaynak, SEO ve yeniden dağıtım kararı";
+        var existing = await database.EditorialTasks.AsNoTracking().FirstOrDefaultAsync(task =>
+            task.ArticleLocalizationId == articleId && task.Title == title && task.Status != EditorialTaskStatus.Completed, token);
+        if (existing is not null) return Results.Ok(new { existing.Id, created = false });
+        var now = DateTimeOffset.UtcNow;
+        var task = new EditorialTask(article, actor.Id, title, EditorialTaskPriority.High, now.AddDays(7), actor.Id, now);
+        database.EditorialTasks.Add(task);
+        database.AuditLogs.Add(new AuditLog(actor.Id, "editorial.freshness_task_created", nameof(EditorialTask), task.Id,
+            System.Text.Json.JsonSerializer.Serialize(new { articleId, sourceLocale = article.Locale.Code,
+                policy = "content-source-seo-engagement-v1", redistributionRequiresEditorialCompletion = true }), now));
+        await database.SaveChangesAsync(token);
+        return Results.Created($"/api/v1/admin/editorial/tasks/{task.Id}", new { task.Id, created = true });
     }
 
     private static async Task<IResult> ReassignAsync(Guid taskId, ReassignRequest request,
@@ -309,19 +341,25 @@ public static class EditorialSchedulePolicy
 public static class EditorialFreshnessPolicy
 {
     public static string[] Assess(DateTimeOffset now, DateTimeOffset updatedAt, int sourceCount,
-        int unreviewedSources, DateTimeOffset? oldestSourceReview)
+        int unreviewedSources, DateTimeOffset? oldestSourceReview, long? views = null, bool seoQualityOpen = false)
     {
         var reasons = new List<string>(3);
         if (updatedAt <= now.AddDays(-365)) reasons.Add("ContentOverOneYear");
         else if (updatedAt <= now.AddDays(-180)) reasons.Add("ContentOverSixMonths");
         if (sourceCount == 0 || unreviewedSources > 0) reasons.Add("SourcesUnreviewed");
         else if (oldestSourceReview <= now.AddDays(-180)) reasons.Add("SourcesReviewStale");
+        if (reasons.Count > 0 || seoQualityOpen) {
+            if (views is null) reasons.Add("TrafficEvidenceUnavailable");
+            else if (views >= 100) reasons.Add("MeasuredReaderDemand");
+        }
+        if (seoQualityOpen) reasons.Add("SeoQualityOpen");
         return [.. reasons];
     }
 
     public static int Score(IEnumerable<string> reasons) => reasons.Sum(reason => reason switch {
         "ContentOverOneYear" => 4, "SourcesUnreviewed" => 3, "SourcesReviewStale" => 2,
-        "ContentOverSixMonths" => 1, _ => 0
+        "MeasuredReaderDemand" => 3, "SeoQualityOpen" => 2, "ContentOverSixMonths" => 1,
+        "TrafficEvidenceUnavailable" => 0, _ => 0
     });
 }
 
