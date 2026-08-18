@@ -2,7 +2,7 @@
   "id": "boecl-complete-all",
   "title": "BOECL tek faz tamamlama programı",
   "status": "active",
-  "updatedAt": "2026-08-18T15:05:00Z",
+  "updatedAt": "2026-08-18T16:00:00Z",
   "policy": {
     "createNewBacklog": false,
     "completeOnlyWhenAllWorkstreamsPass": true,
@@ -49,6 +49,13 @@
       "status": "passed",
       "summary": "Normalized focal coordinates are persisted on media assets with database constraints, audited with candidate evidence, editable by pointer or keyboard in the admin crop matrix, and applied to public homepage and article hero rendering with a safe center fallback. Staging migration, light/dark browser captures and production promotion evidence are still required before completion.",
       "tests": ["Media focal domain tests", "web focal helper test", "web lint", "web typecheck"]
+    },
+    {
+      "workstream": "structured-discovery",
+      "scope": "local",
+      "status": "passed",
+      "summary": "Source centers, source archives and legal pages now publish self-canonical metadata, only real locale alternatives, visible locale-aware breadcrumbs and matching CollectionPage, ItemList, WebPage and BreadcrumbList data. Sitemap entries carry the same real-alternative contract. Staging and production HTTP/render evidence is still required before completion.",
+      "tests": ["92 web tests", "locale consistency", "web lint", "web typecheck", "web production build", "182 API tests", "API Release build"]
     }
   ]
 }

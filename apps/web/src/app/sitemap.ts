@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import { locales } from "@/i18n/config";
 import { getPublicArchiveIndex, getPublishedArticles, getPublicSourceIndex } from "@/lib/public-api";
 import { absoluteUrl } from "@/lib/site-url";
+import { buildAvailableLocaleAlternates, buildStaticLocaleAlternates } from "@/lib/discovery-alternates";
+import { legalSlugs } from "@/i18n/legal-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +37,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...index.authors.map(item=>({path:`authors/${item.slug}`,languages:undefined})),
   ].map(item=>({url:absoluteUrl(`/${locale}/${item.path}`),changeFrequency:"weekly" as const,priority:.5,alternates:item.languages?{languages:item.languages}:undefined})));
   const sourceCollections=await Promise.all(locales.map(async locale=>({locale,index:await getPublicSourceIndex(locale)})));
-  const sourceCenters:MetadataRoute.Sitemap=sourceCollections.flatMap(({locale,index})=>[{url:absoluteUrl(`/${locale}/sources`),changeFrequency:"weekly" as const,priority:.65},...index.sources.map(source=>({url:absoluteUrl(`/${locale}/sources/${source.domain}`),lastModified:source.latestCitationAt,changeFrequency:"weekly" as const,priority:.55}))]);
-  return [...homes, ...topics, ...articles, ...archives, ...sourceCenters];
+  const sourceLanguages=new Map<string,Record<string,string>>();
+  for(const {locale,index} of sourceCollections)for(const source of index.sources){const paths=sourceLanguages.get(source.domain)??{};paths[locale]=absoluteUrl(`/${locale}/sources/${source.domain}`);sourceLanguages.set(source.domain,paths)}
+  const sourceCenterLanguages=Object.fromEntries(Object.entries(buildStaticLocaleAlternates("/sources")).map(([key,path])=>[key,absoluteUrl(path)]));
+  const sourceCenters:MetadataRoute.Sitemap=sourceCollections.flatMap(({locale,index})=>[{url:absoluteUrl(`/${locale}/sources`),changeFrequency:"weekly" as const,priority:.65,alternates:{languages:sourceCenterLanguages}},...index.sources.map(source=>({url:absoluteUrl(`/${locale}/sources/${source.domain}`),lastModified:source.latestCitationAt,changeFrequency:"weekly" as const,priority:.55,alternates:{languages:buildAvailableLocaleAlternates(sourceLanguages.get(source.domain)??{})}}))]);
+  const legal:MetadataRoute.Sitemap=legalSlugs.flatMap(document=>{const languages=Object.fromEntries(Object.entries(buildStaticLocaleAlternates(`/legal/${document}`)).map(([key,path])=>[key,absoluteUrl(path)]));return locales.map(locale=>({url:absoluteUrl(`/${locale}/legal/${document}`),changeFrequency:"yearly" as const,priority:.2,alternates:{languages}}))});
+  return [...homes, ...topics, ...articles, ...archives, ...sourceCenters, ...legal];
 }
