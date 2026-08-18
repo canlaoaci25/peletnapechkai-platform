@@ -67,4 +67,30 @@ public sealed class EditorialCommandPriorityTests
             EditorialFreshnessPolicy.Assess(now, now.AddDays(-200), 2, 0, now.AddDays(-190)));
         Assert.Empty(EditorialFreshnessPolicy.Assess(now, now.AddDays(-20), 1, 0, now.AddDays(-20)));
     }
+
+    [Fact]
+    public void Schedule_policy_flags_same_day_locale_and_category_pressure()
+    {
+        var day = new DateTimeOffset(2026, 8, 20, 9, 0, 0, TimeSpan.Zero);
+        var first = new EditorialScheduleRow(Guid.NewGuid(), "A", "tr-TR", day, ["Teknoloji", "Mobil"]);
+        var second = new EditorialScheduleRow(Guid.NewGuid(), "B", "tr-TR", day.AddHours(4), ["Rehber", "Mobil"]);
+        var third = new EditorialScheduleRow(Guid.NewGuid(), "C", "en-US", day.AddDays(1), ["Technology"]);
+
+        var result = EditorialSchedulePolicy.Annotate([first, second, third], TimeZoneInfo.Utc);
+
+        Assert.All(result.Take(2), item => Assert.Equal(["LocaleCollision", "CategoryCollision"], item.ConflictReasons));
+        Assert.False(result[2].HasConflict);
+    }
+
+    [Fact]
+    public void Schedule_policy_uses_editorial_timezone_at_utc_day_boundary()
+    {
+        var turkey = TimeZoneInfo.CreateCustomTimeZone("TR", TimeSpan.FromHours(3), "TR", "TR");
+        var first = new EditorialScheduleRow(Guid.NewGuid(), "A", "tr-TR", new DateTimeOffset(2026, 8, 20, 22, 30, 0, TimeSpan.Zero), ["Bilim"]);
+        var second = new EditorialScheduleRow(Guid.NewGuid(), "B", "en-US", new DateTimeOffset(2026, 8, 21, 8, 0, 0, TimeSpan.Zero), ["Bilim"]);
+
+        var result = EditorialSchedulePolicy.Annotate([first, second], turkey);
+
+        Assert.All(result, item => Assert.Contains("CategoryCollision", item.ConflictReasons));
+    }
 }

@@ -93,6 +93,15 @@ public static class EditorialCommandCenterEndpoints
         }).OrderByDescending(item => item.Overdue).ThenByDescending(item => item.Open).ThenBy(item => item.DisplayName).ToArray();
         var activeIds = activeUsers.Select(user => user.Id).ToHashSet();
         var unassigned = workloadCounts.Where(item => !activeIds.Contains(item.UserId)).Sum(item => item.Open);
+        var scheduledRows = await database.ArticleLocalizations.AsNoTracking()
+            .Where(article => article.Status == PublicationStatus.Scheduled && article.ScheduledAt >= now && article.ScheduledAt <= now.AddDays(14))
+            .OrderBy(article => article.ScheduledAt)
+            .Select(article => new EditorialScheduleRow(article.Id, article.Title, article.Locale.Code,
+                article.ScheduledAt!.Value, article.Categories.OrderBy(category => category.Name).Select(category => category.Name).ToArray()))
+            .ToListAsync(token);
+        var schedule = EditorialSchedulePolicy.Annotate(scheduledRows, EditorialSchedulePolicy.PublishingTimeZone());
+        var readyToSchedule = await database.ArticleLocalizations.AsNoTracking()
+            .CountAsync(article => article.Status == PublicationStatus.InSeoReview, token);
         var items = taskItems.Concat(reviewItems).Concat(qualityItems).Concat(freshnessItems).OrderByDescending(item => item.IsMine)
             .ThenByDescending(item => EditorialCommandPriority.Score(item.Kind, item.Priority))
             .ThenBy(item => item.DueAt).Take(60).ToArray();
@@ -100,7 +109,9 @@ public static class EditorialCommandCenterEndpoints
             overdue = taskItems.Count(item => item.Kind == "OverdueTask"),
             dueSoon = taskItems.Count(item => item.Kind == "Task" && item.DueAt <= now.AddDays(2)),
             inReview = reviewItems.Count, incompleteQuality, personalOpen, personalOverdue, personalDueSoon,
-            freshnessDebt = freshnessItems.Count, unassigned, teamMembers = workloads.Length }, workloads, users = activeUsers, items });
+            freshnessDebt = freshnessItems.Count, unassigned, teamMembers = workloads.Length,
+            scheduled = schedule.Length, scheduleConflicts = schedule.Count(item => item.HasConflict), readyToSchedule },
+            schedule, workloads, users = activeUsers, items });
     }
 
     private static async Task<IResult> ReassignAsync(Guid taskId, ReassignRequest request,
@@ -184,6 +195,8 @@ public sealed record EditorialCommandItem(Guid ArticleId, string Title, string L
     DateTimeOffset DueAt, string? TaskTitle, string? Assignee, Guid? AssigneeUserId, string? Priority, Guid? TaskId, string? Status, bool IsMine,
     string[]? MissingGates = null, string[]? FreshnessReasons = null);
 public sealed record EditorialWorkload(Guid UserId, string DisplayName, int Open, int Overdue, int DueSoon);
+public sealed record EditorialScheduleRow(Guid ArticleId, string Title, string Locale, DateTimeOffset ScheduledAt, string[] Categories);
+public sealed record EditorialScheduleItem(Guid ArticleId, string Title, string Locale, DateTimeOffset ScheduledAt, string[] Categories, bool HasConflict, string[] ConflictReasons);
 public sealed record ReassignRequest(Guid AssigneeUserId);
 public sealed record BulkReassignRequest(Guid[] TaskIds, Guid AssigneeUserId);
 public sealed record UndoBulkReassignRequest(Guid BatchId);
@@ -220,6 +233,25 @@ public static class EditorialCommandPriority
         "OverdueTask" when priority == "Urgent" => 500, "OverdueTask" => 400,
         "Task" when priority == "Urgent" => 300, "EditorialReview" => 220,
         "SeoReview" => 210, "QualityGate" => 200, "FreshnessDebt" => 190, "Task" => 100, _ => 0 };
+}
+
+public static class EditorialSchedulePolicy
+{
+    public static TimeZoneInfo PublishingTimeZone() => TimeZoneInfo.FindSystemTimeZoneById(
+        OperatingSystem.IsWindows() ? "Turkey Standard Time" : "Europe/Istanbul");
+
+    public static EditorialScheduleItem[] Annotate(IReadOnlyCollection<EditorialScheduleRow> rows, TimeZoneInfo timeZone)
+    {
+        return rows.OrderBy(item => item.ScheduledAt).Select(item => {
+            var sameDay = rows.Where(other => other.ArticleId != item.ArticleId &&
+                TimeZoneInfo.ConvertTime(other.ScheduledAt, timeZone).Date == TimeZoneInfo.ConvertTime(item.ScheduledAt, timeZone).Date).ToArray();
+            var reasons = new List<string>(2);
+            if (sameDay.Any(other => other.Locale == item.Locale)) reasons.Add("LocaleCollision");
+            if (item.Categories.Any(category => sameDay.Any(other => other.Categories.Contains(category, StringComparer.OrdinalIgnoreCase)))) reasons.Add("CategoryCollision");
+            return new EditorialScheduleItem(item.ArticleId, item.Title, item.Locale, item.ScheduledAt,
+                item.Categories, reasons.Count > 0, [.. reasons]);
+        }).ToArray();
+    }
 }
 
 public static class EditorialFreshnessPolicy

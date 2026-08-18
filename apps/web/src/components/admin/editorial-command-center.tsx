@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { EditorialCommandCenter } from "@/lib/admin-api";
+import { EditorialCalendar } from "./editorial-calendar";
 const copy = {
   "tr-TR": {
     kicker: "GÜNLÜK EDİTORYAL ÇALIŞMA MASASI",
@@ -301,6 +302,7 @@ export function EditorialCommandCenterView({
           <span>{c.freshness}</span>
         </article>
       </div>
+      <EditorialCalendar locale={locale} data={data}/>
       <section className="editorial-capacity" aria-labelledby="editorial-capacity-title">
         <header><div><p className="section-kicker">{c.teamMembers}: {data.summary.teamMembers}</p><h3 id="editorial-capacity-title">{c.capacity}</h3><p>{c.capacityIntro}</p></div><strong data-alert={data.summary.unassigned>0}>{data.summary.unassigned} <span>{c.noOwner}</span></strong></header>
         <div className="capacity-grid">{data.workloads.map(person=><article key={person.userId} data-alert={person.overdue>0}><div><strong>{person.displayName}</strong><small>{person.open} {c.openShort}</small></div><span>{person.overdue} {c.overdueShort}</span><span>{person.dueSoon} {c.soonShort}</span><i aria-hidden style={{width:`${Math.min(100,person.open*12.5)}%`}}/></article>)}</div>

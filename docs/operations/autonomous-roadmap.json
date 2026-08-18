@@ -1,5 +1,5 @@
 ﻿{
-    "updatedAt":  "2026-08-18T08:19:38.7987131+00:00",
+    "updatedAt":  "2026-08-18T09:40:00.0000000+00:00",
     "items":  [
                   {
                       "id":  "public-sidebar",
@@ -11,7 +11,7 @@
                       "id":  "browser-push",
                       "title":  "Tarayıcı ve telefon push bildirimleri",
                       "outcome":  "İzin veren üyeye yeni Türkçe içerik ve doğrulanmış site güncellemelerini Web Push ile gönder; konu tercihleri, sessiz saatler ve abonelikten çıkma ekle.",
-                      "status":  "active"
+                      "status":  "queued"
                   },
                   {
                       "id":  "visual-service",
@@ -113,7 +113,7 @@
                       "id":  "editorial-calendar",
                       "title":  "Editoryal takvim ve yayın dengesi",
                       "outcome":  "Planlanan yayınları locale, kategori, sorumlu ve tarih ekseninde çakışma uyarılarıyla yönetilebilir bir takvimde birleştir.",
-                      "status":  "queued"
+                      "status":  "active"
                   },
                   {
                       "id":  "content-freshness-next-1",

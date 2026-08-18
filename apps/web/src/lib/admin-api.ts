@@ -160,6 +160,9 @@ export type EditorialCommandCenter = {
     personalDueSoon: number;
     unassigned: number;
     teamMembers: number;
+    scheduled: number;
+    scheduleConflicts: number;
+    readyToSchedule: number;
   };
   workloads: {
     userId: string;
@@ -169,6 +172,15 @@ export type EditorialCommandCenter = {
     dueSoon: number;
   }[];
   users: { id: string; displayName: string }[];
+  schedule: {
+    articleId: string;
+    title: string;
+    locale: string;
+    scheduledAt: string;
+    categories: string[];
+    hasConflict: boolean;
+    conflictReasons: ("LocaleCollision" | "CategoryCollision")[];
+  }[];
   items: {
     articleId: string;
     title: string;
