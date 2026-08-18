@@ -77,6 +77,13 @@
       "status": "passed",
       "summary": "The admin freshness queue now combines content age, source review, measured on-site reader demand and SEO quality debt without inventing missing traffic. Editors can idempotently claim an audited high-priority revision task only from the published Turkish source edition. Autonomous delivery now blocks all production backup, migration and deployment until the complete changed staging cohort passes health checks. Live render and staging/production promotion evidence are still required before completion.",
       "tests": ["Editorial freshness policy tests", "93 web tests", "locale consistency", "web lint", "web typecheck", "web production build", "187 API tests", "API Release build", "database backup promotion regression", "release promotion regression"]
+    },
+    {
+      "workstream": "performance-budget",
+      "scope": "local",
+      "status": "passed",
+      "summary": "Consented anonymous field cohorts now show mobile and desktop evidence with locale-correct copy, while a deterministic fail-closed root JavaScript, client chunk and CSS artifact budget runs before any staging mutation. Staging migration, consent beacon, light/dark render, retention and production promotion evidence are still required before completion.",
+      "tests": ["web release budget fixtures", "release promotion regression", "PowerShell parse gate", "93 web tests", "locale consistency", "web lint", "web typecheck", "web production build", "195 API tests", "API Release build"]
     }
   ]
 }

@@ -94,7 +94,7 @@
                   {
                       "id":  "performance-budget",
                       "title":  "Core Web Vitals bütçesi",
-                      "outcome":  "Açık rızalı ve kimliksiz LCP/CLS/INP saha örnekleri sabit route, locale ve viewport kohortlarında 28 günlük p75 bütçesine dönüştürülüp admin trafik ekranında gösteriliyor; yerel migration, retention ve kalite kapıları hazır, staging migration/render ile production terfisi bekleniyor.",
+                      "outcome":  "Açık rızalı LCP/CLS/INP saha kohortları admin trafik ekranında mobil ve masaüstü için gösteriliyor; deterministik root JS, chunk ve CSS bütçesi staging öncesinde fail-closed çalışıyor. Yerel migration, retention ve kalite kapıları hazır; staging migration/render ile production terfisi bekleniyor.",
                       "status":  "blocked"
                   },
                   {

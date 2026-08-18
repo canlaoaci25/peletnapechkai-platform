@@ -194,6 +194,8 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
         finally { Pop-Location }
     }
     if (-not (Test-Path -LiteralPath $fallback -PathType Leaf)) { throw 'Web standalone release artifact is incomplete.' }
+    & (Join-Path $cycleRepository 'ops\windows\Test-WebReleaseBudget.ps1') -BuildRoot (Join-Path $cycleRepository 'apps\web')
+    if ($LASTEXITCODE -ne 0) { throw 'Web release performance budget failed before staging deployment.' }
 
     $finalCommit = (& git.exe -C $cycleRepository rev-parse HEAD).Trim()
     $changedFiles = if ($finalCommit -ne $baselineCommit) { @(& git.exe -C $cycleRepository diff --name-only $baselineCommit $finalCommit) } else { @() }

@@ -14,6 +14,8 @@ try {
     if (-not $commit) { throw 'The release commit could not be resolved.' }
     $dirty = (& git.exe -C $repository status --porcelain)
     if ($dirty) { throw 'Release promotion requires a clean working tree.' }
+    & (Join-Path $PSScriptRoot 'Test-WebReleaseBudget.ps1') -BuildRoot (Join-Path $repository 'apps\web')
+    if ($LASTEXITCODE -ne 0) { throw 'Web release performance budget failed before staging deployment.' }
 
     if (-not $SkipStaging) {
         & (Join-Path $PSScriptRoot 'Deploy-AspNetApiRelease.ps1') -Environment Staging -RepositoryPath $repository
