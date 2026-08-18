@@ -19,6 +19,12 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Web release performance budget failed before staging deployment.' }
 
     if (-not $SkipStaging) {
+        $stagingBackup = & (Join-Path $PSScriptRoot 'Backup-PostgreSql.ps1') -Environment Staging
+        if (-not $stagingBackup -or $stagingBackup.Result -ne 'Success') { throw 'Staging PostgreSQL backup failed.' }
+        & (Join-Path $PSScriptRoot 'Test-PostgreSqlRestore.ps1') -BackupPath $stagingBackup.Backup
+        if ($LASTEXITCODE -ne 0) { throw 'Staging PostgreSQL backup failed its isolated restore test.' }
+        & (Join-Path $PSScriptRoot 'Update-BoeclDatabase.ps1') -Environment Staging -RepositoryPath $repository
+        if ($LASTEXITCODE -ne 0) { throw 'Staging database migration failed.' }
         & (Join-Path $PSScriptRoot 'Deploy-AspNetApiRelease.ps1') -Environment Staging -RepositoryPath $repository
         if ($LASTEXITCODE -ne 0) { throw 'Staging API deployment failed.' }
         & (Join-Path $PSScriptRoot 'Deploy-NextWebRelease.ps1') -Environment Staging -BuildRoot (Join-Path $repository 'apps\web')
@@ -27,7 +33,15 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Staging promotion gate failed.' }
     }
 
+    & (Join-Path $PSScriptRoot 'Test-ProductionHealth.ps1')
+    if ($LASTEXITCODE -ne 0) { throw 'Production preflight health gate failed before database or application mutation.' }
     $cohortId = 'cohort-' + [guid]::NewGuid().ToString('N')
+    $productionBackup = & (Join-Path $PSScriptRoot 'Backup-PostgreSql.ps1') -Environment Production
+    if (-not $productionBackup -or $productionBackup.Result -ne 'Success') { throw 'Production PostgreSQL backup failed.' }
+    & (Join-Path $PSScriptRoot 'Test-PostgreSqlRestore.ps1') -BackupPath $productionBackup.Backup
+    if ($LASTEXITCODE -ne 0) { throw 'Production PostgreSQL backup failed its isolated restore test.' }
+    & (Join-Path $PSScriptRoot 'Update-BoeclDatabase.ps1') -Environment Production -RepositoryPath $repository
+    if ($LASTEXITCODE -ne 0) { throw 'Production database migration failed.' }
     $apiDeployment = & (Join-Path $PSScriptRoot 'Deploy-AspNetApiRelease.ps1') -Environment Production -RepositoryPath $repository -CohortId $cohortId
     if ($LASTEXITCODE -ne 0) { throw 'Production API deployment failed.' }
     try {

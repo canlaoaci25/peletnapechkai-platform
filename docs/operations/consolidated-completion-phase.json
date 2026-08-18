@@ -106,6 +106,14 @@
       "summary": "The real scheduled autonomous runner now assigns one production cohort id to changed Web and API components and invokes path-validated coordinated application rollback after Web deployment or aggregate-health failure. This closes the split-release gap left outside the helper promotion script. Limited traffic routing, database compatibility, staging rollback drill and production evidence are still required before completion.",
       "tests": ["autonomous database promotion regression", "release promotion regression", "PowerShell parse gate", "git diff check"],
       "evidence": ["docs/audits/2026-08-18-cycle-107-autonomous-cohort-rollback-audit.md"]
+    },
+    {
+      "workstream": "canary-cohort-rollback",
+      "scope": "local",
+      "status": "passed",
+      "summary": "The operator-invoked release path now protects staging and production separately with an environment-specific backup, exact-path isolated restore test and migration order. A read-only production preflight blocks every production database or application mutation while the health gate is already failing. Staging deployment/render and production disk remediation remain required before completion.",
+      "tests": ["4-locale consistency", "95 web tests", "web lint", "web typecheck", "110-route web build", "196 API tests", "API Release build", "automation regression suite"],
+      "evidence": ["docs/audits/2026-08-18-cycle-108-safe-database-promotion-audit.md"]
     }
   ]
 }
