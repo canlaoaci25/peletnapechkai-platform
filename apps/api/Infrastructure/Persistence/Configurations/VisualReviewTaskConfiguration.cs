@@ -25,6 +25,12 @@ internal sealed class VisualReviewTaskConfiguration : IEntityTypeConfiguration<V
         b.Property(x => x.IdempotencyKey).HasColumnName("idempotency_key").HasMaxLength(160);
         b.Property(x => x.Status).HasColumnName("status").HasConversion<string>().HasMaxLength(24);
         b.Property(x => x.AttemptCount).HasColumnName("attempt_count");
+        b.Property(x => x.LeaseToken).HasColumnName("lease_token");
+        b.Property(x => x.LeaseOwner).HasColumnName("lease_owner").HasMaxLength(120);
+        b.Property(x => x.LeaseExpiresAt).HasColumnName("lease_expires_at");
+        b.Property(x => x.NextAttemptAt).HasColumnName("next_attempt_at");
+        b.Property(x => x.LastFailureCode).HasColumnName("last_failure_code").HasMaxLength(80);
+        b.Property(x => x.DeadLetteredAt).HasColumnName("dead_lettered_at");
         b.Property(x => x.ReviewerNote).HasColumnName("reviewer_note").HasMaxLength(1000);
         b.Property(x => x.Provider).HasColumnName("provider").HasMaxLength(80);
         b.Property(x => x.LicenseName).HasColumnName("license_name").HasMaxLength(160);
@@ -40,6 +46,7 @@ internal sealed class VisualReviewTaskConfiguration : IEntityTypeConfiguration<V
         b.Property(x => x.CreatedAt).HasColumnName("created_at"); b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsConcurrencyToken();
         b.HasIndex(x => x.IdempotencyKey).IsUnique().HasDatabaseName("ux_visual_review_tasks_idempotency");
         b.HasIndex(x => new { x.Status, x.QualityScore, x.CreatedAt }).HasDatabaseName("ix_visual_review_tasks_queue");
+        b.HasIndex(x => new { x.Status, x.NextAttemptAt, x.LeaseExpiresAt }).HasDatabaseName("ix_visual_review_tasks_generation_queue");
         b.HasIndex(x => new { x.AutomationJobId, x.Status }).HasDatabaseName("ix_visual_review_tasks_batch_status");
         b.HasOne<Domain.Content.ArticleLocalization>().WithMany().HasForeignKey(x => x.ArticleLocalizationId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne<Domain.Content.MediaAsset>().WithMany().HasForeignKey(x => x.CurrentMediaAssetId).OnDelete(DeleteBehavior.SetNull);

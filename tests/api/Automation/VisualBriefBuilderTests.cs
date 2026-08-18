@@ -6,6 +6,42 @@ namespace Peletnapechkai.Api.Tests.Automation;
 public sealed class VisualBriefBuilderTests
 {
     [Fact]
+    public void GenerationLeaseRetriesWithBackoffThenMovesToDeadLetter()
+    {
+        var now = new DateTimeOffset(2026, 8, 18, 14, 0, 0, TimeSpan.Zero);
+        var task = new VisualReviewTask(Guid.NewGuid(), null, 42, "missing-cover", "Bölüm", "Hero", "Prompt", "No text", "lease-key", now);
+
+        var first = task.ClaimGeneration("worker-a", now, TimeSpan.FromMinutes(5));
+        Assert.Throws<InvalidOperationException>(() => task.ClaimGeneration("worker-b", now, TimeSpan.FromMinutes(5)));
+        task.RecordGenerationFailure(first, "provider timeout: secret detail", now.AddMinutes(1));
+        Assert.Equal(VisualReviewStatus.RetryRequested, task.Status);
+        Assert.Equal("provider-timeout--secret-detail", task.LastFailureCode);
+        Assert.Equal(now.AddMinutes(2), task.NextAttemptAt);
+
+        var second = task.ClaimGeneration("worker-b", now.AddMinutes(2), TimeSpan.FromMinutes(5));
+        task.RecordGenerationFailure(second, "provider-timeout", now.AddMinutes(3));
+        var third = task.ClaimGeneration("worker-c", now.AddMinutes(5), TimeSpan.FromMinutes(5));
+        task.RecordGenerationFailure(third, "unsafe-output", now.AddMinutes(6));
+
+        Assert.Equal(VisualReviewStatus.DeadLetter, task.Status);
+        Assert.Equal(3, task.AttemptCount);
+        Assert.Equal(now.AddMinutes(6), task.DeadLetteredAt);
+        Assert.False(task.IsAvailableForGeneration(now.AddDays(1)));
+    }
+
+    [Fact]
+    public void GenerationLeaseCanBeRenewedAndExpiredLeaseCanBeReclaimed()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var task = new VisualReviewTask(Guid.NewGuid(), null, 42, "missing-cover", "Bölüm", "Hero", "Prompt", "No text", "renew-key", now);
+        var token = task.ClaimGeneration("worker-a", now, TimeSpan.FromMinutes(1));
+        task.RenewGenerationLease(token, now.AddSeconds(30), TimeSpan.FromMinutes(2));
+        Assert.False(task.IsAvailableForGeneration(now.AddMinutes(2)));
+        Assert.True(task.IsAvailableForGeneration(now.AddMinutes(3)));
+        Assert.NotEqual(token, task.ClaimGeneration("worker-b", now.AddMinutes(3), TimeSpan.FromMinutes(1)));
+    }
+
+    [Fact]
     public void Uses_section_locale_and_text_free_quality_contract()
     {
         var brief = VisualBriefBuilder.Build("Elektrikli otomobilde kış menzili", "Soğuk hava menzili etkiler.",

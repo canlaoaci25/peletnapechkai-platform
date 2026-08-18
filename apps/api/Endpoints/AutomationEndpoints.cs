@@ -69,7 +69,8 @@ public static class AutomationEndpoints
                     task.Provider, task.LicenseName, task.Attribution, task.CandidateAltText, task.TopicScore, task.TextSafetyScore, task.CropScore, task.OriginalityScore,
                     candidateEvidenceVersion = task.CandidateMediaAssetId == null ? null : "editorial-attestation-v2", candidateAttestedAt = task.CandidateMediaAssetId == null ? null : task.ReviewedAt,
                     task.ClosestMediaAssetId, task.ClosestSimilarityPercent, closestMediaUrl = task.ClosestMediaAssetId == null ? null : "/api/media/" + task.ClosestMediaAssetId,
-                    task.CandidatePasses, task.PromotedAt } : null };
+                    task.CandidatePasses, task.PromotedAt, task.LeaseOwner, task.LeaseExpiresAt, task.NextAttemptAt,
+                    task.LastFailureCode, task.DeadLetteredAt } : null };
         }).OrderBy(item => item.score).ThenByDescending(item => item.PublishedAt).ToArray();
         return Results.Ok(new
         {
@@ -79,6 +80,9 @@ public static class AutomationEndpoints
             queued = taskRows.Count(task => task.Status is VisualReviewStatus.Pending or VisualReviewStatus.InReview or VisualReviewStatus.RetryRequested),
             approved = taskRows.Count(task => task.Status == VisualReviewStatus.Approved),
             rejected = taskRows.Count(task => task.Status == VisualReviewStatus.Rejected),
+            deadLetter = taskRows.Count(task => task.Status == VisualReviewStatus.DeadLetter),
+            leased = taskRows.Count(task => task.LeaseToken != null && task.LeaseExpiresAt > DateTimeOffset.UtcNow),
+            deferred = taskRows.Count(task => task.NextAttemptAt > DateTimeOffset.UtcNow),
             providers = VisualProviderHealthPolicy.Assess(configuration),
             batch = activeBatch == null ? null : new { activeBatch.Id, activeBatch.status, activeBatch.TotalItems,
                 processed = taskRows.Count(task => task.AutomationJobId == activeBatch.Id && task.Status is VisualReviewStatus.Approved or VisualReviewStatus.Rejected),

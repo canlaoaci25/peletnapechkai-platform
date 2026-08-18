@@ -18,6 +18,9 @@ public static partial class AutomationWorkerEndpoints
         group.MapPost("/{id:guid}/retry", RetryAsync);
         group.MapPost("/{id:guid}/report", SaveReportAsync);
         group.MapPost("/{id:guid}/heartbeat", HeartbeatAsync);
+        group.MapPost("/visual/claim", ClaimVisualTaskAsync);
+        group.MapPost("/visual/{id:guid}/heartbeat", HeartbeatVisualTaskAsync);
+        group.MapPost("/visual/{id:guid}/fail", FailVisualTaskAsync);
         group.MapGet("/{id:guid}/control", ControlAsync);
         group.MapGet("/{id:guid}/candidates", GetCandidatesAsync);
         group.MapPost("/{id:guid}/translations", SaveTranslationsAsync);

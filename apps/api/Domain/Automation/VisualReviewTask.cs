@@ -1,6 +1,6 @@
 namespace Peletnapechkai.Api.Domain.Automation;
 
-public enum VisualReviewStatus { Pending, InReview, Approved, Rejected, RetryRequested }
+public enum VisualReviewStatus { Pending, InReview, Approved, Rejected, RetryRequested, DeadLetter }
 public enum VisualReviewTarget { Cover, BodySection }
 
 public sealed class VisualReviewTask
@@ -44,6 +44,12 @@ public sealed class VisualReviewTask
     public string IdempotencyKey { get; private set; } = "";
     public VisualReviewStatus Status { get; private set; }
     public int AttemptCount { get; private set; }
+    public Guid? LeaseToken { get; private set; }
+    public string? LeaseOwner { get; private set; }
+    public DateTimeOffset? LeaseExpiresAt { get; private set; }
+    public DateTimeOffset? NextAttemptAt { get; private set; }
+    public string? LastFailureCode { get; private set; }
+    public DateTimeOffset? DeadLetteredAt { get; private set; }
     public string? ReviewerNote { get; private set; }
     public string? Provider { get; private set; }
     public string? LicenseName { get; private set; }
@@ -68,6 +74,51 @@ public sealed class VisualReviewTask
         if (status is VisualReviewStatus.RetryRequested or VisualReviewStatus.Rejected) InvalidateCandidateEvidence();
         Status = status; ReviewerNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
         ReviewedByUserId = actorUserId; ReviewedAt = now; UpdatedAt = now;
+    }
+
+    public bool IsAvailableForGeneration(DateTimeOffset now) =>
+        Status is VisualReviewStatus.Pending or VisualReviewStatus.RetryRequested &&
+        DeadLetteredAt is null && (NextAttemptAt is null || NextAttemptAt <= now) &&
+        (LeaseToken is null || LeaseExpiresAt <= now);
+
+    public Guid ClaimGeneration(string owner, DateTimeOffset now, TimeSpan leaseDuration)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(owner);
+        if (leaseDuration < TimeSpan.FromSeconds(30) || leaseDuration > TimeSpan.FromMinutes(30))
+            throw new ArgumentOutOfRangeException(nameof(leaseDuration));
+        if (!IsAvailableForGeneration(now)) throw new InvalidOperationException("Visual task is not available for generation.");
+        LeaseToken = Guid.CreateVersion7(); LeaseOwner = owner.Trim(); LeaseExpiresAt = now.Add(leaseDuration);
+        UpdatedAt = now; return LeaseToken.Value;
+    }
+
+    public void RenewGenerationLease(Guid token, DateTimeOffset now, TimeSpan leaseDuration)
+    {
+        EnsureActiveLease(token, now);
+        if (leaseDuration < TimeSpan.FromSeconds(30) || leaseDuration > TimeSpan.FromMinutes(30))
+            throw new ArgumentOutOfRangeException(nameof(leaseDuration));
+        LeaseExpiresAt = now.Add(leaseDuration); UpdatedAt = now;
+    }
+
+    public void RecordGenerationFailure(Guid token, string failureCode, DateTimeOffset now, int maxAttempts = 3)
+    {
+        EnsureActiveLease(token, now); ArgumentException.ThrowIfNullOrWhiteSpace(failureCode);
+        if (maxAttempts is < 1 or > 10) throw new ArgumentOutOfRangeException(nameof(maxAttempts));
+        AttemptCount++; LastFailureCode = NormalizeFailureCode(failureCode); ClearLease();
+        if (AttemptCount >= maxAttempts)
+        {
+            Status = VisualReviewStatus.DeadLetter; DeadLetteredAt = now; NextAttemptAt = null;
+        }
+        else
+        {
+            Status = VisualReviewStatus.RetryRequested;
+            NextAttemptAt = now.AddMinutes(Math.Pow(2, AttemptCount - 1));
+        }
+        UpdatedAt = now;
+    }
+
+    public void ReleaseGenerationLease(Guid token, DateTimeOffset now)
+    {
+        EnsureActiveLease(token, now); ClearLease(); UpdatedAt = now;
     }
 
     public void AttachCandidate(Guid mediaAssetId, string provider, string licenseName, string? attribution,
@@ -100,6 +151,19 @@ public sealed class VisualReviewTask
     }
 
     private static int ClampScore(int value) => Math.Clamp(value, 0, 100);
+
+    private void EnsureActiveLease(Guid token, DateTimeOffset now)
+    {
+        if (token == Guid.Empty || LeaseToken != token || LeaseExpiresAt <= now)
+            throw new InvalidOperationException("Visual generation lease is missing, expired, or owned by another worker.");
+    }
+
+    private void ClearLease() { LeaseToken = null; LeaseOwner = null; LeaseExpiresAt = null; }
+    private static string NormalizeFailureCode(string value)
+    {
+        var normalized = new string(value.Trim().ToLowerInvariant().Select(character => char.IsLetterOrDigit(character) || character is '-' or '_' ? character : '-').ToArray());
+        return normalized[..Math.Min(normalized.Length, 80)];
+    }
 
     private void InvalidateCandidateEvidence()
     {

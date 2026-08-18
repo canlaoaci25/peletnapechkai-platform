@@ -30,3 +30,11 @@ test("visual studio exposes bounded full-article section art direction", () => {
   assert.match(component, /section\.prompt/);
   assert.match(styles, /\.visual-section-plan li\{display:grid;grid-template-columns:38px minmax\(0,1fr\)/);
 });
+
+test("visual studio exposes durable worker lease and dead-letter health", () => {
+  assert.match(component, /Worker reliability/);
+  assert.match(component, /report\.leased/);
+  assert.match(component, /report\.deferred/);
+  assert.match(component, /report\.deadLetter/);
+  assert.match(component, /QUEUE \/ LEASE/);
+});

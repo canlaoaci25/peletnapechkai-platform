@@ -8,6 +8,19 @@ namespace Peletnapechkai.Api.Infrastructure.Persistence.Migrations;
 public partial class AddTimeFocusPlanningTaxonomy : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM locales locale JOIN categories parent ON parent.locale_id = locale.id
+            WHERE locale.code = 'tr-TR' AND parent.slug = 'verimlilik'
+          ) THEN
+            RAISE EXCEPTION 'Time focus taxonomy requires the Turkish productivity parent.';
+          END IF;
+          IF (SELECT COUNT(*) FROM locales WHERE code IN ('tr-TR','en-US','de-DE','fr-FR')) <> 4 THEN
+            RAISE EXCEPTION 'Time focus taxonomy requires every supported locale.';
+          END IF;
+        END $$;
+
         INSERT INTO categories (id, locale_id, source_category_id, parent_category_id, slug, name, description, created_at)
         SELECT '01a2a740-0000-7000-8000-000000000001', locale.id, NULL, parent.id,
           'zaman-odak-ve-planlama', 'Zaman, Odak ve Planlama',
@@ -41,7 +54,7 @@ public partial class AddTimeFocusPlanningTaxonomy : Migration
         JOIN categories AS category ON category.locale_id = locale.id AND category.slug = CASE locale.code
           WHEN 'tr-TR' THEN 'zaman-odak-ve-planlama'
           WHEN 'en-US' THEN 'time-focus-and-planning'
-          WHEN 'de-DE' THEN 'zeit-fokus-und-planlama'
+          WHEN 'de-DE' THEN 'zeit-fokus-und-planung'
           WHEN 'fr-FR' THEN 'temps-concentration-et-planification' END
         ON CONFLICT DO NOTHING;
 
@@ -49,7 +62,7 @@ public partial class AddTimeFocusPlanningTaxonomy : Migration
         SELECT gen_random_uuid(), NULL, 'migration.time_focus_planning_taxonomy_added', 'Category', category.id,
           jsonb_build_object('slug', category.slug, 'parentCategoryId', category.parent_category_id), NOW()
         FROM categories category JOIN locales locale ON locale.id = category.locale_id
-        WHERE (locale.code, category.slug) IN (('tr-TR','zaman-odak-ve-planlama'),('en-US','time-focus-and-planning'),('de-DE','zeit-fokus-und-planlama'),('fr-FR','temps-concentration-et-planification'));
+        WHERE (locale.code, category.slug) IN (('tr-TR','zaman-odak-ve-planlama'),('en-US','time-focus-and-planning'),('de-DE','zeit-fokus-und-planung'),('fr-FR','temps-concentration-et-planification'));
         """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""

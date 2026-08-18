@@ -35,6 +35,11 @@ type VisualTask = {
   closestMediaUrl: string | null;
   candidatePasses: boolean;
   promotedAt: string | null;
+  leaseOwner: string | null;
+  leaseExpiresAt: string | null;
+  nextAttemptAt: string | null;
+  lastFailureCode: string | null;
+  deadLetteredAt: string | null;
 };
 export type VisualQualityReport = {
   checkedAt: string;
@@ -47,6 +52,9 @@ export type VisualQualityReport = {
   queued: number;
   approved: number;
   rejected: number;
+  deadLetter: number;
+  leased: number;
+  deferred: number;
   providers: { id: string; kind: string; status: string; canSupplyCandidates: boolean; requiresEditorialReview: boolean; rightsMetadataRequired: boolean; reasonCode: string }[];
   batch: null | { id: string; status: string; totalItems: number; processed: number; remaining: number; successful: number; rejected: number; activeArticle: string | null; currentPhase: number; lastMessage: string | null; updatedAt: string; isStale: boolean; staleAfterMinutes: number };
   items: {
@@ -68,6 +76,13 @@ export type VisualQualityReport = {
     visualTask: VisualTask | null;
   }[];
 };
+
+const workerCopy = {
+  "tr-TR": {title:"Worker güvenilirliği",lead:"Lease çakışmaları, gecikmeli yeniden denemeler ve insan incelemesi gerektiren terminal hatalar.",leased:"Aktif lease",deferred:"Backoff",dead:"Dead-letter"},
+  "en-US": {title:"Worker reliability",lead:"Lease collisions, deferred retries, and terminal failures requiring human review.",leased:"Active leases",deferred:"Backoff",dead:"Dead letter"},
+  "de-DE": {title:"Worker-Zuverlässigkeit",lead:"Leases, verzögerte Wiederholungen und endgültige Fehler zur manuellen Prüfung.",leased:"Aktive Leases",deferred:"Backoff",dead:"Dead Letter"},
+  "fr-FR": {title:"Fiabilité du worker",lead:"Baux actifs, nouvelles tentatives différées et échecs terminaux à vérifier.",leased:"Baux actifs",deferred:"Backoff",dead:"Échecs terminaux"},
+} satisfies Record<Locale,{title:string;lead:string;leased:string;deferred:string;dead:string}>;
 
 const providerCopy = {
   "tr-TR": { title:"Sağlayıcı sağlığı", lead:"Yalnız yapılandırması ve kullanım hakkı kapıları doğrulanan kaynaklar aday sağlayabilir. Dış sağlayıcılar owner etkinleştirmesi olmadan kapalı kalır.", ready:"Hazır", disabled:"Kapalı", reviewOnly:"Yalnız inceleme", candidate:"Aday sağlayabilir", gated:"Otomatik aday kapalı", review:"Editoryal inceleme zorunlu", rights:"Lisans ve kaynak zorunlu", names:{"editorial-library":"Editoryal medya kütüphanesi","official-source":"Resmî / doğrulanmış kaynak","licensed-stock":"Lisanslı stok","generative-ai":"Temsili AI üretimi"}, reasons:{"media-library-ready":"Yerel medya deposu erişilebilir","media-storage-missing":"Medya deposu erişilemiyor","editorial-ingest-required":"Editör, hak bilgisini doğrulayarak içeri aktarmalı","owner-activation-required":"Owner etkinleştirmesi ve sağlayıcı kararı gerekli","secure-endpoint-missing":"Güvenli sağlayıcı adresi eksik","credential-missing":"Korumalı kimlik bilgisi eksik","configuration-ready":"Korumalı yapılandırma hazır"} },
@@ -395,7 +410,7 @@ export function VisualQualityDesk({
   locale: Locale;
   report: VisualQualityReport;
 }) {
-  const c = copy[locale], r = recoveryCopy[locale], p = providerCopy[locale],
+  const c = copy[locale], r = recoveryCopy[locale], p = providerCopy[locale], w = workerCopy[locale],
     providerNames: Record<string,string> = p.names,
     providerReasons: Record<string,string> = p.reasons,
     router = useRouter(),
@@ -500,6 +515,12 @@ export function VisualQualityDesk({
             <p>{providerReasons[provider.reasonCode] ?? provider.reasonCode}</p>
             <ul><li>{provider.canSupplyCandidates?p.candidate:p.gated}</li>{provider.requiresEditorialReview&&<li>{p.review}</li>}{provider.rightsMetadataRequired&&<li>{p.rights}</li>}</ul>
           </article>)}
+        </div>
+      </section>
+      <section className="admin-panel visual-operation" aria-labelledby="visual-worker-title">
+        <header><div><p className="section-kicker">QUEUE / LEASE</p><h2 id="visual-worker-title">{w.title}</h2><p>{w.lead}</p></div></header>
+        <div className="visual-operation-stats">
+          {[[w.leased,report.leased],[w.deferred,report.deferred],[w.dead,report.deadLetter]].map(([label,value])=><article key={label}><small>{label}</small><strong>{value}</strong></article>)}
         </div>
       </section>
       {report.batch && (

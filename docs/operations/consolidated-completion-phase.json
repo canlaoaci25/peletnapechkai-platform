@@ -2,7 +2,7 @@
   "id": "boecl-complete-all",
   "title": "BOECL tek faz tamamlama programı",
   "status": "active",
-  "updatedAt": "2026-08-18T14:15:00Z",
+  "updatedAt": "2026-08-18T14:35:00Z",
   "policy": {
     "createNewBacklog": false,
     "completeOnlyWhenAllWorkstreamsPass": true,
@@ -35,5 +35,13 @@
     "Canlıya çıkan her özellik için rollback ve audit kanıtı vardır.",
     "Umbrella yol haritası maddesi yalnız bütün koşullar sağlanınca completed olur."
   ],
-  "evidence": []
+  "evidence": [
+    {
+      "workstream": "visual-worker-reliability",
+      "scope": "local",
+      "status": "passed",
+      "summary": "Exclusive five-minute leases, heartbeat renewal, bounded exponential retry and terminal dead-letter persistence are implemented; admin reports active, deferred and terminal counts. Staging and production migration evidence is still required before completion.",
+      "tests": ["VisualBriefBuilderTests", "API Release test suite", "web lint", "web typecheck", "web build"]
+    }
+  ]
 }
