@@ -22,14 +22,23 @@ public static partial class ImageTopicRelevancePolicy
 
     public static bool IsRelevantSet(string title, string summary, string category, string? coverQuery,
         IReadOnlyList<string>? inlineQueries, IReadOnlyList<string>? altTexts)
+        => Explain(title, summary, category, coverQuery, inlineQueries, altTexts).Length == 0;
+
+    public static string[] Explain(string title, string summary, string category, string? coverQuery,
+        IReadOnlyList<string>? inlineQueries, IReadOnlyList<string>? altTexts)
     {
-        if (inlineQueries is not { Count: 2 } || altTexts is not { Count: 2 }) return false;
+        if (inlineQueries is not { Count: 2 } || altTexts is not { Count: 2 }) return ["Görsel sorgusu veya alt metin sayısı iki değil."];
         var topic = Tokens($"{title} {summary} {category}");
-        if (topic.Count < 2) return false;
+        if (topic.Count < 2) return ["Makale konusu yeterli ayırt edici sözcük taşımıyor."];
         var queries = new[] { coverQuery, inlineQueries[0], inlineQueries[1] };
-        if (queries.Any(query => !IsConcreteAndRelevant(query, topic)) || altTexts.Any(alt => !IsConcreteAndRelevant(alt, topic))) return false;
+        var reasons = new List<string>();
+        for (var index = 0; index < queries.Length; index++)
+            if (!IsConcreteAndRelevant(queries[index], topic)) reasons.Add($"Görsel sorgusu {index + 1} somut veya konuyla ilgili değil.");
+        for (var index = 0; index < altTexts.Count; index++)
+            if (!IsConcreteAndRelevant(altTexts[index], topic)) reasons.Add($"Alt metin {index + 1} somut veya konuyla ilgili değil.");
         var sets = queries.Select(query => Tokens(query!)).ToArray();
-        return !TooSimilar(sets[0], sets[1]) && !TooSimilar(sets[0], sets[2]) && !TooSimilar(sets[1], sets[2]);
+        if (TooSimilar(sets[0], sets[1]) || TooSimilar(sets[0], sets[2]) || TooSimilar(sets[1], sets[2])) reasons.Add("Görsel sahneleri birbirine fazla benziyor.");
+        return reasons.ToArray();
     }
 
     private static bool IsConcreteAndRelevant(string? value, HashSet<string> topic)
@@ -40,7 +49,10 @@ public static partial class ImageTopicRelevancePolicy
         if (tokens.Where(ProhibitedTextTerms.Contains).Any(term =>
                 !Regex.IsMatch(normalized, $@"\b(?:no|without)\s+(?:\w+\s+){{0,2}}{Regex.Escape(term)}\b", RegexOptions.CultureInvariant))) return false;
         var concrete = tokens.Except(GenericTerms).ToHashSet(StringComparer.Ordinal);
-        return concrete.Count >= 2 && concrete.Intersect(topic).Any();
+        return concrete.Count >= 2 && concrete.Any(candidate => topic.Any(topicToken =>
+            candidate.Equals(topicToken, StringComparison.Ordinal) ||
+            candidate.Length >= 5 && topicToken.Length >= 5 &&
+            (candidate.StartsWith(topicToken, StringComparison.Ordinal) || topicToken.StartsWith(candidate, StringComparison.Ordinal))));
     }
 
     private static bool TooSimilar(HashSet<string> left, HashSet<string> right)
@@ -64,6 +76,9 @@ public static partial class ImageTopicRelevancePolicy
         return builder.ToString().ToLowerInvariant();
     }
 
-    [GeneratedRegex("[^a-z0-9]+", RegexOptions.CultureInvariant)]
+    // Keep Unicode letters. ASCII-only tokenization discarded Turkish dotless ı
+    // and other locale-specific letters, producing false relevance failures for
+    // otherwise concrete recipe scenes.
+    [GeneratedRegex(@"[^\p{L}\p{Nd}]+", RegexOptions.CultureInvariant)]
     private static partial Regex TokenSeparator();
 }

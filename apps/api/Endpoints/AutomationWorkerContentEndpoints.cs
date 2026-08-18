@@ -124,7 +124,9 @@ public static partial class AutomationWorkerEndpoints
         foreach (var item in payload.Items)
         {
             if (!job.TargetLocales.Contains(item.Locale, StringComparer.OrdinalIgnoreCase) || !ValidTranslation(item)) return Results.BadRequest(new { message = "Çeviri alanları geçersiz." });
-            var source = await database.ArticleLocalizations.Include(article => article.ArticleGroup).Include(article => article.CoverMediaAsset).Include(article => article.Categories).SingleOrDefaultAsync(article => article.Id == item.SourceArticleId && article.Locale.IsDefault && article.Status == PublicationStatus.Published && (job.Type != AutomationJobType.ReadyContentGeneration || article.GeneratedByAutomationJobId == job.Id), token);
+            // Locale is also read by CaptureSourceSnapshot. Using it only in the SQL
+            // predicate does not populate the navigation property after materialization.
+            var source = await database.ArticleLocalizations.Include(article => article.Locale).Include(article => article.ArticleGroup).Include(article => article.CoverMediaAsset).Include(article => article.Categories).SingleOrDefaultAsync(article => article.Id == item.SourceArticleId && article.Locale.IsDefault && article.Status == PublicationStatus.Published && (job.Type != AutomationJobType.ReadyContentGeneration || article.GeneratedByAutomationJobId == job.Id), token);
             var locale = await database.Locales.SingleOrDefaultAsync(candidate => candidate.Code == item.Locale && candidate.IsEnabled, token);
             if (source is null || locale is null) return Results.BadRequest(new { message = "Kaynak veya hedef dil bulunamadı." });
             var exists = await database.ArticleLocalizations.AnyAsync(article => article.ArticleGroupId == source.ArticleGroupId && article.LocaleId == locale.Id && article.Status != PublicationStatus.Archived, token);

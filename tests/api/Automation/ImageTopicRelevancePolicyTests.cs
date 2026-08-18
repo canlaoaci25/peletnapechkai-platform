@@ -36,4 +36,23 @@ public sealed class ImageTopicRelevancePolicyTests
             ["sahilde gün batımında spor otomobil", "sahilde gün batımında spor otomobil"],
             ["Deprem çantasında su şişeleri", "İlk yardım çantası ve acil durum feneri"]));
     }
+
+    [Fact]
+    public void Accepts_distinct_recipe_cover_and_preparation_scenes()
+    {
+        var reasons = ImageTopicRelevancePolicy.Explain(
+            "Tencerede Etli Nohut Yemeği: Yumuşak Et ve Dağılmayan Nohut İçin Tam Ölçü",
+            "Etli nohut yemeğini ölçülü malzemeler, doğru ıslatma ve kontrollü pişirme adımlarıyla hazırlama rehberi.",
+            "Yemek Tarifleri",
+            "Beyaz tabakta bitmiş salçalı etli nohut yemeği, tane nohutlar ve kuşbaşı dana eti, doğal yemek fotoğrafı",
+            [
+                "Cam kâsede soğuk suda ıslanan şişmiş kuru nohutlar, gerçek hazırlık aşaması, mutfak tezgâhı",
+                "Çelik tencerede salçalı sos içinde hafif kaynayan nohut ve kuşbaşı dana eti, gerçek pişirme aşaması, buhar"
+            ],
+            [
+                "Cam kapta tuzlu soğuk su içinde geceden ıslatılan ve belirgin biçimde şişen kuru nohutlar",
+                "Kalın tabanlı tencerede salçalı sos içinde hafifçe kaynayan nohutlar ve kuşbaşı dana eti"
+            ]);
+        Assert.True(reasons.Length == 0, string.Join(" | ", reasons));
+    }
 }

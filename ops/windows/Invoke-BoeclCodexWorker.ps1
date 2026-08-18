@@ -78,6 +78,37 @@ function Send-WorkerHeartbeat {
         -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($payload)) | Out-Null
 }
 
+function Invoke-BoeclApiRequest {
+    param(
+        [Parameter(Mandatory)] [ValidateSet('Get', 'Post')] [string]$Method,
+        [Parameter(Mandatory)] [string]$Uri,
+        [Parameter(Mandatory)] [hashtable]$Headers,
+        [string]$ContentType,
+        [byte[]]$Body
+    )
+
+    try {
+        $parameters = @{ Method = $Method; Uri = $Uri; Headers = $Headers }
+        if ($ContentType) { $parameters.ContentType = $ContentType }
+        if ($null -ne $Body) { $parameters.Body = $Body }
+        return Invoke-RestMethod @parameters
+    }
+    catch {
+        $statusCode = $_.Exception.Response.StatusCode.value__
+        $responseBody = ''
+        try {
+            $stream = $_.Exception.Response.GetResponseStream()
+            if ($stream) {
+                $reader = [IO.StreamReader]::new($stream, [Text.Encoding]::UTF8)
+                try { $responseBody = $reader.ReadToEnd() } finally { $reader.Dispose() }
+            }
+        }
+        catch { }
+        $safeDetail = if ([string]::IsNullOrWhiteSpace($responseBody)) { $_.Exception.Message } else { $responseBody }
+        throw "BOECL API istegi basarisiz (HTTP $statusCode, $Method $([Uri]$Uri).AbsolutePath): $safeDetail"
+    }
+}
+
 try {
     $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
     $env:CODEX_HOME = [string]$config.codexHome
@@ -180,7 +211,7 @@ try {
             $submitPath = if ($candidateKind -eq 'generation') { 'generated-content' } elseif ($candidateKind -eq 'translation') { 'translations' } elseif ($candidateKind -eq 'category') { 'category-translations' } else { 'seo-drafts' }
             $submitBody = @{ payloadBase64 = $payloadBase64 } | ConvertTo-Json
             $submitBytes = [Text.Encoding]::UTF8.GetBytes($submitBody)
-            Invoke-RestMethod -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/$submitPath" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $submitBytes | Out-Null
+            Invoke-BoeclApiRequest -Method Post -Uri "$($config.apiUrl)/api/v1/internal/automation-worker/$jobId/$submitPath" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body $submitBytes | Out-Null
             $processed += $candidateCount
             Send-WorkerHeartbeat -ApiUrl ([string]$config.apiUrl) -Headers $headers -JobId $jobId -Message "Paket ${batch} teslim edildi; yeni adaylar ve kalan iş hesaplanıyor."
         } while ($true)

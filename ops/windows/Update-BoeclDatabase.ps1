@@ -18,7 +18,7 @@ try {
     $migrationConnection = [regex]::Replace($migrationConnection, '(?i)(^|;)Password=[^;]*', '$1').TrimEnd(';')
     $env:ConnectionStrings__DatabaseMigration = "$migrationConnection;Passfile=$PasswordFile"
     & dotnet.exe ef database update --project (Join-Path $RepositoryPath 'apps\api\Peletnapechkai.Api.csproj') `
-        --startup-project (Join-Path $RepositoryPath 'apps\api\Peletnapechkai.Api.csproj') --no-build
+        --startup-project (Join-Path $RepositoryPath 'apps\api\Peletnapechkai.Api.csproj') --configuration Release --no-build
     if ($LASTEXITCODE -ne 0) { throw "$Environment database migration failed with exit code $LASTEXITCODE." }
 }
 finally { Remove-Item Env:\ConnectionStrings__DatabaseMigration -ErrorAction SilentlyContinue }
