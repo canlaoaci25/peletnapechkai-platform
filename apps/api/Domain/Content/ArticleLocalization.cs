@@ -91,6 +91,7 @@ public sealed class ArticleLocalization
 
     public ICollection<ArticleRevision> Revisions { get; } = [];
     public ICollection<ArticleCorrection> Corrections { get; } = [];
+    public ICollection<ArticleClaimCitation> ClaimCitations { get; } = [];
 
     public ICollection<Category> Categories { get; } = [];
 

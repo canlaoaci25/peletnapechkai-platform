@@ -2,7 +2,7 @@
   "id": "boecl-complete-all",
   "title": "BOECL tek faz tamamlama programı",
   "status": "active",
-  "updatedAt": "2026-08-18T16:00:00Z",
+  "updatedAt": "2026-08-18T16:28:00Z",
   "policy": {
     "createNewBacklog": false,
     "completeOnlyWhenAllWorkstreamsPass": true,
@@ -63,6 +63,13 @@
       "status": "passed",
       "summary": "Published locale editions now accept editor-authorized, append-only correction records with bounded plain-text fields and audit evidence. Public articles expose only their own locale's records as a semantic correction timeline; admin provides a dedicated four-locale management surface. Staging backup/restore/migration, real light/dark render and production promotion remain required before completion.",
       "tests": ["ArticleCorrection domain tests", "185 API tests", "web lint", "web typecheck", "web production build", "API Release build"]
+    },
+    {
+      "workstream": "source-claim-citations",
+      "scope": "local",
+      "status": "passed",
+      "summary": "Locale-specific editor-approved claim citations now bind only sources already attached to the article, persist approval evidence, emit audit events, and render as an accessible reader-facing evidence panel distinct from the general bibliography. Staging backup/restore/migration, light/dark browser captures and production promotion remain required before completion.",
+      "tests": ["ArticleClaimCitation domain tests", "187 API tests", "93 web tests", "web lint", "web typecheck", "API Release build"]
     }
   ]
 }

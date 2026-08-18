@@ -4,6 +4,7 @@ import { ArticleEditor } from "@/components/admin/article-editor";
 import { EditorialCollaboration } from "@/components/admin/editorial-collaboration";
 import { RevisionHistory } from "@/components/admin/revision-history";
 import { CorrectionManager } from "@/components/admin/correction-manager";
+import { ClaimCitationManager } from "@/components/admin/claim-citation-manager";
 import { WorkflowActions } from "@/components/admin/workflow-actions";
 import { adminCopy } from "@/i18n/admin-copy";
 import { hasLocale } from "@/i18n/config";
@@ -12,6 +13,7 @@ import {
   getArticle,
   getArticleRevisions,
   getArticleCorrections,
+  getArticleClaimCitations,
   getArticleCollaboration,
   getSupportingLibrary,
 } from "@/lib/admin-api";
@@ -22,11 +24,12 @@ export default async function EditArticlePage({
   if (!hasLocale(locale)) redirect("/tr-TR/admin/login");
   const session = await getAdminSession();
   if (!session) redirect(`/${locale}/admin/login`);
-  const [article, library, revisions, corrections, collaboration] = await Promise.all([
+  const [article, library, revisions, corrections, citations, collaboration] = await Promise.all([
     getArticle(articleId),
     getSupportingLibrary(),
     getArticleRevisions(articleId),
     getArticleCorrections(articleId),
+    getArticleClaimCitations(articleId),
     getArticleCollaboration(articleId),
   ]);
   if (!article) notFound();
@@ -64,6 +67,7 @@ export default async function EditArticlePage({
       </section>
       <EditorialCollaboration articleId={articleId} locale={locale} data={collaboration} />
       <CorrectionManager articleId={articleId} locale={locale} status={article.status} corrections={corrections} />
+      <ClaimCitationManager articleId={articleId} locale={locale} sourceIds={article.sourceIds} sources={library.sources} citations={citations} />
       <RevisionHistory locale={locale} revisions={revisions} />
     </main>
   );

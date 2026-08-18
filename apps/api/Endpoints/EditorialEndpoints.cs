@@ -21,6 +21,9 @@ public static partial class EditorialEndpoints
         group.MapGet("/{articleId:guid}/revisions", ListRevisionsAsync).RequireAuthorization(AuthorizationPolicies.WriteContent);
         group.MapGet("/{articleId:guid}/corrections", ListCorrectionsAsync).RequireAuthorization(AuthorizationPolicies.WriteContent);
         group.MapPost("/{articleId:guid}/corrections", CreateCorrectionAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
+        group.MapGet("/{articleId:guid}/claim-citations", ListClaimCitationsAsync).RequireAuthorization(AuthorizationPolicies.WriteContent);
+        group.MapPost("/{articleId:guid}/claim-citations", CreateClaimCitationAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
+        group.MapDelete("/{articleId:guid}/claim-citations/{citationId:guid}", DeleteClaimCitationAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         group.MapPost("/", CreateAsync).RequireAuthorization(AuthorizationPolicies.WriteContent).ValidateAntiforgery();
         group.MapPut("/{articleId:guid}", UpdateAsync).RequireAuthorization(AuthorizationPolicies.WriteContent).ValidateAntiforgery();
         group.MapPut("/{articleId:guid}/relationships", UpdateRelationshipsAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
@@ -32,6 +35,37 @@ public static partial class EditorialEndpoints
         group.MapPost("/{articleId:guid}/publish-direct", PublishDirectAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         group.MapPost("/{articleId:guid}/archive", ArchiveAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         return endpoints;
+    }
+
+    private static async Task<IResult> ListClaimCitationsAsync(Guid articleId, PublishingDbContext database, CancellationToken token)
+    {
+        if (!await database.ArticleLocalizations.AsNoTracking().AnyAsync(x => x.Id == articleId, token)) return Results.NotFound();
+        return Results.Ok(await database.ArticleClaimCitations.AsNoTracking().Where(x => x.ArticleLocalizationId == articleId)
+            .OrderBy(x => x.ApprovedAt).Select(x => new { x.Id, x.SourceId, sourceName=x.Source.Name, sourceUrl=x.Source.Url, x.Claim, x.Locator, x.ApprovedAt }).ToListAsync(token));
+    }
+
+    private static async Task<IResult> CreateClaimCitationAsync(Guid articleId, ClaimCitationRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
+    {
+        var article=await database.ArticleLocalizations.Include(x=>x.ArticleGroup).ThenInclude(x=>x.Sources).SingleOrDefaultAsync(x=>x.Id==articleId,token);
+        var actor=await users.GetUserAsync(principal);if(article is null||actor is null)return Results.NotFound();
+        var source=article.ArticleGroup.Sources.SingleOrDefault(x=>x.Id==request.SourceId);
+        if(source is null)return Validation("sourceId","The citation source must already be attached to this article group.");
+        if(string.IsNullOrWhiteSpace(request.Claim)||request.Claim.Trim().Length>500)return Validation("claim","A claim of at most 500 characters is required.");
+        if(request.Locator?.Trim().Length>240)return Validation("locator","The source locator must not exceed 240 characters.");
+        var citation=new ArticleClaimCitation(article,source,request.Claim,request.Locator,actor.Id,DateTimeOffset.UtcNow);
+        database.ArticleClaimCitations.Add(citation);
+        database.AuditLogs.Add(Audit(actor.Id,"editorial.claim_citation_approved",article.Id,new{citation.Id,citation.SourceId,article.LocaleId}));
+        await database.SaveChangesAsync(token);
+        return Results.Created($"/api/v1/admin/articles/{articleId}/claim-citations/{citation.Id}",new{citation.Id,citation.SourceId,sourceName=source.Name,sourceUrl=source.Url,citation.Claim,citation.Locator,citation.ApprovedAt});
+    }
+
+    private static async Task<IResult> DeleteClaimCitationAsync(Guid articleId, Guid citationId, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
+    {
+        var citation=await database.ArticleClaimCitations.SingleOrDefaultAsync(x=>x.Id==citationId&&x.ArticleLocalizationId==articleId,token);
+        var actor=await users.GetUserAsync(principal);if(citation is null||actor is null)return Results.NotFound();
+        database.ArticleClaimCitations.Remove(citation);
+        database.AuditLogs.Add(Audit(actor.Id,"editorial.claim_citation_removed",articleId,new{citation.Id,citation.SourceId}));
+        await database.SaveChangesAsync(token);return Results.NoContent();
     }
 
     private static async Task<IResult> ListCorrectionsAsync(Guid articleId, PublishingDbContext database, CancellationToken token)
@@ -239,6 +273,7 @@ public static partial class EditorialEndpoints
     private sealed record UpdateArticleRequest(string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks, Guid[]? CategoryIds, DateTimeOffset ExpectedUpdatedAt);
     private sealed record ScheduleRequest(DateTimeOffset ScheduledAt);
     private sealed record CorrectionRequest(string Summary, string Details);
+    private sealed record ClaimCitationRequest(Guid SourceId, string Claim, string? Locator);
     private sealed record RelationshipsRequest(Guid[] CategoryIds, Guid[] TagIds, Guid[] AuthorIds, Guid[] SourceIds, Guid[] MediaAssetIds, Guid? CoverMediaAssetId, string? CoverAltText, string? CoverCaption, string? CoverCredit);
     [GeneratedRegex(@"/api/media/([0-9a-fA-F-]{36})")]
     private static partial Regex InlineMediaPattern();

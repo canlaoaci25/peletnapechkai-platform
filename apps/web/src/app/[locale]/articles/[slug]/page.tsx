@@ -8,6 +8,7 @@ import { SaveArticleButton } from "@/components/save-article-button";
 import { siteConfig } from "@/config/site";
 import { commercialCopy } from "@/i18n/commercial-copy";
 import { correctionCopy } from "@/i18n/correction-copy";
+import { claimCitationCopy } from "@/i18n/claim-citation-copy";
 import { hasLocale, localeLabels, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getPublishedArticle, getRelatedArticles } from "@/lib/public-api";
@@ -86,7 +87,7 @@ export default async function ArticlePage({
   ]);
   if (!article) notFound();
   const isHtml = article.body.trimStart().startsWith("<"),
-    commercial = commercialCopy[locale], correctionsCopy = correctionCopy[locale];
+    commercial = commercialCopy[locale], correctionsCopy = correctionCopy[locale], citationsCopy=claimCitationCopy[locale];
   const { bodyHtml, outline } = buildArticleOutline(isHtml ? article.body : markdownBodyToHtml(article.body));
   const publicSources = article.sources.map(getPublicSource).filter((source) => source !== null);
   const articleCopy = dictionary.article;
@@ -237,6 +238,7 @@ export default async function ArticlePage({
           <div className="article-body">
             <div className="rich-article-body" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
           </div>
+          {article.claimCitations.length>0&&<aside className="article-claim-citations" aria-labelledby="claim-citations-title"><header><p className="section-kicker">BOECL · EVIDENCE</p><h2 id="claim-citations-title">{citationsCopy.heading}</h2><p>{citationsCopy.summary}</p></header><ol>{article.claimCitations.map((item,index)=><li key={item.id}><span aria-hidden="true">{String(index+1).padStart(2,"0")}</span><div><blockquote>{item.claim}</blockquote><a href={item.sourceUrl} target="_blank" rel="nofollow noopener noreferrer"><strong>{item.sourceName}</strong>{item.locator&&<small>{item.locator}</small>}<em>{citationsCopy.source} ↗</em></a></div></li>)}</ol></aside>}
           {article.corrections.length>0&&<section className="article-corrections" aria-labelledby="article-corrections-title"><h2 id="article-corrections-title">{correctionsCopy.heading}</h2><p>{correctionsCopy.summary}</p><ol>{article.corrections.map(item=><li key={item.id}><time dateTime={item.correctedAt}>{formatDate(item.correctedAt)}</time><h3>{item.summary}</h3><p>{item.details}</p></li>)}</ol></section>}
           {article.tags.length > 0 && (
             <footer className="article-taxonomy">

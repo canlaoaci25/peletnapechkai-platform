@@ -243,6 +243,7 @@ export type ArticleRevision = {
   createdAt: string;
 };
 export type ArticleCorrection = { id:string; summary:string; details:string; approvedByUserId:string; correctedAt:string };
+export type ArticleClaimCitation = { id:string; sourceId:string; sourceName:string; sourceUrl:string; claim:string; locator:string|null; approvedAt:string };
 export type ArticleCollaboration = {
   tasks: {
     id: string;
@@ -408,6 +409,7 @@ export async function getArticleRevisions(id: string) {
   return (await apiGet<ArticleRevision[]>(`/api/v1/admin/articles/${encodeURIComponent(id)}/revisions`)) ?? [];
 }
 export async function getArticleCorrections(id:string){return (await apiGet<ArticleCorrection[]>(`/api/v1/admin/articles/${encodeURIComponent(id)}/corrections`))??[];}
+export async function getArticleClaimCitations(id:string){return (await apiGet<ArticleClaimCitation[]>(`/api/v1/admin/articles/${encodeURIComponent(id)}/claim-citations`))??[];}
 export function getArticleCollaboration(id: string) {
   return apiGet<ArticleCollaboration>(`/api/v1/admin/articles/${encodeURIComponent(id)}/collaboration/`);
 }

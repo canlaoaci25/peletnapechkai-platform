@@ -30,6 +30,7 @@ public sealed class PublishingDbContext(DbContextOptions<PublishingDbContext> op
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
     public DbSet<ArticleRevision> ArticleRevisions => Set<ArticleRevision>();
     public DbSet<ArticleCorrection> ArticleCorrections => Set<ArticleCorrection>();
+    public DbSet<ArticleClaimCitation> ArticleClaimCitations => Set<ArticleClaimCitation>();
     public DbSet<SeoMetadata> SeoMetadata => Set<SeoMetadata>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<KnowledgeCandidate> KnowledgeCandidates => Set<KnowledgeCandidate>();
