@@ -28,4 +28,12 @@ public sealed class PriorityContentCampaignTests
         }
         finally{File.Delete(path);}
     }
+
+    [Fact]
+    public void Missing_file_uses_time_bounded_recipe_fallback()
+    {
+        var configuration=new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>{{"Automation:PriorityCampaignPath",Path.Combine(Path.GetTempPath(),Guid.NewGuid()+".json")}}).Build();
+        Assert.Equal("yemek-tarifleri",PriorityContentCampaign.Load(configuration,DateTimeOffset.Parse("2026-08-18T10:00:00Z"))?.CategorySlug);
+        Assert.Null(PriorityContentCampaign.Load(configuration,DateTimeOffset.Parse("2026-08-18T21:00:00Z")));
+    }
 }

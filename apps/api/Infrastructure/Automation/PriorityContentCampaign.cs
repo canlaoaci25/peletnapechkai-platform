@@ -5,17 +5,21 @@ namespace Peletnapechkai.Api.Infrastructure.Automation;
 
 public sealed record PriorityContentCampaign(string CategorySlug, int TurkishPercent, DateTimeOffset ExpiresAt)
 {
+    private static readonly DateTimeOffset RecipeCampaignDeadline=DateTimeOffset.Parse("2026-08-18T20:28:29.6612866+00:00");
+    public static PriorityContentCampaign? RecipeFallback(DateTimeOffset now)=>now<RecipeCampaignDeadline?new("yemek-tarifleri",70,RecipeCampaignDeadline):null;
+
     public static PriorityContentCampaign? Load(IConfiguration configuration, DateTimeOffset now)
     {
         var path=configuration["Automation:PriorityCampaignPath"]??Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),"Peletnapechkai","AutomationWorker","priority-content-campaign.json");
-        if(!File.Exists(path))return null;
+        if(!File.Exists(path))return RecipeFallback(now);
         try
         {
             var value=JsonSerializer.Deserialize<PriorityContentCampaign>(File.ReadAllText(path),new JsonSerializerOptions{PropertyNameCaseInsensitive=true});
             return value is not null&&value.ExpiresAt>now&&value.TurkishPercent is >=0 and <=100&&!string.IsNullOrWhiteSpace(value.CategorySlug)?value:null;
         }
-        catch(JsonException){return null;}
-        catch(IOException){return null;}
+        catch(JsonException){return RecipeFallback(now);}
+        catch(IOException){return RecipeFallback(now);}
+        catch(UnauthorizedAccessException){return RecipeFallback(now);}
     }
     public bool SelectTurkishCuisine(Guid jobId)=>BitConverter.ToUInt32(SHA256.HashData(jobId.ToByteArray()))%100<TurkishPercent;
     public string CreateRecipeBrief(Guid jobId)
