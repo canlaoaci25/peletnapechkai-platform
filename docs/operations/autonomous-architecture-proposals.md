@@ -1,5 +1,11 @@
 # BOECL otonom mimari ve ürün teklifleri
 
+> Çevrim 79 güncellemesi (18 Ağustos 2026): Görsel Yenileme Stüdyosu aday kanıtı tek bir genel
+> konu onayından; tam makale, ilgili bölüm, locale/kültür, teknik doğruluk, yazısızlık, artefact
+> ve tüm public crop kontrollerini ayrı ayrı gösteren fail-closed sözleşmeye taşındı. Retry veya
+> red kararı eski aday ve kanıtlarını terfi edilemez kılar; audit önceki aday kimliğini korur.
+> Harici üretim/vision sağlayıcısı ücret, lisans ve veri aktarımı owner kararı olmadan etkinleştirilmedi.
+
 > Çevrim 78 güncellemesi (18 Ağustos 2026): locale yayın bütünlüğü, makale üzerinde yalnız
 > gerçekten yayımlanmış karşılıkları gösteren görünür dil baskıları şeridiyle public deneyime
 > taşındı. Dört arayüz sözlüğü aynı placeholder sözleşmesiyle doğrulanıyor; mevcut sürüm

@@ -35,7 +35,7 @@ internal sealed class VisualReviewTaskConfiguration : IEntityTypeConfiguration<V
         b.Property(x => x.PromotedAt).HasColumnName("promoted_at");
         b.Property(x => x.ReviewedByUserId).HasColumnName("reviewed_by_user_id");
         b.Property(x => x.ReviewedAt).HasColumnName("reviewed_at");
-        b.Property(x => x.CreatedAt).HasColumnName("created_at"); b.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+        b.Property(x => x.CreatedAt).HasColumnName("created_at"); b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsConcurrencyToken();
         b.HasIndex(x => x.IdempotencyKey).IsUnique().HasDatabaseName("ux_visual_review_tasks_idempotency");
         b.HasIndex(x => new { x.Status, x.QualityScore, x.CreatedAt }).HasDatabaseName("ix_visual_review_tasks_queue");
         b.HasIndex(x => new { x.AutomationJobId, x.Status }).HasDatabaseName("ix_visual_review_tasks_batch_status");

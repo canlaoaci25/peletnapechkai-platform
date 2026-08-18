@@ -17,7 +17,7 @@
                       "id":  "visual-service",
                       "title":  "Bağımsız görsel üretim servisi",
                       "outcome":  "Makale bağlamından yazısız, konuya uygun kapak ve gövde görselleri üret; kalite kapıları ve sağlayıcı yedeği ekle.",
-                      "status":  "queued"
+                      "status":  "active"
                   },
                   {
                       "id":  "visual-backfill",
@@ -101,7 +101,7 @@
                       "id":  "structured-discovery",
                       "title":  "YapÄ±landÄ±rÄ±lmÄ±ÅŸ veri ve keÅŸif kapsamÄ±",
                       "outcome":  "Ä°Ã§erik tÃ¼rlerine uygun schema, breadcrumb, canonical, hreflang ve dahili keÅŸif baÄŸlantÄ±larÄ±nÄ± uÃ§tan uca doÄŸrula.",
-                      "status":  "active"
+                      "status":  "queued"
                   },
                   {
                       "id":  "corrections-workflow",

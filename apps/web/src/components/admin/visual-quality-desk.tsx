@@ -107,9 +107,14 @@ const base = {
   closestMatch: "closest archive match",
   submitCandidate: "Send candidate to gates",
   attestation: "Editorial evidence",
-  attestationHelp: "Topic fit and text/logo safety require an identified editorial confirmation. Crop and originality are measured by the server.",
-  topicConfirmed: "I confirmed that the image matches the article and section",
+  attestationHelp: "Every visible claim below requires an identified editorial confirmation. Originality is measured by the server.",
+  articleConfirmed: "The focal subject matches the full article",
+  sectionConfirmed: "The scene directly matches the named section",
+  localeConfirmed: "Geography and cultural details fit this edition",
+  technicalConfirmed: "Physical and technical details are credible",
   textConfirmed: "I confirmed that the image has no text, logo, watermark, or fake UI",
+  artifactConfirmed: "Hands, faces, objects, perspective and reflections have no visible artifacts",
+  cropConfirmed: "The focal subject survives every public crop shown above",
   evidencePending: "Evidence not yet recorded",
   promoteCandidate: "Approve and publish",
   operation: "Archive renewal operation",
@@ -137,9 +142,14 @@ const copy = {
     eyebrow: "GÖRSEL ÜRETİM SERVİSİ",
     title: "Görsel Yenileme Stüdyosu",
     attestation: "Editoryal kanıt",
-    attestationHelp: "Konu uyumu ile yazı/logo güvenliği, kimliği kaydedilen editör onayı ister. Kırpma ve özgünlük sunucuda ölçülür.",
-    topicConfirmed: "Görselin makale ve bölümle eşleştiğini doğruladım",
+    attestationHelp: "Aşağıdaki her görünür iddia, kimliği kaydedilen editör onayı ister. Özgünlük sunucuda ölçülür.",
+    articleConfirmed: "Ana özne makalenin tamamıyla eşleşiyor",
+    sectionConfirmed: "Sahne, belirtilen bölümle doğrudan eşleşiyor",
+    localeConfirmed: "Coğrafya ve kültürel ayrıntılar bu yayın diline uygun",
+    technicalConfirmed: "Fiziksel ve teknik ayrıntılar güvenilir",
     textConfirmed: "Görselde yazı, logo, filigran veya sahte arayüz olmadığını doğruladım",
+    artifactConfirmed: "El, yüz, nesne, perspektif ve yansımalarda görünür bozukluk yok",
+    cropConfirmed: "Ana özne yukarıdaki tüm public kırpmalarda korunuyor",
     evidencePending: "Kanıt henüz kaydedilmedi",
     lead: "Her makaleyi tam metin ve bölüm bağlamıyla; konu eşleşmesi, yazısız tasarım, mobil kırpma, performans ve kullanım hakkı kapılarında tarar.",
     total: "Yayındaki makale",
@@ -216,9 +226,14 @@ const copy = {
     eyebrow: "VISUAL GENERATION SERVICE",
     title: "Visual Renewal Studio",
     attestation: "Editorial evidence",
-    attestationHelp: "Topic fit and text/logo safety require an identified editorial confirmation. Crop and originality are measured by the server.",
-    topicConfirmed: "I confirmed that the image matches the article and section",
+    attestationHelp: "Every visible claim below requires an identified editorial confirmation. Originality is measured by the server.",
+    articleConfirmed: "The focal subject matches the full article",
+    sectionConfirmed: "The scene directly matches the named section",
+    localeConfirmed: "Geography and cultural details fit this edition",
+    technicalConfirmed: "Physical and technical details are credible",
     textConfirmed: "I confirmed that the image has no text, logo, watermark, or fake UI",
+    artifactConfirmed: "Hands, faces, objects, perspective and reflections have no visible artifacts",
+    cropConfirmed: "The focal subject survives every public crop shown above",
     evidencePending: "Evidence not yet recorded",
     lead: "Audits every story using its full text and section context for topic fit, text-free design, mobile crop, performance, and rights.",
     total: "Published stories",
@@ -236,9 +251,14 @@ const copy = {
     eyebrow: "BILDERZEUGUNGSDIENST",
     title: "Studio für Bilderneuerung",
     attestation: "Redaktioneller Nachweis",
-    attestationHelp: "Themenbezug sowie Text- und Logosicherheit erfordern eine namentlich protokollierte Bestätigung. Beschnitt und Originalität misst der Server.",
-    topicConfirmed: "Ich bestätige den Bezug zu Beitrag und Abschnitt",
+    attestationHelp: "Jede sichtbare Aussage unten erfordert eine namentlich protokollierte redaktionelle Bestätigung. Die Originalität misst der Server.",
+    articleConfirmed: "Das Hauptmotiv passt zum vollständigen Beitrag",
+    sectionConfirmed: "Die Szene passt direkt zum genannten Abschnitt",
+    localeConfirmed: "Geografie und kulturelle Details passen zu dieser Ausgabe",
+    technicalConfirmed: "Physische und technische Details sind plausibel",
     textConfirmed: "Ich bestätige: kein Text, Logo, Wasserzeichen oder erfundenes UI",
+    artifactConfirmed: "Hände, Gesichter, Objekte, Perspektive und Spiegelungen sind frei von sichtbaren Artefakten",
+    cropConfirmed: "Das Hauptmotiv bleibt in allen oben gezeigten öffentlichen Zuschnitten erhalten",
     evidencePending: "Nachweis noch nicht erfasst",
     lead: "Prüft Beiträge mit Volltext und Abschnittskontext auf Themenbezug, textfreie Gestaltung, mobilen Beschnitt, Leistung und Rechte.",
     total: "Veröffentlichte Beiträge",
@@ -289,9 +309,14 @@ const copy = {
     eyebrow: "SERVICE DE GÉNÉRATION VISUELLE",
     title: "Studio de renouvellement visuel",
     attestation: "Preuve éditoriale",
-    attestationHelp: "La pertinence et l’absence de texte ou logo exigent une confirmation éditoriale identifiée. Le serveur mesure le cadrage et l’originalité.",
-    topicConfirmed: "Je confirme la pertinence pour l’article et la section",
+    attestationHelp: "Chaque affirmation visible ci-dessous exige une confirmation éditoriale identifiée. Le serveur mesure l’originalité.",
+    articleConfirmed: "Le sujet principal correspond à l’article complet",
+    sectionConfirmed: "La scène correspond directement à la section indiquée",
+    localeConfirmed: "La géographie et les détails culturels conviennent à cette édition",
+    technicalConfirmed: "Les détails physiques et techniques sont crédibles",
     textConfirmed: "Je confirme l’absence de texte, logo, filigrane ou fausse interface",
+    artifactConfirmed: "Les mains, visages, objets, perspectives et reflets ne présentent aucun artefact visible",
+    cropConfirmed: "Le sujet principal reste intact dans tous les cadrages publics ci-dessus",
     evidencePending: "Preuve pas encore enregistrée",
     lead: "Contrôle chaque article avec son texte intégral et sa section : pertinence, création sans texte, recadrage mobile, performance et droits.",
     total: "Articles publiés",
@@ -384,8 +409,13 @@ export function VisualQualityDesk({
       licenseName: field(`license-${id}`),
       attribution: field(`credit-${id}`),
       altText: field(`alt-${id}`),
-      topicConfirmed: checked(`topic-${id}`),
+      articleConfirmed: checked(`article-${id}`),
+      sectionConfirmed: checked(`section-${id}`),
+      localeConfirmed: checked(`locale-${id}`),
+      technicalAccuracyConfirmed: checked(`technical-${id}`),
       textAndLogoFreeConfirmed: checked(`text-${id}`),
+      artifactFreeConfirmed: checked(`artifact-${id}`),
+      cropConfirmed: checked(`crop-${id}`),
     };
   }
   async function send(
@@ -607,8 +637,13 @@ export function VisualQualityDesk({
                         <fieldset className="visual-attestation">
                           <legend>{c.attestation}</legend>
                           <p>{c.attestationHelp}</p>
-                          <label><input id={`topic-${item.visualTask.id}`} type="checkbox" defaultChecked={item.visualTask.topicScore===100}/>{c.topicConfirmed}</label>
+                          <label><input id={`article-${item.visualTask.id}`} type="checkbox" defaultChecked={item.visualTask.topicScore===100}/>{c.articleConfirmed}</label>
+                          <label><input id={`section-${item.visualTask.id}`} type="checkbox" defaultChecked={item.visualTask.topicScore===100}/>{c.sectionConfirmed}</label>
+                          <label><input id={`locale-${item.visualTask.id}`} type="checkbox" defaultChecked={item.visualTask.topicScore===100}/>{c.localeConfirmed}</label>
+                          <label><input id={`technical-${item.visualTask.id}`} type="checkbox" defaultChecked={item.visualTask.topicScore===100}/>{c.technicalConfirmed}</label>
                           <label><input id={`text-${item.visualTask.id}`} type="checkbox" defaultChecked={item.visualTask.textSafetyScore===100}/>{c.textConfirmed}</label>
+                          <label><input id={`artifact-${item.visualTask.id}`} type="checkbox" defaultChecked={item.visualTask.textSafetyScore===100}/>{c.artifactConfirmed}</label>
+                          <label><input id={`crop-${item.visualTask.id}`} type="checkbox" defaultChecked={item.visualTask.cropScore!==null&&item.visualTask.cropScore>=80}/>{c.cropConfirmed}</label>
                           <small>{item.visualTask.candidateAttestedAt ? `${item.visualTask.candidateEvidenceVersion} · ${new Intl.DateTimeFormat(locale,{dateStyle:"medium",timeStyle:"short"}).format(new Date(item.visualTask.candidateAttestedAt))}` : c.evidencePending}</small>
                         </fieldset>
                         <output className="visual-originality-score"><span>{c.cropGate}</span><strong>{item.visualTask.cropScore ?? "—"}/100</strong><small>{c.similarityEvidence}</small></output>

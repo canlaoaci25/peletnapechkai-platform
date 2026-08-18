@@ -58,12 +58,14 @@ public sealed class VisualReviewTask
     {
         if (actorUserId == Guid.Empty) throw new ArgumentOutOfRangeException(nameof(actorUserId));
         if (status == VisualReviewStatus.RetryRequested) AttemptCount++;
+        if (status is VisualReviewStatus.RetryRequested or VisualReviewStatus.Rejected) InvalidateCandidateEvidence();
         Status = status; ReviewerNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
         ReviewedByUserId = actorUserId; ReviewedAt = now; UpdatedAt = now;
     }
 
     public void AttachCandidate(Guid mediaAssetId, string provider, string licenseName, string? attribution,
-        string altText, bool topicConfirmed, bool textAndLogoFreeConfirmed, Guid actorUserId, int cropScore,
+        string altText, bool articleConfirmed, bool sectionConfirmed, bool localeConfirmed, bool technicalAccuracyConfirmed,
+        bool textAndLogoFreeConfirmed, bool artifactFreeConfirmed, bool cropConfirmed, Guid actorUserId, int cropScore,
         int originalityScore, Guid? closestMediaAssetId, int closestSimilarityPercent, DateTimeOffset now)
     {
         if (mediaAssetId == Guid.Empty) throw new ArgumentOutOfRangeException(nameof(mediaAssetId));
@@ -72,13 +74,15 @@ public sealed class VisualReviewTask
         if (actorUserId == Guid.Empty) throw new ArgumentOutOfRangeException(nameof(actorUserId));
         CandidateMediaAssetId = mediaAssetId; Provider = provider.Trim(); LicenseName = licenseName.Trim();
         Attribution = string.IsNullOrWhiteSpace(attribution) ? null : attribution.Trim(); CandidateAltText = altText.Trim();
-        TopicScore = topicConfirmed ? 100 : 0; TextSafetyScore = textAndLogoFreeConfirmed ? 100 : 0; CropScore = ClampScore(cropScore);
+        TopicScore = articleConfirmed && sectionConfirmed && localeConfirmed && technicalAccuracyConfirmed ? 100 : 0;
+        TextSafetyScore = textAndLogoFreeConfirmed && artifactFreeConfirmed ? 100 : 0;
+        CropScore = cropConfirmed ? ClampScore(cropScore) : 0;
         OriginalityScore = ClampScore(originalityScore); Status = VisualReviewStatus.InReview; UpdatedAt = now;
         ClosestMediaAssetId = closestMediaAssetId; ClosestSimilarityPercent = ClampScore(closestSimilarityPercent);
         ReviewedByUserId = actorUserId; ReviewedAt = now;
     }
 
-    public bool CandidatePasses => CandidateMediaAssetId.HasValue && TopicScore >= 80 && TextSafetyScore >= 95 &&
+    public bool CandidatePasses => Status == VisualReviewStatus.InReview && CandidateMediaAssetId.HasValue && TopicScore >= 80 && TextSafetyScore >= 95 &&
         CropScore >= 80 && OriginalityScore >= 85 && ReviewedByUserId.HasValue && ReviewedAt.HasValue &&
         !string.IsNullOrWhiteSpace(LicenseName) && !string.IsNullOrWhiteSpace(CandidateAltText);
 
@@ -89,4 +93,11 @@ public sealed class VisualReviewTask
     }
 
     private static int ClampScore(int value) => Math.Clamp(value, 0, 100);
+
+    private void InvalidateCandidateEvidence()
+    {
+        CandidateMediaAssetId = null; Provider = null; LicenseName = null; Attribution = null; CandidateAltText = null;
+        TopicScore = null; TextSafetyScore = null; CropScore = null; OriginalityScore = null;
+        ClosestMediaAssetId = null; ClosestSimilarityPercent = null; ReviewedByUserId = null; ReviewedAt = null;
+    }
 }

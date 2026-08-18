@@ -66,7 +66,7 @@ public static class AutomationEndpoints
                 visualTask = tasks.TryGetValue(row.Id, out var task) ? new { task.Id, status = task.Status.ToString(), task.SectionContext, task.VisualPurpose, visualType = InferVisualType(task.ProposedPrompt), task.ProposedPrompt, task.NegativePrompt, task.AttemptCount, task.ReviewerNote, task.UpdatedAt,
                     task.CandidateMediaAssetId, candidateUrl = task.CandidateMediaAssetId == null ? null : "/api/media/" + task.CandidateMediaAssetId,
                     task.Provider, task.LicenseName, task.Attribution, task.CandidateAltText, task.TopicScore, task.TextSafetyScore, task.CropScore, task.OriginalityScore,
-                    candidateEvidenceVersion = task.CandidateMediaAssetId == null ? null : "editorial-attestation-v1", candidateAttestedAt = task.CandidateMediaAssetId == null ? null : task.ReviewedAt,
+                    candidateEvidenceVersion = task.CandidateMediaAssetId == null ? null : "editorial-attestation-v2", candidateAttestedAt = task.CandidateMediaAssetId == null ? null : task.ReviewedAt,
                     task.ClosestMediaAssetId, task.ClosestSimilarityPercent, closestMediaUrl = task.ClosestMediaAssetId == null ? null : "/api/media/" + task.ClosestMediaAssetId,
                     task.CandidatePasses, task.PromotedAt } : null };
         }).OrderBy(item => item.score).ThenByDescending(item => item.PublishedAt).ToArray();
@@ -197,15 +197,24 @@ public static class AutomationEndpoints
             }
             catch (Exception error) when (error is IOException or InvalidDataException)
             {
-                return Results.ValidationProblem(new Dictionary<string, string[]> { ["mediaAssetId"] = [$"Candidate similarity analysis failed: {error.Message}"] });
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["mediaAssetId"] = ["Candidate similarity analysis failed. Verify the optimized media asset and retry."] });
             }
             var ratio = media.Width!.Value / (double)media.Height!.Value;
             var cropScore = Math.Abs(ratio - 16d / 9d) <= .04 ? 100 : 80;
-            try { task.AttachCandidate(media.Id, request.Provider ?? "", request.LicenseName ?? "", request.Attribution, request.AltText ?? "", request.TopicConfirmed, request.TextAndLogoFreeConfirmed, actor.Id, cropScore, similarity.OriginalityScore, similarity.ClosestMediaAssetId, similarity.ClosestSimilarityPercent, DateTimeOffset.UtcNow); }
+            try { task.AttachCandidate(media.Id, request.Provider ?? "", request.LicenseName ?? "", request.Attribution, request.AltText ?? "",
+                request.ArticleConfirmed, request.SectionConfirmed, request.LocaleConfirmed, request.TechnicalAccuracyConfirmed,
+                request.TextAndLogoFreeConfirmed, request.ArtifactFreeConfirmed, request.CropConfirmed, actor.Id, cropScore,
+                similarity.OriginalityScore, similarity.ClosestMediaAssetId, similarity.ClosestSimilarityPercent, DateTimeOffset.UtcNow); }
             catch (ArgumentException error) { return Results.ValidationProblem(new Dictionary<string, string[]> { ["candidate"] = [error.Message] }); }
             database.AuditLogs.Add(new AuditLog(actor.Id, "visual-review.candidate_attached", nameof(VisualReviewTask), task.Id,
-                JsonSerializer.Serialize(new { media.Id, request.Provider, request.LicenseName, evidence = "editorial-attestation-v1", candidateAttestedAt = task.ReviewedAt, task.TopicScore, task.TextSafetyScore, task.CropScore, similarity.OriginalityScore, similarity.ClosestMediaAssetId, similarity.ClosestSimilarityPercent }), DateTimeOffset.UtcNow));
-            await database.SaveChangesAsync(token); return Results.Ok(new { task.Id, task.CandidatePasses, task.UpdatedAt });
+                JsonSerializer.Serialize(new { media.Id, request.Provider, request.LicenseName, evidence = "editorial-attestation-v2",
+                    request.ArticleConfirmed, request.SectionConfirmed, request.LocaleConfirmed, request.TechnicalAccuracyConfirmed,
+                    request.TextAndLogoFreeConfirmed, request.ArtifactFreeConfirmed, request.CropConfirmed,
+                    candidateAttestedAt = task.ReviewedAt, task.TopicScore, task.TextSafetyScore, task.CropScore,
+                    similarity.OriginalityScore, similarity.ClosestMediaAssetId, similarity.ClosestSimilarityPercent }), DateTimeOffset.UtcNow));
+            try { await database.SaveChangesAsync(token); }
+            catch (DbUpdateConcurrencyException) { return Results.Conflict(new { message = "The visual review changed. Refresh before retrying." }); }
+            return Results.Ok(new { task.Id, task.CandidatePasses, task.UpdatedAt });
         }
         if (action.Equals("promote", StringComparison.OrdinalIgnoreCase))
         {
@@ -219,24 +228,31 @@ public static class AutomationEndpoints
             task.MarkPromoted(actor.Id, request.Note, now);
             database.AuditLogs.Add(new AuditLog(actor.Id, "visual-review.promoted", nameof(VisualReviewTask), task.Id,
                 JsonSerializer.Serialize(new { task.ArticleLocalizationId, previousMediaAssetId = task.CurrentMediaAssetId, candidateMediaAssetId = candidate.Id, task.Provider, task.LicenseName }), now));
-            await database.SaveChangesAsync(token); await transaction.CommitAsync(token);
+            try { await database.SaveChangesAsync(token); }
+            catch (DbUpdateConcurrencyException) { return Results.Conflict(new { message = "The visual review changed. Refresh before retrying." }); }
+            await transaction.CommitAsync(token);
             return Results.Ok(new { task.Id, status = task.Status.ToString(), task.PromotedAt });
         }
-        var status = action.ToLowerInvariant() switch { "review" => VisualReviewStatus.InReview, "approve" => VisualReviewStatus.Approved,
+        var status = action.ToLowerInvariant() switch { "review" => VisualReviewStatus.InReview,
             "reject" => VisualReviewStatus.Rejected, "retry" => VisualReviewStatus.RetryRequested, _ => (VisualReviewStatus?)null };
         if (status is null) return Results.ValidationProblem(new Dictionary<string, string[]> { ["action"] = ["Unsupported visual review action."] });
         if (status is VisualReviewStatus.Approved or VisualReviewStatus.Rejected && string.IsNullOrWhiteSpace(request.Note))
             return Results.ValidationProblem(new Dictionary<string, string[]> { ["note"] = ["Editorial decisions require a note."] });
+        var invalidatedCandidateId = task.CandidateMediaAssetId;
+        var invalidatedEvidence = task.CandidateMediaAssetId == null ? null : new { version = "editorial-attestation-v2", task.TopicScore, task.TextSafetyScore, task.CropScore, task.OriginalityScore };
         task.ChangeStatus(status.Value, actor.Id, request.Note, DateTimeOffset.UtcNow);
         database.AuditLogs.Add(new AuditLog(actor.Id, $"visual-review.{action.ToLowerInvariant()}", nameof(VisualReviewTask), task.Id,
-            JsonSerializer.Serialize(new { task.ArticleLocalizationId, status = status.ToString(), note = request.Note }), DateTimeOffset.UtcNow));
-        await database.SaveChangesAsync(token);
+            JsonSerializer.Serialize(new { task.ArticleLocalizationId, status = status.ToString(), note = request.Note, invalidatedCandidateId, invalidatedEvidence }), DateTimeOffset.UtcNow));
+        try { await database.SaveChangesAsync(token); }
+        catch (DbUpdateConcurrencyException) { return Results.Conflict(new { message = "The visual review changed. Refresh before retrying." }); }
         return Results.Ok(new { task.Id, status = task.Status.ToString(), task.AttemptCount, task.UpdatedAt });
     }
 
     private sealed record VisualReviewActionRequest(string? Note, Guid? MediaAssetId = null, string? Provider = null,
         string? LicenseName = null, string? Attribution = null, string? AltText = null,
-        bool TopicConfirmed = false, bool TextAndLogoFreeConfirmed = false);
+        bool ArticleConfirmed = false, bool SectionConfirmed = false, bool LocaleConfirmed = false,
+        bool TechnicalAccuracyConfirmed = false, bool TextAndLogoFreeConfirmed = false,
+        bool ArtifactFreeConfirmed = false, bool CropConfirmed = false);
 
     private static string InferVisualType(string prompt)
     {

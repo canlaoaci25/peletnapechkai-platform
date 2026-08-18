@@ -57,14 +57,51 @@ public sealed class VisualBriefBuilderTests
     {
         var now = DateTimeOffset.UtcNow; var actor = Guid.NewGuid();
         var task = new VisualReviewTask(Guid.NewGuid(), null, 42, "missing-cover", "Batarya güvenliği", "Hero", "Concrete scene", "No text", "key-2", now);
-        task.AttachCandidate(Guid.NewGuid(), "BOECL AI", "BOECL original", null, "Bataryayı inceleyen uzman", false, true, actor, 88, 90, Guid.NewGuid(), 10, now);
+        task.AttachCandidate(Guid.NewGuid(), "BOECL AI", "BOECL original", null, "Bataryayı inceleyen uzman", false, true, true, true, true, true, true, actor, 88, 90, Guid.NewGuid(), 10, now);
         Assert.False(task.CandidatePasses);
-        task.AttachCandidate(Guid.NewGuid(), "BOECL AI", "BOECL original", null, "Bataryayı inceleyen uzman", true, true, actor, 88, 84, Guid.NewGuid(), 16, now);
+        task.AttachCandidate(Guid.NewGuid(), "BOECL AI", "BOECL original", null, "Bataryayı inceleyen uzman", true, true, true, true, true, true, true, actor, 88, 84, Guid.NewGuid(), 16, now);
         Assert.False(task.CandidatePasses);
         Assert.Throws<InvalidOperationException>(() => task.MarkPromoted(actor, "reviewed", now));
-        task.AttachCandidate(Guid.NewGuid(), "BOECL AI", "BOECL original", null, "Bataryayı inceleyen uzman", true, true, actor, 88, 90, Guid.NewGuid(), 10, now);
+        task.AttachCandidate(Guid.NewGuid(), "BOECL AI", "BOECL original", null, "Bataryayı inceleyen uzman", true, true, true, true, true, true, true, actor, 88, 90, Guid.NewGuid(), 10, now);
         Assert.True(task.CandidatePasses);
         task.MarkPromoted(actor, "Teknik ve editoryal kontrol tamamlandı", now);
         Assert.Equal(VisualReviewStatus.Approved, task.Status); Assert.Equal(now, task.PromotedAt);
+    }
+
+    [Fact]
+    public void Retry_and_rejection_invalidate_stale_candidate_evidence()
+    {
+        var now = DateTimeOffset.UtcNow; var actor = Guid.NewGuid();
+        var task = new VisualReviewTask(Guid.NewGuid(), null, 42, "topic-mismatch", "Bölüm", "Hero", "Prompt", "No text", "key-3", now);
+        task.AttachCandidate(Guid.NewGuid(), "Licensed stock", "Editorial licence", null, "Somut sahne", true, true, true, true, true, true, true, actor, 100, 100, null, 0, now);
+        Assert.True(task.CandidatePasses);
+
+        task.ChangeStatus(VisualReviewStatus.RetryRequested, actor, "Bölüm eşleşmesi zayıf", now.AddMinutes(1));
+
+        Assert.False(task.CandidatePasses);
+        Assert.Null(task.CandidateMediaAssetId);
+        Assert.Equal(now.AddMinutes(1), task.ReviewedAt);
+        Assert.Throws<InvalidOperationException>(() => task.MarkPromoted(actor, "Eski adayı yayımla", now.AddMinutes(2)));
+    }
+
+    [Fact]
+    public void Candidate_fails_when_locale_technical_artifact_or_crop_evidence_is_missing()
+    {
+        var now = DateTimeOffset.UtcNow; var actor = Guid.NewGuid();
+        VisualReviewTask Create() => new(Guid.NewGuid(), null, 42, "topic-mismatch", "Bölüm", "Hero", "Prompt", "No text", Guid.NewGuid().ToString(), now);
+
+        var localeMissing = Create();
+        localeMissing.AttachCandidate(Guid.NewGuid(), "Provider", "Licence", null, "Somut sahne", true, true, false, true, true, true, true, actor, 100, 100, null, 0, now);
+        var technicalMissing = Create();
+        technicalMissing.AttachCandidate(Guid.NewGuid(), "Provider", "Licence", null, "Somut sahne", true, true, true, false, true, true, true, actor, 100, 100, null, 0, now);
+        var artifactMissing = Create();
+        artifactMissing.AttachCandidate(Guid.NewGuid(), "Provider", "Licence", null, "Somut sahne", true, true, true, true, true, false, true, actor, 100, 100, null, 0, now);
+        var cropMissing = Create();
+        cropMissing.AttachCandidate(Guid.NewGuid(), "Provider", "Licence", null, "Somut sahne", true, true, true, true, true, true, false, actor, 100, 100, null, 0, now);
+
+        Assert.False(localeMissing.CandidatePasses);
+        Assert.False(technicalMissing.CandidatePasses);
+        Assert.False(artifactMissing.CandidatePasses);
+        Assert.False(cropMissing.CandidatePasses);
     }
 }
