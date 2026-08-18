@@ -20,8 +20,9 @@ export default async function TopicsPage({ params }: PageProps<"/[locale]/topics
   if (!hasLocale(locale)) notFound();
   const [archives] = await Promise.all([getPublicArchiveIndex(locale)]);
   const copy = topicCopy[locale];
-  const [lead] = archives.categories;
   const categories = archives.categories.filter(category => !category.parent);
+  const [lead] = categories;
+  const tags = archives.tags.filter(tag => tag.articleCount > 0).slice(0, 12);
   return <div className="site-shell"><SiteHeader locale={locale} /><main id="main-content" className="topics-page">
     <header className="topics-hero"><p className="section-kicker">{copy.eyebrow}</p><h1>{copy.title}</h1><p>{copy.description}</p></header>
     {lead && <section className="topic-lead" aria-labelledby="topic-lead-title">
@@ -39,5 +40,9 @@ export default async function TopicsPage({ params }: PageProps<"/[locale]/topics
         <div><p className="section-kicker">{category.articleCount} {copy.stories}</p><h2><Link href={`/${locale}/categories/${category.slug}`}>{category.title}</Link></h2>{category.description && <p>{category.description}</p>}{category.children.length>0&&<div className="topic-children"><strong>{copy.subtopics}</strong>{category.children.map(child=><Link key={child.slug} href={`/${locale}/categories/${child.slug}`}><span>{child.title}</span><small>{child.articleCount}</small></Link>)}</div>}<ul className="topic-story-list">{category.featured.slice(0,2).map(article=><li key={article.slug}><Link href={`/${locale}/articles/${article.slug}`}>{article.title}</Link></li>)}</ul><Link className="topic-map-link" href={`/${locale}/categories/${category.slug}`}>{copy.latest} →</Link></div>
       </article>;
     })}</div></section>
+    {tags.length > 0 && <section className="tag-atlas" aria-labelledby="tag-atlas-title">
+      <header><div><p className="section-kicker">{copy.tagEyebrow}</p><h2 id="tag-atlas-title">{copy.tagTitle}</h2></div><p>{copy.tagDescription}</p></header>
+      <div className="tag-atlas-grid">{tags.map((tag, index) => <Link key={tag.slug} href={`/${locale}/tags/${tag.slug}`} aria-label={`${copy.tagAction}: ${tag.title}`}><small>{String(index + 1).padStart(2, "0")}</small><strong>{tag.title}</strong><span>{tag.articleCount} {copy.stories} <b aria-hidden="true">↗</b></span></Link>)}</div>
+    </section>}
   </main></div>;
 }

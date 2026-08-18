@@ -1,5 +1,5 @@
 ﻿{
-    "updatedAt":  "2026-08-18T19:15:00.0000000+00:00",
+    "updatedAt":  "2026-08-18T22:00:00.0000000+00:00",
     "items":  [
                   {
                       "id":  "public-sidebar",
@@ -30,6 +30,12 @@
                       "title":  "Mevcut yayınların görsel yenilemesi",
                       "outcome":  "Eksik veya alakasız yayın görsellerini checkpoint ve geri dönüş korumasıyla yeniden üret.",
                       "status":  "queued"
+                  },
+                  {
+                      "id":  "tag-atlas-discovery",
+                      "title":  "Etiket Atlası keşif yolları",
+                      "outcome":  "Gerçek çok dilli etiket arşivlerini yayın derinliğine göre konu merkezinde görünür ve doğrudan keşfedilebilir hale getir.",
+                      "status":  "completed"
                   },
                   {
                       "id":  "home-discovery",

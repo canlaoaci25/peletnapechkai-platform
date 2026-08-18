@@ -1,5 +1,11 @@
 # BOECL otonom mimari ve ürün teklifleri
 
+> Çevrim 90 güncellemesi (18 Ağustos 2026): Konu merkezi, yeni ve ince kategori üretmek yerine
+> yayımlanmış içerik sayısıyla sıralanan gerçek çok dilli etiket arşivlerini Etiket Atlası olarak
+> keşfe açtı. Root kategori seçimi deterministik hale geldi. Veri migration'ı yapılmadı. Otonom
+> deploy zincirinin production öncesi zorunlu staging taxonomy/public smoke kapısı ayrı P0 operasyon
+> borcu olarak korunuyor; bu kapı kapanmadan taxonomy migration terfisi yapılmamalı.
+
 > Çevrim 89 güncellemesi (18 Ağustos 2026): Public sidebar ve ana sayfa Konu Atlası, API'de zaten
 > bulunan parent/child taxonomy ilişkilerini koruyacak biçimde düzenlendi. Ana sayfa aynı no-store
 > archive yanıtını navigasyonla paylaşarak yinelenen isteği kaldırıyor; daraltılmış ray lokalize

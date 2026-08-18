@@ -33,6 +33,18 @@ test("konu merkezi öne çıkan konu ve doğrudan makale keşif yolları sunar",
   assert.doesNotMatch(publicApi,/foreach \(var item in categoryRows\)/);
 });
 
+test("konu merkezi gerçek etiket arşivlerini yayın derinliğine göre keşfe açar",()=>{
+  assert.match(publicApi,/OrderByDescending\(item => item\.Articles\.Count\(article => article\.Status == PublicationStatus\.Published\)\)/);
+  assert.match(publicApi,/articleCount = item\.Articles\.Count\(article => article\.Status == PublicationStatus\.Published\)/);
+  assert.match(page,/archives\.tags\.filter\(tag => tag\.articleCount > 0\)\.slice\(0, 12\)/);
+  assert.match(page,/className="tag-atlas"/);
+  assert.ok(page.includes('href={`/${locale}/tags/${tag.slug}`}'));
+});
+
+test("öne çıkan konu rastgele bir alt kategori yerine ilk ana alandan seçilir",()=>{
+  assert.match(page,/const categories = archives\.categories\.filter\(category => !category\.parent\);\s+const \[lead\] = categories;/);
+});
+
 test("konu merkezi parent-child keşif yollarını gerçek arşiv ilişkilerinden kurar",()=>{
   assert.match(page,/filter\(category => !category\.parent\)/);
   assert.match(page,/category\.children\.map/);

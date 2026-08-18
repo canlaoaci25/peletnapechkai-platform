@@ -115,7 +115,17 @@ public static class PublicContentEndpoints
                     .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } })
                     .ToArray()
             }).ToListAsync(token);
-        var tags = await database.Tags.AsNoTracking().Where(item => item.Locale.Code == locale && item.Articles.Any(article => article.Status == PublicationStatus.Published)).OrderBy(item => item.Name).Select(item => new { item.Slug, title = item.Name, translationKey = item.SourceTagId ?? item.Id }).ToListAsync(token);
+        var tags = await database.Tags.AsNoTracking()
+            .Where(item => item.Locale.Code == locale && item.Articles.Any(article => article.Status == PublicationStatus.Published))
+            .OrderByDescending(item => item.Articles.Count(article => article.Status == PublicationStatus.Published))
+            .ThenBy(item => item.Name)
+            .Select(item => new
+            {
+                item.Slug,
+                title = item.Name,
+                translationKey = item.SourceTagId ?? item.Id,
+                articleCount = item.Articles.Count(article => article.Status == PublicationStatus.Published)
+            }).ToListAsync(token);
         var authors = await database.Authors.AsNoTracking().Where(item => database.ArticleLocalizations.Any(article => article.Locale.Code == locale && article.Status == PublicationStatus.Published && article.ArticleGroup.Authors.Any(author => author.Id == item.Id))).OrderBy(item => item.DisplayName).Select(item => new { item.Slug, title = item.DisplayName }).ToListAsync(token);
         return Results.Ok(new { categories, tags, authors });
     }
