@@ -90,6 +90,7 @@ public sealed class ArticleLocalization
     public SeoMetadata? SeoMetadata { get; private set; }
 
     public ICollection<ArticleRevision> Revisions { get; } = [];
+    public ICollection<ArticleCorrection> Corrections { get; } = [];
 
     public ICollection<Category> Categories { get; } = [];
 

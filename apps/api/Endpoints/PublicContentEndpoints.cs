@@ -266,6 +266,7 @@ public static class PublicContentEndpoints
                 tags=item.Tags.Select(x=>new {x.Slug,x.Name}).OrderBy(x=>x.Name).ToArray(),
                 authors=item.ArticleGroup.Authors.Select(x=>new {x.Slug,x.DisplayName}).OrderBy(x=>x.DisplayName).ToArray(),
                 sources=item.ArticleGroup.Sources.Select(x=>new {x.Name,x.Url}).OrderBy(x=>x.Name).ToArray(),
+                corrections = item.Corrections.OrderByDescending(x => x.CorrectedAt).Select(x => new { x.Id, x.Summary, x.Details, x.CorrectedAt }).ToArray(),
                 translations = item.ArticleGroup.Localizations
                     .Where(translation => translation.Status == PublicationStatus.Published && translation.Locale.IsEnabled)
                     .Select(translation => new { locale = translation.Locale.Code, translation.Slug })

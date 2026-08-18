@@ -19,6 +19,8 @@ public static partial class EditorialEndpoints
         group.MapGet("/", ListAsync).RequireAuthorization(AuthorizationPolicies.WriteContent);
         group.MapGet("/{articleId:guid}", GetAsync).RequireAuthorization(AuthorizationPolicies.WriteContent);
         group.MapGet("/{articleId:guid}/revisions", ListRevisionsAsync).RequireAuthorization(AuthorizationPolicies.WriteContent);
+        group.MapGet("/{articleId:guid}/corrections", ListCorrectionsAsync).RequireAuthorization(AuthorizationPolicies.WriteContent);
+        group.MapPost("/{articleId:guid}/corrections", CreateCorrectionAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         group.MapPost("/", CreateAsync).RequireAuthorization(AuthorizationPolicies.WriteContent).ValidateAntiforgery();
         group.MapPut("/{articleId:guid}", UpdateAsync).RequireAuthorization(AuthorizationPolicies.WriteContent).ValidateAntiforgery();
         group.MapPut("/{articleId:guid}/relationships", UpdateRelationshipsAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
@@ -30,6 +32,28 @@ public static partial class EditorialEndpoints
         group.MapPost("/{articleId:guid}/publish-direct", PublishDirectAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         group.MapPost("/{articleId:guid}/archive", ArchiveAsync).RequireAuthorization(AuthorizationPolicies.ManageEditorial).ValidateAntiforgery();
         return endpoints;
+    }
+
+    private static async Task<IResult> ListCorrectionsAsync(Guid articleId, PublishingDbContext database, CancellationToken token)
+    {
+        if (!await database.ArticleLocalizations.AsNoTracking().AnyAsync(x => x.Id == articleId, token)) return Results.NotFound();
+        return Results.Ok(await database.ArticleCorrections.AsNoTracking().Where(x => x.ArticleLocalizationId == articleId)
+            .OrderByDescending(x => x.CorrectedAt).Select(x => new { x.Id, x.Summary, x.Details, x.ApprovedByUserId, x.CorrectedAt }).ToListAsync(token));
+    }
+
+    private static async Task<IResult> CreateCorrectionAsync(Guid articleId, CorrectionRequest request, System.Security.Claims.ClaimsPrincipal principal, UserManager<ApplicationUser> users, PublishingDbContext database, CancellationToken token)
+    {
+        var article = await database.ArticleLocalizations.SingleOrDefaultAsync(x => x.Id == articleId, token);
+        var actor = await users.GetUserAsync(principal);
+        if (article is null || actor is null) return Results.NotFound();
+        if (article.Status != PublicationStatus.Published) return Results.Conflict(new { message = "Corrections can only be published for a published article." });
+        if (string.IsNullOrWhiteSpace(request.Summary) || request.Summary.Trim().Length > 240) return Validation("summary", "A correction summary of at most 240 characters is required.");
+        if (string.IsNullOrWhiteSpace(request.Details) || request.Details.Trim().Length > 2000) return Validation("details", "Correction details of at most 2000 characters are required.");
+        var correction = new ArticleCorrection(article, request.Summary, request.Details, actor.Id, DateTimeOffset.UtcNow);
+        database.ArticleCorrections.Add(correction);
+        database.AuditLogs.Add(Audit(actor.Id, "editorial.correction_published", article.Id, new { correction.Id, article.LocaleId, correction.CorrectedAt }));
+        await database.SaveChangesAsync(token);
+        return Results.Created($"/api/v1/admin/articles/{articleId}/corrections/{correction.Id}", new { correction.Id, correction.Summary, correction.Details, correction.CorrectedAt });
     }
 
     private static async Task<IResult> ListRevisionsAsync(Guid articleId, PublishingDbContext database, CancellationToken token)
@@ -214,6 +238,7 @@ public static partial class EditorialEndpoints
     private sealed record CreateArticleRequest(string Type, string Locale, string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks, Guid[]? CategoryIds);
     private sealed record UpdateArticleRequest(string Slug, string Title, string? Summary, string? Body, string? SeoTitle, string? SeoDescription, bool IsSponsored, string? SponsorName, bool HasAffiliateLinks, Guid[]? CategoryIds, DateTimeOffset ExpectedUpdatedAt);
     private sealed record ScheduleRequest(DateTimeOffset ScheduledAt);
+    private sealed record CorrectionRequest(string Summary, string Details);
     private sealed record RelationshipsRequest(Guid[] CategoryIds, Guid[] TagIds, Guid[] AuthorIds, Guid[] SourceIds, Guid[] MediaAssetIds, Guid? CoverMediaAssetId, string? CoverAltText, string? CoverCaption, string? CoverCredit);
     [GeneratedRegex(@"/api/media/([0-9a-fA-F-]{36})")]
     private static partial Regex InlineMediaPattern();

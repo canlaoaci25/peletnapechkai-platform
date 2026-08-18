@@ -125,13 +125,13 @@
                       "id":  "structured-discovery",
                       "title":  "YapÄ±landÄ±rÄ±lmÄ±ÅŸ veri ve keÅŸif kapsamÄ±",
                       "outcome":  "Ä°Ã§erik tÃ¼rlerine uygun schema, breadcrumb, canonical, hreflang ve dahili keÅŸif baÄŸlantÄ±larÄ±nÄ± uÃ§tan uca doÄŸrula.",
-                      "status":  "queued"
+                      "status":  "blocked"
                   },
                   {
                       "id":  "corrections-workflow",
                       "title":  "Düzeltme ve şeffaflık iş akışı",
                       "outcome":  "Yayın sonrası düzeltmeleri editoryal onay, değişiklik özeti, audit izi ve okura görünür şeffaflık notuyla yönet.",
-                      "status":  "queued"
+                      "status":  "blocked"
                   },
                   {
                       "id":  "editorial-calendar",

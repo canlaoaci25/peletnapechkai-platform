@@ -7,6 +7,7 @@ import { ArticleEngagement } from "@/components/article-engagement";
 import { SaveArticleButton } from "@/components/save-article-button";
 import { siteConfig } from "@/config/site";
 import { commercialCopy } from "@/i18n/commercial-copy";
+import { correctionCopy } from "@/i18n/correction-copy";
 import { hasLocale, localeLabels, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getPublishedArticle, getRelatedArticles } from "@/lib/public-api";
@@ -85,7 +86,7 @@ export default async function ArticlePage({
   ]);
   if (!article) notFound();
   const isHtml = article.body.trimStart().startsWith("<"),
-    commercial = commercialCopy[locale];
+    commercial = commercialCopy[locale], correctionsCopy = correctionCopy[locale];
   const { bodyHtml, outline } = buildArticleOutline(isHtml ? article.body : markdownBodyToHtml(article.body));
   const publicSources = article.sources.map(getPublicSource).filter((source) => source !== null);
   const articleCopy = dictionary.article;
@@ -180,6 +181,7 @@ export default async function ArticlePage({
               {article.authors.length > 0 && <div className="article-byline"><span className="article-fact-label">BOECL</span><strong>{article.authors.map((author, index) => <span key={author.slug}>{index > 0 && ", "}<Link href={`/${locale}/authors/${author.slug}`}>{author.displayName}</Link></span>)}</strong></div>}
               <div><span className="article-fact-label">{articleCopy.published}</span><time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time></div>
               {hasMeaningfulUpdate && <div><span className="article-fact-label">{articleCopy.updated}</span><time dateTime={article.updatedAt}>{formatDate(article.updatedAt)}</time></div>}
+              {article.corrections[0] && <div><span className="article-fact-label">{correctionsCopy.last}</span><time dateTime={article.corrections[0].correctedAt}>{formatDate(article.corrections[0].correctedAt)}</time></div>}
               <div><span>{interpolate(articleCopy.minuteRead, { minutes: readingMinutes })}</span>{publicSources.length > 0 && <a href="#article-sources">{interpolate(articleCopy.sourcesUsed, { count: publicSources.length })}</a>}</div>
             </div>
             <SaveArticleButton locale={locale} slug={slug} />
@@ -235,6 +237,7 @@ export default async function ArticlePage({
           <div className="article-body">
             <div className="rich-article-body" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
           </div>
+          {article.corrections.length>0&&<section className="article-corrections" aria-labelledby="article-corrections-title"><h2 id="article-corrections-title">{correctionsCopy.heading}</h2><p>{correctionsCopy.summary}</p><ol>{article.corrections.map(item=><li key={item.id}><time dateTime={item.correctedAt}>{formatDate(item.correctedAt)}</time><h3>{item.summary}</h3><p>{item.details}</p></li>)}</ol></section>}
           {article.tags.length > 0 && (
             <footer className="article-taxonomy">
               {article.tags.map((tag) => (

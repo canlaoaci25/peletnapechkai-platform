@@ -35,6 +35,7 @@ public sealed class PublishingModelTests
         Assert.NotNull(context.Model.FindEntityType(typeof(Source)));
         Assert.NotNull(context.Model.FindEntityType(typeof(MediaAsset)));
         Assert.NotNull(context.Model.FindEntityType(typeof(ArticleRevision)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(ArticleCorrection)));
         Assert.NotNull(context.Model.FindEntityType(typeof(SeoMetadata)));
         Assert.NotNull(context.Model.FindEntityType(typeof(AuditLog)));
         Assert.NotNull(context.Model.FindEntityType(typeof(ApplicationUser)));

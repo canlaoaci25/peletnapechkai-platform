@@ -56,6 +56,13 @@
       "status": "passed",
       "summary": "Source centers, source archives and legal pages now publish self-canonical metadata, only real locale alternatives, visible locale-aware breadcrumbs and matching CollectionPage, ItemList, WebPage and BreadcrumbList data. Sitemap entries carry the same real-alternative contract. Staging and production HTTP/render evidence is still required before completion.",
       "tests": ["92 web tests", "locale consistency", "web lint", "web typecheck", "web production build", "182 API tests", "API Release build"]
+    },
+    {
+      "workstream": "corrections-workflow",
+      "scope": "local",
+      "status": "passed",
+      "summary": "Published locale editions now accept editor-authorized, append-only correction records with bounded plain-text fields and audit evidence. Public articles expose only their own locale's records as a semantic correction timeline; admin provides a dedicated four-locale management surface. Staging backup/restore/migration, real light/dark render and production promotion remain required before completion.",
+      "tests": ["ArticleCorrection domain tests", "185 API tests", "web lint", "web typecheck", "web production build", "API Release build"]
     }
   ]
 }
