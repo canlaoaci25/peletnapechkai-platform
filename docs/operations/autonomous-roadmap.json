@@ -178,8 +178,8 @@
                   {
                       "id":  "visual-focal-crops",
                       "title":  "Kalıcı görsel odak ve kırpma denetimi",
-                      "outcome":  "Editörün seçtiği odak noktasını admin önizlemesinden tüm public hero ve kart kırpmalarına taşı; mobilde ana özneyi koru.",
-                      "status":  "queued"
+                      "outcome":  "Editörün pointer veya klavyeyle seçtiği kalıcı odak noktası beş admin kırpma önizlemesine, ana sayfa kartlarına ve makale hero görseline taşındı; yerel migration ve testler hazır, staging/production render kanıtı bekleniyor.",
+                      "status":  "blocked"
                   }
               ]
 }

@@ -2,7 +2,7 @@
   "id": "boecl-complete-all",
   "title": "BOECL tek faz tamamlama programı",
   "status": "active",
-  "updatedAt": "2026-08-18T14:35:00Z",
+  "updatedAt": "2026-08-18T15:05:00Z",
   "policy": {
     "createNewBacklog": false,
     "completeOnlyWhenAllWorkstreamsPass": true,
@@ -42,6 +42,13 @@
       "status": "passed",
       "summary": "Exclusive five-minute leases, heartbeat renewal, bounded exponential retry and terminal dead-letter persistence are implemented; admin reports active, deferred and terminal counts. Staging and production migration evidence is still required before completion.",
       "tests": ["VisualBriefBuilderTests", "API Release test suite", "web lint", "web typecheck", "web build"]
+    },
+    {
+      "workstream": "visual-focal-crops",
+      "scope": "local",
+      "status": "passed",
+      "summary": "Normalized focal coordinates are persisted on media assets with database constraints, audited with candidate evidence, editable by pointer or keyboard in the admin crop matrix, and applied to public homepage and article hero rendering with a safe center fallback. Staging migration, light/dark browser captures and production promotion evidence are still required before completion.",
+      "tests": ["Media focal domain tests", "web focal helper test", "web lint", "web typecheck"]
     }
   ]
 }

@@ -9,13 +9,14 @@ import { hasLocale, localeLabels } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getPublicArchiveIndex, getPublicHomepage, type PublicArticleSummary } from "@/lib/public-api";
 import { homeImageSizes } from "@/lib/responsive-images";
+import { focalPointStyle } from "@/lib/focal-point";
 import { absoluteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 
 function ArticleImage({ article, sizes, preload = false }: { article: PublicArticleSummary; sizes: string; preload?: boolean }) {
   return article.cover ? (
-    <Image src={article.cover.url} alt="" fill preload={preload} sizes={sizes} />
+    <Image src={article.cover.url} alt="" fill preload={preload} sizes={sizes} style={focalPointStyle(article.cover)} />
   ) : <span className="home-image-fallback" aria-hidden="true">BOECL</span>;
 }
 

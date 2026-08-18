@@ -1,10 +1,21 @@
 using Peletnapechkai.Api.Domain.Automation;
+using Peletnapechkai.Api.Domain.Content;
 using Peletnapechkai.Api.Infrastructure.Automation;
 
 namespace Peletnapechkai.Api.Tests.Automation;
 
 public sealed class VisualBriefBuilderTests
 {
+    [Fact]
+    public void Media_focal_point_is_normalized_and_rejects_out_of_bounds_values()
+    {
+        var media = new MediaAsset("visual.webp", "visual.webp", "image/webp", 100, DateTimeOffset.UtcNow);
+        media.SetFocalPoint(.123456m, .987654m);
+        Assert.Equal(.1235m, media.FocalX); Assert.Equal(.9877m, media.FocalY);
+        Assert.Throws<ArgumentOutOfRangeException>(() => media.SetFocalPoint(-.01m, .5m));
+        Assert.Throws<ArgumentOutOfRangeException>(() => media.SetFocalPoint(.5m, 1.01m));
+    }
+
     [Fact]
     public void GenerationLeaseRetriesWithBackoffThenMovesToDeadLetter()
     {

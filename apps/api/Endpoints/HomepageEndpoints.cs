@@ -46,12 +46,12 @@ public static class HomepageEndpoints
         return Math.Log10(x.Views+1)*35 + Math.Log10(x.EngagedSeconds+1)*12 + 120/Math.Pow(ageHours+2,.55);
     }
 
-    private static object Shape(Candidate x) => new { articleGroupId=x.GroupId, slug=x.Slug, title=x.Title, summary=x.Summary, type=x.Type, publishedAt=x.PublishedAt, updatedAt=x.UpdatedAt, cover=x.CoverId is null?null:new { url="/api/media/"+x.CoverId+"?v="+x.CoverBytes, altText=x.CoverAlt }, views=x.Views, sourceCount=x.SourceCount, sourceDomainCount=x.SourceDomainCount, reviewedSourceCount=x.ReviewedSourceCount };
+    private static object Shape(Candidate x) => new { articleGroupId=x.GroupId, slug=x.Slug, title=x.Title, summary=x.Summary, type=x.Type, publishedAt=x.PublishedAt, updatedAt=x.UpdatedAt, cover=x.CoverId is null?null:new { url="/api/media/"+x.CoverId+"?v="+x.CoverBytes, altText=x.CoverAlt, focalX=x.CoverFocalX, focalY=x.CoverFocalY }, views=x.Views, sourceCount=x.SourceCount, sourceDomainCount=x.SourceDomainCount, reviewedSourceCount=x.ReviewedSourceCount };
 
     private static async Task<List<Candidate>> Candidates(string locale, PublishingDbContext db, CancellationToken token) => await db.ArticleLocalizations.AsNoTracking()
         .Where(x=>x.Locale.Code==locale&&x.Locale.IsEnabled&&x.Status==PublicationStatus.Published)
         .OrderByDescending(x=>x.PublishedAt).Take(50)
-        .Select(x=>new Candidate(x.Id,x.ArticleGroupId,x.Slug,x.Title,x.Summary,x.ArticleGroup.Type.ToString(),x.PublishedAt,x.UpdatedAt,x.CoverMediaAssetId,x.CoverAltText,x.CoverMediaAsset==null?0:x.CoverMediaAsset.OptimizedByteLength??x.CoverMediaAsset.ByteLength,db.ArticleEngagements.Where(e=>e.ArticleLocalizationId==x.Id).Select(e=>e.ViewCount).FirstOrDefault(),db.ArticleEngagements.Where(e=>e.ArticleLocalizationId==x.Id).Select(e=>e.EngagedSeconds).FirstOrDefault(),x.ArticleGroup.Sources.Count,x.ArticleGroup.Sources.Select(s=>s.Url).ToArray(),x.ArticleGroup.Sources.Count(s=>s.Kind!=SourceKind.Unclassified&&s.LastReviewedAt!=null))).ToListAsync(token);
+        .Select(x=>new Candidate(x.Id,x.ArticleGroupId,x.Slug,x.Title,x.Summary,x.ArticleGroup.Type.ToString(),x.PublishedAt,x.UpdatedAt,x.CoverMediaAssetId,x.CoverAltText,x.CoverMediaAsset==null?null:x.CoverMediaAsset.FocalX,x.CoverMediaAsset==null?null:x.CoverMediaAsset.FocalY,x.CoverMediaAsset==null?0:x.CoverMediaAsset.OptimizedByteLength??x.CoverMediaAsset.ByteLength,db.ArticleEngagements.Where(e=>e.ArticleLocalizationId==x.Id).Select(e=>e.ViewCount).FirstOrDefault(),db.ArticleEngagements.Where(e=>e.ArticleLocalizationId==x.Id).Select(e=>e.EngagedSeconds).FirstOrDefault(),x.ArticleGroup.Sources.Count,x.ArticleGroup.Sources.Select(s=>s.Url).ToArray(),x.ArticleGroup.Sources.Count(s=>s.Kind!=SourceKind.Unclassified&&s.LastReviewedAt!=null))).ToListAsync(token);
 
     private static async Task<IResult> RecordEngagementAsync(string locale,string slug,EngagementRequest request,PublishingDbContext db,CancellationToken token)
     {
@@ -76,7 +76,7 @@ public static class HomepageEndpoints
         await db.SaveChangesAsync(token);return Results.NoContent();
     }
 
-    private sealed record Candidate(Guid Id,Guid GroupId,string Slug,string Title,string Summary,string Type,DateTimeOffset? PublishedAt,DateTimeOffset UpdatedAt,Guid? CoverId,string? CoverAlt,long CoverBytes,long Views,long EngagedSeconds,int SourceCount,string[] SourceUrls,int ReviewedSourceCount)
+    private sealed record Candidate(Guid Id,Guid GroupId,string Slug,string Title,string Summary,string Type,DateTimeOffset? PublishedAt,DateTimeOffset UpdatedAt,Guid? CoverId,string? CoverAlt,decimal? CoverFocalX,decimal? CoverFocalY,long CoverBytes,long Views,long EngagedSeconds,int SourceCount,string[] SourceUrls,int ReviewedSourceCount)
     {
         public int SourceDomainCount => SourceUrls.Select(SourceArchivePolicy.GetCanonicalDomain).Where(domain=>domain is not null).Distinct(StringComparer.OrdinalIgnoreCase).Count();
     }

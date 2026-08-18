@@ -90,7 +90,11 @@ internal sealed class MediaAssetConfiguration : IEntityTypeConfiguration<MediaAs
 {
     public void Configure(EntityTypeBuilder<MediaAsset> builder)
     {
-        builder.ToTable("media_assets", table => table.HasCheckConstraint("ck_media_assets_byte_length_positive", "byte_length > 0"));
+        builder.ToTable("media_assets", table =>
+        {
+            table.HasCheckConstraint("ck_media_assets_byte_length_positive", "byte_length > 0");
+            table.HasCheckConstraint("ck_media_assets_focal_point", "(focal_x IS NULL AND focal_y IS NULL) OR (focal_x BETWEEN 0 AND 1 AND focal_y BETWEEN 0 AND 1)");
+        });
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
         builder.Property(x => x.StorageKey).HasColumnName("storage_key").HasMaxLength(500);
@@ -102,6 +106,8 @@ internal sealed class MediaAssetConfiguration : IEntityTypeConfiguration<MediaAs
         builder.Property(x => x.OptimizedStorageKey).HasColumnName("optimized_storage_key").HasMaxLength(500);
         builder.Property(x => x.OptimizedByteLength).HasColumnName("optimized_byte_length");
         builder.Property(x => x.PerceptualHash).HasColumnName("perceptual_hash").HasMaxLength(16);
+        builder.Property(x => x.FocalX).HasColumnName("focal_x").HasPrecision(5, 4);
+        builder.Property(x => x.FocalY).HasColumnName("focal_y").HasPrecision(5, 4);
         builder.Property(x => x.CreatedAt).HasColumnName("created_at");
         builder.HasIndex(x => x.StorageKey).IsUnique().HasDatabaseName("ux_media_assets_storage_key");
         builder.HasIndex(x => x.PerceptualHash).HasDatabaseName("ix_media_assets_perceptual_hash");

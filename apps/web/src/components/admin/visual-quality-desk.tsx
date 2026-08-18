@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import type { Locale } from "@/i18n/config";
 
 type VisualTask = {
@@ -24,6 +25,8 @@ type VisualTask = {
   licenseName: string | null;
   attribution: string | null;
   candidateAltText: string | null;
+  candidateFocalX: number | null;
+  candidateFocalY: number | null;
   topicScore: number | null;
   textSafetyScore: number | null;
   cropScore: number | null;
@@ -76,6 +79,24 @@ export type VisualQualityReport = {
     visualTask: VisualTask | null;
   }[];
 };
+
+const focalCopy = {
+  "tr-TR": { title: "Odak noktası", help: "Öznenin tüm kırpmalarda korunacağı noktayı seçin.", x: "Yatay odak", y: "Dikey odak", reset: "Merkeze sıfırla" },
+  "en-US": { title: "Focal point", help: "Choose the point that must remain visible in every crop.", x: "Horizontal focus", y: "Vertical focus", reset: "Reset to center" },
+  "de-DE": { title: "Fokuspunkt", help: "Wählen Sie den Punkt, der in jedem Ausschnitt sichtbar bleiben muss.", x: "Horizontaler Fokus", y: "Vertikaler Fokus", reset: "Auf Mitte zurücksetzen" },
+  "fr-FR": { title: "Point focal", help: "Choisissez le point qui doit rester visible dans chaque recadrage.", x: "Foyer horizontal", y: "Foyer vertical", reset: "Recentrer" },
+} satisfies Record<Locale, { title:string; help:string; x:string; y:string; reset:string }>;
+
+function FocalPointEditor({ id, locale, imageUrl, initialX, initialY, proofs, candidateLabel }: { id:string; locale:Locale; imageUrl:string; initialX:number|null; initialY:number|null; proofs:string[][]; candidateLabel:string }) {
+  const [x,setX]=useState(initialX ?? .5),[y,setY]=useState(initialY ?? .5),f=focalCopy[locale],position={objectPosition:`${x*100}% ${y*100}%`};
+  function select(event: ReactPointerEvent<HTMLButtonElement>) { const box=event.currentTarget.getBoundingClientRect(); setX(Math.max(0,Math.min(1,(event.clientX-box.left)/box.width))); setY(Math.max(0,Math.min(1,(event.clientY-box.top)/box.height))); }
+  return <div className="visual-focal-editor">
+    <header><strong>{f.title}</strong><p>{f.help}</p></header>
+    <button type="button" className="visual-focal-stage" onPointerDown={select} aria-label={f.title}><Image src={imageUrl} alt="" fill sizes="360px" unoptimized style={position}/><i style={{left:`${x*100}%`,top:`${y*100}%`}} aria-hidden="true"/></button>
+    <div className="visual-focal-controls"><label>{f.x}<input id={`focal-x-${id}`} type="range" min="0" max="1" step="0.01" value={x} onChange={e=>setX(Number(e.target.value))}/><output>{Math.round(x*100)}%</output></label><label>{f.y}<input id={`focal-y-${id}`} type="range" min="0" max="1" step="0.01" value={y} onChange={e=>setY(Number(e.target.value))}/><output>{Math.round(y*100)}%</output></label><button type="button" onClick={()=>{setX(.5);setY(.5)}}>{f.reset}</button></div>
+    <div className="visual-proof-grid visual-focal-proofs">{proofs.map(([crop,label])=><figure className={`visual-proof visual-proof-${crop}`} key={crop}><figcaption>{label}</figcaption><div className="visual-proof-pair"><div><small>{candidateLabel}</small><Image src={imageUrl} alt="" fill sizes="240px" unoptimized style={position}/></div></div></figure>)}</div>
+  </div>;
+}
 
 const workerCopy = {
   "tr-TR": {title:"Worker güvenilirliği",lead:"Lease çakışmaları, gecikmeli yeniden denemeler ve insan incelemesi gerektiren terminal hatalar.",leased:"Aktif lease",deferred:"Backoff",dead:"Dead-letter"},
@@ -450,6 +471,8 @@ export function VisualQualityDesk({
       textAndLogoFreeConfirmed: checked(`text-${id}`),
       artifactFreeConfirmed: checked(`artifact-${id}`),
       cropConfirmed: checked(`crop-${id}`),
+      focalX: Number(field(`focal-x-${id}`)),
+      focalY: Number(field(`focal-y-${id}`)),
     };
   }
   async function send(
@@ -654,6 +677,7 @@ export function VisualQualityDesk({
                               </figure>
                             ))}
                           </div>
+                          <FocalPointEditor id={item.visualTask.id} locale={locale} imageUrl={item.visualTask.candidateUrl} initialX={item.visualTask.candidateFocalX} initialY={item.visualTask.candidateFocalY} proofs={cropProofs} candidateLabel={c.candidate}/>
                         </div>
                       )}
                       {item.visualTask.closestMediaUrl && (

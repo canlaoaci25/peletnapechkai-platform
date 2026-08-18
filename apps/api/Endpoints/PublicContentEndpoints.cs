@@ -60,7 +60,7 @@ public static class PublicContentEndpoints
             .Where(article => article.Locale.Code == locale && article.Locale.IsEnabled && article.Status == PublicationStatus.Published)
             .Where(article => article.ArticleGroup.Sources.Count > 0)
             .Select(article => new { article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt,
-                cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText },
+                cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText, article.CoverMediaAsset.FocalX, article.CoverMediaAsset.FocalY },
                 sources = article.ArticleGroup.Sources.Select(source => new { source.Name, source.Url, source.Kind, source.LastReviewedAt }).ToArray() })
             .OrderByDescending(article => article.PublishedAt).ToListAsync(token);
         var matches = rows.Select(row => new { Row = row, Sources = row.sources.Where(source => SourceArchivePolicy.GetCanonicalDomain(source.Url) == domain).ToArray() })
@@ -112,7 +112,7 @@ public static class PublicContentEndpoints
                     .Where(article => article.Status == PublicationStatus.Published)
                     .OrderByDescending(article => article.PublishedAt)
                     .Take(3)
-                    .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } })
+                    .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText, article.CoverMediaAsset!.FocalX, article.CoverMediaAsset.FocalY } })
                     .ToArray()
             }).ToListAsync(token);
         var tags = await database.Tags.AsNoTracking()
@@ -180,7 +180,7 @@ public static class PublicContentEndpoints
             .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt,
                 sourceCount = article.ArticleGroup.Sources.Count,
                 reviewedSourceCount = article.ArticleGroup.Sources.Count(source => source.Kind != SourceKind.Unclassified && source.LastReviewedAt != null),
-                cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } }).ToListAsync(token);
+                cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText, article.CoverMediaAsset.FocalX, article.CoverMediaAsset.FocalY } }).ToListAsync(token);
         var typeCounts = await query.GroupBy(article => article.ArticleGroup.Type).Select(group => new { type = group.Key.ToString(), count = group.Count() }).OrderByDescending(item => item.count).ToArrayAsync(token);
         var relatedCategories = await query.SelectMany(article => article.Categories).Where(item => item.Slug != slug)
             .GroupBy(item => new { item.Slug, item.Name }).Select(group => new { group.Key.Slug, title = group.Key.Name, articleCount = group.Count() })
@@ -215,7 +215,7 @@ public static class PublicContentEndpoints
                 article.UpdatedAt,
                 categories = article.Categories.OrderBy(category => category.Name).Select(category => new { category.Slug, category.Name }).Take(2).ToArray(),
                 sourceCount = article.ArticleGroup.Sources.Count,
-                cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText }
+                cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText, article.CoverMediaAsset.FocalX, article.CoverMediaAsset.FocalY }
             })
             .ToListAsync(token);
         return Results.Ok(articles);
@@ -237,7 +237,7 @@ public static class PublicContentEndpoints
                 type = article.ArticleGroup.Type.ToString(),
                 article.PublishedAt,
                 article.UpdatedAt,
-                cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText }
+                cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText, article.CoverMediaAsset.FocalX, article.CoverMediaAsset.FocalY }
             })
             .ToListAsync(token);
         return Results.Ok(articles);
@@ -258,7 +258,7 @@ public static class PublicContentEndpoints
                 item.IsSponsored,
                 item.SponsorName,
                 item.HasAffiliateLinks,
-                cover = item.CoverMediaAssetId == null ? null : new { url = "/api/media/" + item.CoverMediaAssetId + "?v=" + item.CoverMediaAsset!.OptimizedByteLength, altText = item.CoverAltText, caption = item.CoverCaption, credit = item.CoverCredit },
+                cover = item.CoverMediaAssetId == null ? null : new { url = "/api/media/" + item.CoverMediaAssetId + "?v=" + item.CoverMediaAsset!.OptimizedByteLength, altText = item.CoverAltText, caption = item.CoverCaption, credit = item.CoverCredit, item.CoverMediaAsset.FocalX, item.CoverMediaAsset.FocalY },
                 type = item.ArticleGroup.Type.ToString(),
                 item.PublishedAt,
                 item.UpdatedAt,

@@ -14,6 +14,7 @@ import { buildArticleStructuredData, getPublicSource } from "@/lib/article-struc
 import { buildArticleOutline } from "@/lib/article-outline";
 import { estimateReadingMinutes, wasMeaningfullyUpdated } from "@/lib/article-reading";
 import { absoluteUrl } from "@/lib/site-url";
+import { focalPointStyle } from "@/lib/focal-point";
 
 function markdownBodyToHtml(body: string) {
   if (body.trimStart().startsWith("<")) return body;
@@ -204,6 +205,7 @@ export default async function ArticlePage({
                 height={675}
                 sizes="(max-width: 820px) calc(100vw - 40px), 780px"
                 preload
+                style={focalPointStyle(article.cover)}
               />
               {(article.cover.caption || article.cover.credit) && (
                 <figcaption>

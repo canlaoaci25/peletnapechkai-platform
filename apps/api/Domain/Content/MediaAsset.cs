@@ -28,6 +28,8 @@ public sealed class MediaAsset
     public string? OptimizedStorageKey { get; private set; }
     public long? OptimizedByteLength { get; private set; }
     public string? PerceptualHash { get; private set; }
+    public decimal? FocalX { get; private set; }
+    public decimal? FocalY { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
     public void SetImageMetadata(int width, int height, string optimizedStorageKey, long optimizedByteLength)
@@ -42,5 +44,12 @@ public sealed class MediaAsset
         if (string.IsNullOrWhiteSpace(hash) || hash.Length != 16 || !hash.All(Uri.IsHexDigit))
             throw new ArgumentException("Perceptual hash must contain 16 hexadecimal characters.", nameof(hash));
         PerceptualHash = hash.ToUpperInvariant();
+    }
+
+    public void SetFocalPoint(decimal focalX, decimal focalY)
+    {
+        if (focalX is < 0 or > 1) throw new ArgumentOutOfRangeException(nameof(focalX));
+        if (focalY is < 0 or > 1) throw new ArgumentOutOfRangeException(nameof(focalY));
+        FocalX = decimal.Round(focalX, 4); FocalY = decimal.Round(focalY, 4);
     }
 }

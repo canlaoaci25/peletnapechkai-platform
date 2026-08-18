@@ -46,10 +46,15 @@ public static class AutomationEndpoints
                 article.CoverAltText, article.CoverCredit, article.PublishedAt,
                 coverId = article.CoverMediaAssetId, width = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.Width,
                 height = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.Height,
+                focalX = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.FocalX,
+                focalY = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.FocalY,
                 optimizedBytes = article.CoverMediaAsset == null ? null : article.CoverMediaAsset.OptimizedByteLength,
                 categories = article.Categories.Select(category => category.Name).ToArray()
             }).ToListAsync(token);
         var taskRows = await database.VisualReviewTasks.AsNoTracking().ToListAsync(token);
+        var candidateIds = taskRows.Where(task => task.CandidateMediaAssetId.HasValue).Select(task => task.CandidateMediaAssetId!.Value).Distinct().ToArray();
+        var candidateFocalPoints = await database.MediaAssets.AsNoTracking().Where(asset => candidateIds.Contains(asset.Id))
+            .ToDictionaryAsync(asset => asset.Id, asset => new { asset.FocalX, asset.FocalY }, token);
         var activeBatch = await database.AutomationJobs.AsNoTracking()
             .Where(job => job.Type == AutomationJobType.VisualRenewal && job.Status != AutomationJobStatus.Cancelled)
             .OrderByDescending(job => job.CreatedAt)
@@ -62,12 +67,15 @@ public static class AutomationEndpoints
                 row.CoverCredit, row.width, row.height, row.optimizedBytes, row.coverId is not null));
             return new { row.Id, row.locale, row.Slug, row.Title, row.PublishedAt, score = result.Score, grade = result.Grade,
                 risks = result.Risks, result.BodyImageCount, coverUrl = row.coverId is null ? null : "/api/media/" + row.coverId,
-                row.CoverAltText, row.width, row.height, row.optimizedBytes,
+                row.CoverAltText, row.width, row.height, row.focalX, row.focalY, row.optimizedBytes,
                 sectionPlan = VisualBriefBuilder.BuildSectionPlan(row.Title, row.Summary, row.Body, row.locale, row.categories),
                 visualTask = tasks.TryGetValue(row.Id, out var task) ? new { task.Id, status = task.Status.ToString(), target = task.Target.ToString(), task.SectionHeading, task.SectionContext, task.VisualPurpose, visualType = InferVisualType(task.ProposedPrompt), task.ProposedPrompt, task.NegativePrompt, task.AttemptCount, task.ReviewerNote, task.UpdatedAt,
                     task.CandidateMediaAssetId, candidateUrl = task.CandidateMediaAssetId == null ? null : "/api/media/" + task.CandidateMediaAssetId,
-                    task.Provider, task.LicenseName, task.Attribution, task.CandidateAltText, task.TopicScore, task.TextSafetyScore, task.CropScore, task.OriginalityScore,
-                    candidateEvidenceVersion = task.CandidateMediaAssetId == null ? null : "editorial-attestation-v2", candidateAttestedAt = task.CandidateMediaAssetId == null ? null : task.ReviewedAt,
+                    task.Provider, task.LicenseName, task.Attribution, task.CandidateAltText,
+                    candidateFocalX = task.CandidateMediaAssetId.HasValue && candidateFocalPoints.TryGetValue(task.CandidateMediaAssetId.Value, out var focal) ? focal.FocalX : null,
+                    candidateFocalY = task.CandidateMediaAssetId.HasValue && candidateFocalPoints.TryGetValue(task.CandidateMediaAssetId.Value, out var focalY) ? focalY.FocalY : null,
+                    task.TopicScore, task.TextSafetyScore, task.CropScore, task.OriginalityScore,
+                    candidateEvidenceVersion = task.CandidateMediaAssetId == null ? null : "editorial-attestation-v3", candidateAttestedAt = task.CandidateMediaAssetId == null ? null : task.ReviewedAt,
                     task.ClosestMediaAssetId, task.ClosestSimilarityPercent, closestMediaUrl = task.ClosestMediaAssetId == null ? null : "/api/media/" + task.ClosestMediaAssetId,
                     task.CandidatePasses, task.PromotedAt, task.LeaseOwner, task.LeaseExpiresAt, task.NextAttemptAt,
                     task.LastFailureCode, task.DeadLetteredAt } : null };
@@ -220,14 +228,15 @@ public static class AutomationEndpoints
             }
             var ratio = media.Width!.Value / (double)media.Height!.Value;
             var cropScore = Math.Abs(ratio - 16d / 9d) <= .04 ? 100 : 80;
-            try { task.AttachCandidate(media.Id, request.Provider ?? "", request.LicenseName ?? "", request.Attribution, request.AltText ?? "",
+            try { media.SetFocalPoint(request.FocalX ?? .5m, request.FocalY ?? .5m);
+                task.AttachCandidate(media.Id, request.Provider ?? "", request.LicenseName ?? "", request.Attribution, request.AltText ?? "",
                 request.ArticleConfirmed, request.SectionConfirmed, request.LocaleConfirmed, request.TechnicalAccuracyConfirmed,
                 request.TextAndLogoFreeConfirmed, request.ArtifactFreeConfirmed, request.CropConfirmed, actor.Id, cropScore,
                 similarity.OriginalityScore, similarity.ClosestMediaAssetId, similarity.ClosestSimilarityPercent, DateTimeOffset.UtcNow); }
             catch (ArgumentException error) { return Results.ValidationProblem(new Dictionary<string, string[]> { ["candidate"] = [error.Message] }); }
             await ReconcileVisualBatchAsync(task, database, DateTimeOffset.UtcNow, token);
             database.AuditLogs.Add(new AuditLog(actor.Id, "visual-review.candidate_attached", nameof(VisualReviewTask), task.Id,
-                JsonSerializer.Serialize(new { media.Id, request.Provider, request.LicenseName, evidence = "editorial-attestation-v2",
+                JsonSerializer.Serialize(new { media.Id, request.Provider, request.LicenseName, media.FocalX, media.FocalY, evidence = "editorial-attestation-v3",
                     request.ArticleConfirmed, request.SectionConfirmed, request.LocaleConfirmed, request.TechnicalAccuracyConfirmed,
                     request.TextAndLogoFreeConfirmed, request.ArtifactFreeConfirmed, request.CropConfirmed,
                     candidateAttestedAt = task.ReviewedAt, task.TopicScore, task.TextSafetyScore, task.CropScore,
@@ -289,7 +298,7 @@ public static class AutomationEndpoints
         string? LicenseName = null, string? Attribution = null, string? AltText = null,
         bool ArticleConfirmed = false, bool SectionConfirmed = false, bool LocaleConfirmed = false,
         bool TechnicalAccuracyConfirmed = false, bool TextAndLogoFreeConfirmed = false,
-        bool ArtifactFreeConfirmed = false, bool CropConfirmed = false);
+        bool ArtifactFreeConfirmed = false, bool CropConfirmed = false, decimal? FocalX = null, decimal? FocalY = null);
 
     private static string InferVisualType(string prompt)
     {
