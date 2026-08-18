@@ -1,5 +1,5 @@
 ﻿{
-    "updatedAt":  "2026-08-18T09:40:00.0000000+00:00",
+    "updatedAt":  "2026-08-18T16:55:00.0000000+00:00",
     "items":  [
                   {
                       "id":  "public-sidebar",
@@ -94,14 +94,14 @@
                   {
                       "id":  "source-trust",
                       "title":  "Kaynak gÃ¼veni ve kanÄ±t gÃ¶rÃ¼nÃ¼rlÃ¼ÄŸÃ¼",
-                      "outcome":  "Kaynak otoritesi, gÃ¼ncellik ve iddia baÄŸlantÄ±larÄ±nÄ± Ã¶lÃ§; okura gÃ¶rÃ¼nÃ¼r kanÄ±t ve dÃ¼zeltme yollarÄ± sun.",
-                      "status":  "queued"
+                      "outcome":  "Yayınların kaynak kapsamını, alan adı çeşitliliğini ve kaynak inceleme güncelliğini okura ölçülebilir, yanıltmayan güven sinyalleriyle göster.",
+                      "status":  "completed"
                   },
                   {
                       "id":  "structured-discovery",
                       "title":  "YapÄ±landÄ±rÄ±lmÄ±ÅŸ veri ve keÅŸif kapsamÄ±",
                       "outcome":  "Ä°Ã§erik tÃ¼rlerine uygun schema, breadcrumb, canonical, hreflang ve dahili keÅŸif baÄŸlantÄ±larÄ±nÄ± uÃ§tan uca doÄŸrula.",
-                      "status":  "queued"
+                      "status":  "active"
                   },
                   {
                       "id":  "corrections-workflow",
@@ -113,7 +113,7 @@
                       "id":  "editorial-calendar",
                       "title":  "Editoryal takvim ve yayın dengesi",
                       "outcome":  "Planlanan yayınları locale, kategori, sorumlu ve tarih ekseninde çakışma uyarılarıyla yönetilebilir bir takvimde birleştir.",
-                      "status":  "active"
+                      "status":  "completed"
                   },
                   {
                       "id":  "content-freshness-next-1",
@@ -125,6 +125,18 @@
                       "id":  "member-reading-digest",
                       "title":  "Üye okuma özeti ve geri dönüş rotası",
                       "outcome":  "Üyeye takip ettiği konular, yarım kalan okumalar ve yeni kaynaklı yayınlardan açıklanabilir haftalık bir geri dönüş özeti sun.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "planning-authority-hub",
+                      "title":  "Zaman ve odak otorite merkezi",
+                      "outcome":  "Mevcut Türkçe planlama yayınlarını kaynaklı bir seçim rehberi, niyet kümeleri ve çift yönlü iç bağlantılarla tek keşif merkezinde birleştir.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "source-claim-citations",
+                      "title":  "İddia düzeyi kaynak bağlantıları",
+                      "outcome":  "Kritik makale iddialarını editör onaylı, erişilebilir satır içi atıflarla doğrudan kanıtlarına bağla.",
                       "status":  "queued"
                   }
               ]

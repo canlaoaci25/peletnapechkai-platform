@@ -23,17 +23,33 @@ public static class PublicContentEndpoints
 
     private static async Task<IResult> ListSourcesAsync(string locale, PublishingDbContext database, CancellationToken token)
     {
+        var totalArticles = await database.ArticleLocalizations.AsNoTracking()
+            .CountAsync(article => article.Locale.Code == locale && article.Locale.IsEnabled && article.Status == PublicationStatus.Published, token);
         var rows = await database.ArticleLocalizations.AsNoTracking()
             .Where(article => article.Locale.Code == locale && article.Locale.IsEnabled && article.Status == PublicationStatus.Published)
             .SelectMany(article => article.ArticleGroup.Sources.Select(source => new { article.Id, source.Name, source.Url, source.Kind, source.LastReviewedAt, article.PublishedAt }))
             .ToListAsync(token);
-        var sources = rows.Select(row => new { Row = row, Domain = SourceArchivePolicy.GetCanonicalDomain(row.Url) })
-            .Where(item => item.Domain is not null).GroupBy(item => item.Domain!)
+        var now = DateTimeOffset.UtcNow;
+        var validRows = rows.Select(row => new { Row = row, Domain = SourceArchivePolicy.GetCanonicalDomain(row.Url) })
+            .Where(item => item.Domain is not null).ToArray();
+        var sources = validRows
+            .GroupBy(item => item.Domain!)
             .Select(group => new { domain = group.Key, sourceName = group.GroupBy(item => item.Row.Name).OrderByDescending(names => names.Count()).ThenBy(names => names.Key).First().Key,
                 kind = group.Where(item=>item.Row.Kind!=SourceKind.Unclassified).GroupBy(item=>item.Row.Kind).OrderByDescending(kinds=>kinds.Count()).Select(kinds=>kinds.Key.ToString()).FirstOrDefault() ?? SourceKind.Unclassified.ToString(), lastReviewedAt=group.Max(item=>item.Row.LastReviewedAt),
+                reviewState = SourceTrustPolicy.GetReviewState(group.OrderByDescending(item => item.Row.LastReviewedAt).First().Row.Kind, group.Max(item=>item.Row.LastReviewedAt), now).ToString(),
                 articleCount = group.Select(item => item.Row.Id).Distinct().Count(), citationCount = group.Count(), latestCitationAt = group.Max(item => item.Row.PublishedAt) })
             .OrderByDescending(item => item.articleCount).ThenBy(item => item.domain).ToArray();
-        return Results.Ok(new { totalSources = sources.Length, totalCitations = sources.Sum(item => item.citationCount), sources });
+        var articlesWithSources = validRows.GroupBy(item => item.Row.Id).ToArray();
+        return Results.Ok(new {
+            totalArticles,
+            sourcedArticleCount = articlesWithSources.Length,
+            multiDomainArticleCount = articlesWithSources.Count(article => article.Select(item => item.Domain).Distinct().Count() >= 2),
+            reviewedSourceCount = sources.Count(source => source.reviewState != SourceReviewState.Unclassified.ToString()),
+            currentReviewCount = sources.Count(source => source.reviewState == SourceReviewState.Current.ToString()),
+            totalSources = sources.Length,
+            totalCitations = sources.Sum(item => item.citationCount),
+            sources
+        });
     }
 
     private static async Task<IResult> GetSourceArchiveAsync(string locale, string domain, PublishingDbContext database, CancellationToken token)

@@ -1,5 +1,11 @@
 # BOECL otonom mimari ve ürün teklifleri
 
+> Çevrim 77 güncellemesi (18 Ağustos 2026): public Kaynak ve Güven Merkezi, yalnız kaynak
+> listesi göstermekten çıkarılıp yayınların kaynak kapsamı, bağımsız alan adı çeşitliliği ve
+> kaynak sınıflandırma/güncellik borcunu ölçen görünür bir kanıt panosuna dönüştürüldü.
+> Bu göstergeler doğruluk garantisi olarak sunulmuyor. İddia düzeyi atıf modeli ayrı,
+> geri alınabilir bir sonraki faz olarak korunuyor.
+
 > Çevrim 74 güncellemesi (18 Ağustos 2026): taxonomy fazı production arşiv kanıtıyla
 > **Zaman, Odak ve Planlama** keşif yolunu seçti. Otonom migration terfisindeki yanlış
 > geliştirme-veritabanı yedeği varsayımı kaldırıldı; staging ve production ayrı hedeflenip

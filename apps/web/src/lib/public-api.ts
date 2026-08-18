@@ -8,7 +8,8 @@ export type PublicArchive = { kind:string; slug:string; title:string; descriptio
 export type PublicArchiveIndex = { categories:{slug:string;title:string;description:string|null;translationKey:string;articleCount:number;parent:{slug:string;title:string}|null;children:{slug:string;title:string;articleCount:number}[];featured:PublicArticleSummary[]}[]; tags:{slug:string;title:string;translationKey:string}[]; authors:{slug:string;title:string}[] };
 export type PublicHomepage = { lead:PublicArticleSummary|null;secondary:PublicArticleSummary[];trending:PublicArticleSummary[];editors:PublicArticleSummary[];evidence:PublicArticleSummary[];latest:PublicArticleSummary[];mode:"Automatic"|"Hybrid" };
 export type SourceKind="Unclassified"|"OfficialInstitution"|"PrimaryResearch"|"IndustryData"|"NewsPublication"|"Other";
-export type PublicSourceIndex = { totalSources:number;totalCitations:number;sources:{domain:string;sourceName:string;kind:SourceKind;lastReviewedAt:string|null;articleCount:number;citationCount:number;latestCitationAt:string}[] };
+export type SourceReviewState="Unclassified"|"Current"|"ReviewDue";
+export type PublicSourceIndex = { totalArticles:number;sourcedArticleCount:number;multiDomainArticleCount:number;reviewedSourceCount:number;currentReviewCount:number;totalSources:number;totalCitations:number;sources:{domain:string;sourceName:string;kind:SourceKind;reviewState:SourceReviewState;lastReviewedAt:string|null;articleCount:number;citationCount:number;latestCitationAt:string}[] };
 export type PublicSourceArchive = { domain:string;names:string[];kind:SourceKind;lastReviewedAt:string|null;articleCount:number;citationCount:number;latestCitationAt:string;articles:PublicArticleSummary[] };
 
 const apiBaseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:5267";
@@ -39,5 +40,5 @@ export async function searchPublishedArticles(locale: string, query: string) {
 export function getPublicArchive(locale:string,kind:string,slug:string,page=1){return publicGet<PublicArchive>(`/api/v1/public/${encodeURIComponent(locale)}/archives/${encodeURIComponent(kind)}/${encodeURIComponent(slug)}?page=${Math.max(1,page)}`)}
 export async function getRelatedArticles(locale:string,slug:string){return await publicGet<PublicArticleSummary[]>(`/api/v1/public/${encodeURIComponent(locale)}/articles/${encodeURIComponent(slug)}/related`)??[]}
 export async function getPublicArchiveIndex(locale:string){return await publicGet<PublicArchiveIndex>(`/api/v1/public/${encodeURIComponent(locale)}/archives`)??{categories:[],tags:[],authors:[]}}
-export async function getPublicSourceIndex(locale:string){return await publicGet<PublicSourceIndex>(`/api/v1/public/${encodeURIComponent(locale)}/sources`)??{totalSources:0,totalCitations:0,sources:[]}}
+export async function getPublicSourceIndex(locale:string){return await publicGet<PublicSourceIndex>(`/api/v1/public/${encodeURIComponent(locale)}/sources`)??{totalArticles:0,sourcedArticleCount:0,multiDomainArticleCount:0,reviewedSourceCount:0,currentReviewCount:0,totalSources:0,totalCitations:0,sources:[]}}
 export function getPublicSourceArchive(locale:string,domain:string){return publicGet<PublicSourceArchive>(`/api/v1/public/${encodeURIComponent(locale)}/sources/${encodeURIComponent(domain)}`)}
