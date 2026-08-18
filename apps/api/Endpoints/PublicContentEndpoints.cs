@@ -177,7 +177,10 @@ public static class PublicContentEndpoints
         if (currentPage > totalPages) return Results.NotFound();
         var articles = await query.OrderByDescending(article => article.PublishedAt).ThenBy(article => article.Id)
             .Skip((currentPage - 1) * take).Take(take)
-            .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt, cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } }).ToListAsync(token);
+            .Select(article => new { article.ArticleGroupId, article.Slug, article.Title, article.Summary, type = article.ArticleGroup.Type.ToString(), article.PublishedAt, article.UpdatedAt,
+                sourceCount = article.ArticleGroup.Sources.Count,
+                reviewedSourceCount = article.ArticleGroup.Sources.Count(source => source.Kind != SourceKind.Unclassified && source.LastReviewedAt != null),
+                cover = article.CoverMediaAssetId == null ? null : new { url = "/api/media/" + article.CoverMediaAssetId + "?v=" + article.CoverMediaAsset!.OptimizedByteLength, altText = article.CoverAltText } }).ToListAsync(token);
         var typeCounts = await query.GroupBy(article => article.ArticleGroup.Type).Select(group => new { type = group.Key.ToString(), count = group.Count() }).OrderByDescending(item => item.count).ToArrayAsync(token);
         var relatedCategories = await query.SelectMany(article => article.Categories).Where(item => item.Slug != slug)
             .GroupBy(item => new { item.Slug, item.Name }).Select(group => new { group.Key.Slug, title = group.Key.Name, articleCount = group.Count() })

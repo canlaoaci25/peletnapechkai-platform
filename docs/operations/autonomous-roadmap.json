@@ -1,5 +1,5 @@
 ﻿{
-    "updatedAt":  "2026-08-18T13:10:00.0000000-07:00",
+    "updatedAt":  "2026-08-18T14:05:00.0000000-07:00",
     "items":  [
                   {
                       "id":  "public-sidebar",
@@ -148,8 +148,8 @@
                   {
                       "id":  "planning-authority-hub",
                       "title":  "Zaman ve odak otorite merkezi",
-                      "outcome":  "Mevcut Türkçe planlama yayınlarını kaynaklı bir seçim rehberi, niyet kümeleri ve çift yönlü iç bağlantılarla tek keşif merkezinde birleştir.",
-                      "status":  "queued"
+                      "outcome":  "Mevcut Türkçe planlama yayınlarını kaynak kanıtı taşıyan dört karar yolu, locale-aware CollectionPage/ItemList şeması ve çift yönlü taxonomy bağlantılarıyla tek keşif merkezinde birleştir; yerel uygulama Cycle 93 dalında hazır, runner staging/production terfi kanıtı bekleniyor.",
+                      "status":  "blocked"
                   },
                   {
                       "id":  "source-claim-citations",

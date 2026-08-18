@@ -9,6 +9,8 @@ import { getDictionary } from "@/i18n/get-dictionary";
 import { archiveLanguages } from "@/lib/archive-localization";
 import { getPublicArchive } from "@/lib/public-api";
 import { FollowCategoryButton } from "@/components/follow-category-button";
+import { buildPlanningClusters, planningHubCopy, planningHubSlugs } from "@/lib/planning-authority-hub";
+import { absoluteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 const collections = ["categories", "tags", "authors"] as const;
@@ -45,6 +47,9 @@ export default async function ArchivePage({ params,searchParams }: Props) {
   ]);
   if (!archive) notFound();
   const copy = archiveCopy[locale];
+  const isPlanningHub = collection === "categories" && planningHubSlugs[locale] === slug && page === 1;
+  const hubCopy = planningHubCopy[locale];
+  const planningClusters = isPlanningHub ? buildPlanningClusters(locale, archive.articles) : [];
   const breadcrumbItems = [
     { name: dictionary.navigation.home, url: `/${locale}` },
     ...(collection === "categories" ? [{ name: copy.allTopics, url: `/${locale}/topics` }] : []),
@@ -52,23 +57,35 @@ export default async function ArchivePage({ params,searchParams }: Props) {
     { name: archive.title, url: `/${locale}/${collection}/${slug}` },
   ];
   const breadcrumbSchema = { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: breadcrumbItems.map((item, index) => ({ "@type": "ListItem", position: index + 1, name: item.name, item: item.url })) };
+  const collectionSchema = isPlanningHub ? { "@context":"https://schema.org", "@type":"CollectionPage", name:archive.title, description:archive.description, url:absoluteUrl(`/${locale}/${collection}/${slug}`), mainEntity:{ "@type":"ItemList", numberOfItems:archive.articleCount, itemListElement:archive.articles.map((article,index)=>({"@type":"ListItem",position:index+1,url:absoluteUrl(`/${locale}/articles/${article.slug}`),name:article.title})) } } : null;
   return (
     <div className="site-shell">
       <SiteHeader locale={locale} />
       <main id="main-content" className="archive-page">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema).replace(/</g, "\\u003c") }} />
+        {collectionSchema && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema).replace(/</g, "\\u003c") }} />}
         <nav className="archive-breadcrumbs" aria-label="Breadcrumb"><Link href={`/${locale}`}>{dictionary.navigation.home}</Link><span aria-hidden="true">/</span>{collection === "categories" && <><Link href={`/${locale}/topics`}>{copy.allTopics}</Link><span aria-hidden="true">/</span></>}{archive.parent && <><Link href={`/${locale}/categories/${archive.parent.slug}`}>{archive.parent.title}</Link><span aria-hidden="true">/</span></>}<span aria-current="page">{archive.title}</span></nav>
         <header className="archive-authority-hero">
           <div><p className="section-kicker">{copy[collection]} · {archive.articleCount} {copy.stories}</p><h1>{archive.title}</h1>{archive.description && <p className="archive-description">{archive.description}</p>}{collection === "categories" && <FollowCategoryButton locale={locale} slug={slug}/>}</div>
           {archive.typeCounts.length > 0 && <ul className="archive-type-counts" aria-label={copy.description}>{archive.typeCounts.map(item => <li key={item.type}><strong>{item.count}</strong><span>{item.type}</span></li>)}</ul>}
         </header>
+        {isPlanningHub && planningClusters.length > 0 && <section className="planning-authority" aria-labelledby="planning-authority-title">
+          <header><div><p className="section-kicker">{hubCopy.eyebrow}</p><h2 id="planning-authority-title">{hubCopy.title}</h2></div><p>{hubCopy.intro}</p></header>
+          <aside className="planning-evidence-note"><strong>{hubCopy.evidence}</strong><p>{hubCopy.evidenceNote}</p></aside>
+          <div className="planning-cluster-heading"><p className="section-kicker">BOECL</p><h3>{hubCopy.guide}</h3><p>{hubCopy.guideIntro}</p></div>
+          <div className="planning-clusters">{planningClusters.map((cluster,index)=><article key={cluster.id} id={`intent-${cluster.id}`}>
+            <span className="planning-cluster-number">0{index+1}</span><h3>{cluster.title}</h3><p>{cluster.description}</p>
+            <ol>{cluster.articles.map(article=><li key={article.slug}><Link href={`/${locale}/articles/${article.slug}`}><span>{article.title}</span><small>{article.sourceCount??0} {hubCopy.sources}{(article.reviewedSourceCount??0)>0?` · ${article.reviewedSourceCount} ${hubCopy.reviewed}`:""}</small></Link></li>)}</ol>
+            <Link className="planning-cluster-open" href={`#${cluster.articles[0].slug}`}>{hubCopy.open} <span aria-hidden="true">↓</span></Link>
+          </article>)}</div>
+        </section>}
         {collection === "categories" && archive.relatedCategories.length > 0 && <nav className="archive-related" aria-label={copy.explore}><strong>{copy.explore}</strong>{archive.relatedCategories.map(item => <Link key={item.slug} href={`/${locale}/categories/${item.slug}`}>{item.title}<span>{item.articleCount}</span></Link>)}</nav>}
         {archive.articles.length === 0 ? (
           <p className="muted">{copy.empty}</p>
         ) : (
           <section className="archive-stream" aria-labelledby="archive-latest"><div className="archive-stream-heading"><p className="section-kicker">BOECL</p><h2 id="archive-latest">{copy.latest}</h2></div><div className="archive-lead-grid">
             {archive.articles.map((article, index) => (
-              <article className={index === 0 ? "archive-lead" : "public-card"} key={article.slug}>
+              <article id={article.slug} className={index === 0 ? "archive-lead" : "public-card"} key={article.slug}>
                 {article.cover && <Link className="archive-card-cover" href={`/${locale}/articles/${article.slug}`} tabIndex={-1} aria-hidden="true"><Image src={article.cover.url} alt="" fill sizes="(max-width: 700px) 100vw, 33vw" /></Link>}
                 <div className="archive-card-copy"><p className="section-kicker">{article.type}</p>
                 <h2>
