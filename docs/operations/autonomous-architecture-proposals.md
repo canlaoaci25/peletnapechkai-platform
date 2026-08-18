@@ -1,5 +1,12 @@
 # BOECL otonom mimari ve ürün teklifleri
 
+> Çevrim 92 güncellemesi (18 Ağustos 2026): Admin komuta merkezine editoryal üretim ritmi eklendi.
+> Ölçüm `UpdatedAt` gibi yeniden atamayla değişen bir alanı kullanmaz; nullable `CompletedAt` kanıtı,
+> son 30/90 gün örneklemi, zamanında oran, p50/p95 çevrim süresi ve 13 haftalık tamamlanma eğrisi
+> sunar. Geçmiş tamamlanmış görevler tahmini backfill yerine görünür biçimde ölçüm dışında kalır.
+> Migration defaultsuz ve geri alınabilir, sorgu partial index ile sınırlıdır. Runner staging backup,
+> restore, migration ve gerçek admin render kanıtı sağlamadan canlı tamamlanmış sayılmayacaktır.
+
 > Çevrim 91 güncellemesi (18 Ağustos 2026): Üye okuma merkezi, yarım okumaları, takip edilen
 > konulardaki güncel yayınları ve kaydedilenleri aynı locale içinde açıklanabilir haftalık dönüş
 > rotasında birleştirdi. Tamamlanan yayınlar dışlanır ve son bölüm anchor'ı korunur. Bu site içi

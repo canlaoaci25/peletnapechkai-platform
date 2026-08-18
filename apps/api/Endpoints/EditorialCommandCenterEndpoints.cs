@@ -29,6 +29,13 @@ public static class EditorialCommandCenterEndpoints
         var actor = await users.GetUserAsync(principal);
         if (actor is null) return Results.Unauthorized();
         var now = DateTimeOffset.UtcNow;
+        var completedRows = await database.EditorialTasks.AsNoTracking()
+            .Where(task => task.CompletedAt != null && task.CompletedAt >= now.AddDays(-90))
+            .Select(task => new EditorialPerformanceRow(task.CreatedAt, task.DueAt, task.CompletedAt!.Value))
+            .ToListAsync(token);
+        var unmeasuredCompleted = await database.EditorialTasks.AsNoTracking()
+            .CountAsync(task => task.Status == EditorialTaskStatus.Completed && task.CompletedAt == null, token);
+        var performance = EditorialPerformancePolicy.Build(now, completedRows, unmeasuredCompleted);
         var reviewItems = await database.ArticleLocalizations.AsNoTracking()
             .Where(article => article.Status == PublicationStatus.InEditorialReview || article.Status == PublicationStatus.InSeoReview)
             .OrderBy(article => article.UpdatedAt)
@@ -111,7 +118,7 @@ public static class EditorialCommandCenterEndpoints
             inReview = reviewItems.Count, incompleteQuality, personalOpen, personalOverdue, personalDueSoon,
             freshnessDebt = freshnessItems.Count, unassigned, teamMembers = workloads.Length,
             scheduled = schedule.Length, scheduleConflicts = schedule.Count(item => item.HasConflict), readyToSchedule },
-            schedule, workloads, users = activeUsers, items });
+            performance, schedule, workloads, users = activeUsers, items });
     }
 
     private static async Task<IResult> ReassignAsync(Guid taskId, ReassignRequest request,
@@ -195,6 +202,11 @@ public sealed record EditorialCommandItem(Guid ArticleId, string Title, string L
     DateTimeOffset DueAt, string? TaskTitle, string? Assignee, Guid? AssigneeUserId, string? Priority, Guid? TaskId, string? Status, bool IsMine,
     string[]? MissingGates = null, string[]? FreshnessReasons = null);
 public sealed record EditorialWorkload(Guid UserId, string DisplayName, int Open, int Overdue, int DueSoon);
+public sealed record EditorialPerformanceRow(DateTimeOffset CreatedAt, DateTimeOffset DueAt, DateTimeOffset CompletedAt);
+public sealed record EditorialThroughputWeek(DateTimeOffset StartsAt, int Completed);
+public sealed record EditorialPerformanceWindow(int Days, int SampleSize, int OnTimePercent, double MedianHours, double P95Hours);
+public sealed record EditorialPerformance(EditorialPerformanceWindow Last30Days, EditorialPerformanceWindow Last90Days,
+    EditorialThroughputWeek[] WeeklyThroughput, int UnmeasuredCompleted);
 public sealed record EditorialScheduleRow(Guid ArticleId, string Title, string Locale, DateTimeOffset ScheduledAt, string[] Categories);
 public sealed record EditorialScheduleItem(Guid ArticleId, string Title, string Locale, DateTimeOffset ScheduledAt, string[] Categories, bool HasConflict, string[] ConflictReasons);
 public sealed record ReassignRequest(Guid AssigneeUserId);
@@ -224,6 +236,46 @@ public static class EditorialBulkAssignment
         catch (System.Text.Json.JsonException) { return null; }
         catch (KeyNotFoundException) { return null; }
         catch (InvalidOperationException) { return null; }
+    }
+}
+
+public static class EditorialPerformancePolicy
+{
+    public static EditorialPerformance Build(DateTimeOffset now, IReadOnlyCollection<EditorialPerformanceRow> measured,
+        int unmeasuredCompleted = 0)
+    {
+        var valid = measured.Where(row => row.CompletedAt >= row.CreatedAt && row.CompletedAt <= now).ToArray();
+        return new(Window(now, valid, 30), Window(now, valid, 90),
+            Enumerable.Range(0, 13).Select(offset =>
+            {
+                var end = StartOfWeek(now).AddDays(-(12 - offset) * 7 + 7);
+                var start = end.AddDays(-7);
+                return new EditorialThroughputWeek(start, valid.Count(row => row.CompletedAt >= start && row.CompletedAt < end));
+            }).ToArray(), Math.Max(0, unmeasuredCompleted));
+    }
+
+    private static EditorialPerformanceWindow Window(DateTimeOffset now, EditorialPerformanceRow[] rows, int days)
+    {
+        var window = rows.Where(row => row.CompletedAt >= now.AddDays(-days)).OrderBy(row => row.CompletedAt).ToArray();
+        if (window.Length == 0) return new(days, 0, 0, 0, 0);
+        var hours = window.Select(row => Math.Max(0, (row.CompletedAt - row.CreatedAt).TotalHours)).Order().ToArray();
+        return new(days, window.Length,
+            (int)Math.Round(window.Count(row => row.CompletedAt <= row.DueAt) * 100d / window.Length),
+            Math.Round(Percentile(hours, .5), 1), Math.Round(Percentile(hours, .95), 1));
+    }
+
+    private static double Percentile(double[] sorted, double percentile)
+    {
+        if (sorted.Length == 1) return sorted[0];
+        var position = (sorted.Length - 1) * percentile;
+        var lower = (int)Math.Floor(position); var upper = (int)Math.Ceiling(position);
+        return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower);
+    }
+
+    private static DateTimeOffset StartOfWeek(DateTimeOffset value)
+    {
+        var daysSinceMonday = ((int)value.DayOfWeek + 6) % 7;
+        return new DateTimeOffset(value.Year, value.Month, value.Day, 0, 0, 0, value.Offset).AddDays(-daysSinceMonday);
     }
 }
 

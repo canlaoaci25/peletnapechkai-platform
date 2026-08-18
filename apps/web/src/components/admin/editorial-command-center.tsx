@@ -134,6 +134,12 @@ const copy = {
     bulkTitle:"Gestion groupée",bulkIntro:"Sélectionnez des tâches, vérifiez l’impact et redistribuez-les en une action sûre.",selected:"tâches sélectionnées",selectTask:"Sélectionner la tâche",selectVisible:"Sélectionner les tâches visibles",target:"Nouveau responsable",preview:"Prévisualiser",confirm:"Réattribuer les tâches",cancel:"Annuler",undo:"Annuler l’attribution",bulkSuccess:"tâches réattribuées",undoSuccess:"L’attribution groupée a été annulée.",previewTitle:"Aperçu des changements",previewBody:"Le responsable change; le contenu, le statut et l’échéance restent inchangés.",bulkError:"L’attribution groupée a échoué. Actualisez la file.",undoError:"Impossible d’annuler l’attribution.",
   },
 } as const;
+const performanceCopy = {
+  "tr-TR": { kicker:"ÖLÇÜLEN ÜRETİM RİTMİ",title:"Ekip işi ne hızda tamamlıyor?",intro:"Yalnız gerçek tamamlanma kanıtı olan görevler ölçülür; eski kayıtlar tahmin edilmez.",days30:"Son 30 gün",days90:"Son 90 gün",sample:"ölçülen görev",onTime:"Zamanında",median:"Ortanca süre",p95:"P95 süre",trend:"13 haftalık tamamlanma",hours:"sa",insufficient:"Karar için henüz yeterli örnek yok",legacy:"eski tamamlanmış görev ölçüm dışında" },
+  "en-US": { kicker:"MEASURED DELIVERY RHYTHM",title:"How quickly is the team completing work?",intro:"Only tasks with verified completion evidence are measured; legacy records are never estimated.",days30:"Last 30 days",days90:"Last 90 days",sample:"measured tasks",onTime:"On time",median:"Median cycle",p95:"P95 cycle",trend:"13-week completions",hours:"h",insufficient:"Not enough evidence for a decision yet",legacy:"legacy completed tasks excluded" },
+  "de-DE": { kicker:"GEMESSENER ARBEITSRHYTHMUS",title:"Wie schnell schließt das Team Aufgaben ab?",intro:"Nur Aufgaben mit belegtem Abschluss werden gemessen; Altdaten werden nicht geschätzt.",days30:"Letzte 30 Tage",days90:"Letzte 90 Tage",sample:"gemessene Aufgaben",onTime:"Pünktlich",median:"Median",p95:"P95-Dauer",trend:"Abschlüsse in 13 Wochen",hours:"Std.",insufficient:"Noch nicht genügend Daten für eine Entscheidung",legacy:"alte abgeschlossene Aufgaben ausgeschlossen" },
+  "fr-FR": { kicker:"RYTHME DE LIVRAISON MESURÉ",title:"À quelle vitesse l’équipe termine-t-elle le travail ?",intro:"Seules les tâches avec une preuve d’achèvement sont mesurées ; les anciennes données ne sont pas estimées.",days30:"30 derniers jours",days90:"90 derniers jours",sample:"tâches mesurées",onTime:"À temps",median:"Durée médiane",p95:"Durée P95",trend:"Livraisons sur 13 semaines",hours:"h",insufficient:"Pas encore assez de données pour décider",legacy:"anciennes tâches terminées exclues" },
+} as const;
 type Scope = "mine" | "team";
 type Filter = "all" | "overdue" | "soon" | "review" | "quality" | "freshness";
 const gateCopy={
@@ -152,6 +158,7 @@ export function EditorialCommandCenterView({
   canReassign:boolean;
 }) {
   const c = copy[locale as keyof typeof copy] ?? copy["tr-TR"],
+    pc = performanceCopy[locale as keyof typeof performanceCopy] ?? performanceCopy["tr-TR"],
     router = useRouter(),
     [scope, setScope] = useState<Scope>("mine"),
     [filter, setFilter] = useState<Filter>("all"),
@@ -302,11 +309,16 @@ export function EditorialCommandCenterView({
           <span>{c.freshness}</span>
         </article>
       </div>
-      <EditorialCalendar locale={locale} data={data}/>
+      <section className="editorial-performance" aria-labelledby="editorial-performance-title">
+        <header><div><p className="section-kicker">{pc.kicker}</p><h3 id="editorial-performance-title">{pc.title}</h3><p>{pc.intro}</p></div>{data.performance.unmeasuredCompleted>0&&<small>{data.performance.unmeasuredCompleted} {pc.legacy}</small>}</header>
+        <div className="performance-windows">{[[pc.days30,data.performance.last30Days],[pc.days90,data.performance.last90Days]].map(([label,window])=><article key={String(label)}><div><strong>{label as string}</strong><span>{(window as typeof data.performance.last30Days).sampleSize} {pc.sample}</span></div>{(window as typeof data.performance.last30Days).sampleSize<3?<p>{pc.insufficient}</p>:<dl><div><dt>{pc.onTime}</dt><dd>{(window as typeof data.performance.last30Days).onTimePercent}%</dd></div><div><dt>{pc.median}</dt><dd>{(window as typeof data.performance.last30Days).medianHours} {pc.hours}</dd></div><div><dt>{pc.p95}</dt><dd>{(window as typeof data.performance.last30Days).p95Hours} {pc.hours}</dd></div></dl>}</article>)}</div>
+        <div className="throughput-chart" aria-label={pc.trend}>{data.performance.weeklyThroughput.map((week,index)=>{const max=Math.max(1,...data.performance.weeklyThroughput.map(item=>item.completed)),label=`${new Intl.DateTimeFormat(locale,{dateStyle:"medium"}).format(new Date(week.startsAt))}: ${week.completed}`;return <span key={week.startsAt} aria-label={label} title={label} style={{height:`${Math.max(8,week.completed/max*100)}%`}}><i aria-hidden>{index===0||index===12?new Intl.DateTimeFormat(locale,{month:"short",day:"numeric"}).format(new Date(week.startsAt)):""}</i></span>})}</div>
+      </section>
       <section className="editorial-capacity" aria-labelledby="editorial-capacity-title">
         <header><div><p className="section-kicker">{c.teamMembers}: {data.summary.teamMembers}</p><h3 id="editorial-capacity-title">{c.capacity}</h3><p>{c.capacityIntro}</p></div><strong data-alert={data.summary.unassigned>0}>{data.summary.unassigned} <span>{c.noOwner}</span></strong></header>
         <div className="capacity-grid">{data.workloads.map(person=><article key={person.userId} data-alert={person.overdue>0}><div><strong>{person.displayName}</strong><small>{person.open} {c.openShort}</small></div><span>{person.overdue} {c.overdueShort}</span><span>{person.dueSoon} {c.soonShort}</span><i aria-hidden style={{width:`${Math.min(100,person.open*12.5)}%`}}/></article>)}</div>
       </section>
+      <EditorialCalendar locale={locale} data={data}/>
       <nav className="desk-filters" aria-label={c.title}>
         {filters.map(([value, label, count]) => (
           <button

@@ -36,3 +36,13 @@ test("published content freshness debt explains its evidence in every locale", (
   assert.match(component, /SourcesReviewStale/);
   assert.match(styles, /\.freshness-debt-reasons/);
 });
+
+test("editorial rhythm exposes measured completion evidence without estimating legacy work", () => {
+  assert.match(component, /data\.performance\.last30Days/);
+  assert.match(component, /data\.performance\.last90Days/);
+  assert.match(component, /weeklyThroughput/);
+  assert.match(component, /unmeasuredCompleted/);
+  assert.match(component, /sampleSize<3/);
+  assert.match(styles, /\.editorial-performance/);
+  assert.match(styles, /@media\(max-width:390px\)/);
+});

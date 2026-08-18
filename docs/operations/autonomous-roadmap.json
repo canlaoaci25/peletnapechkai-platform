@@ -1,5 +1,5 @@
 ﻿{
-    "updatedAt":  "2026-08-18T23:20:00.0000000+00:00",
+    "updatedAt":  "2026-08-18T13:10:00.0000000-07:00",
     "items":  [
                   {
                       "id":  "public-sidebar",
@@ -66,6 +66,12 @@
                       "title":  "Editoryal operasyon merkezi",
                       "outcome":  "İçerik, yayın, kategori, etiket ve kalite borçlarını tek yönetilebilir admin iş akışında birleştir.",
                       "status":  "completed"
+                  },
+                  {
+                      "id":  "editorial-delivery-rhythm",
+                      "title":  "Editoryal üretim ritmi ve SLA kanıtı",
+                      "outcome":  "Admin komuta merkezinde gerçek tamamlanma kanıtından 30/90 günlük zamanında teslim, p50/p95 çevrim süresi ve 13 haftalık üretim eğilimi göster; yerel uygulama Cycle 92 dalında hazır, runner migration/render/canlı terfi kanıtı bekleniyor.",
+                      "status":  "blocked"
                   },
                   {
                       "id":  "locale-coverage",

@@ -149,6 +149,12 @@ export type DeploymentSnapshot = {
 };
 export type EditorialCommandCenter = {
   checkedAt: string;
+  performance: {
+    last30Days: EditorialPerformanceWindow;
+    last90Days: EditorialPerformanceWindow;
+    weeklyThroughput: { startsAt: string; completed: number }[];
+    unmeasuredCompleted: number;
+  };
   summary: {
     overdue: number;
     dueSoon: number;
@@ -197,6 +203,13 @@ export type EditorialCommandCenter = {
     missingGates: string[] | null;
     freshnessReasons: string[] | null;
   }[];
+};
+type EditorialPerformanceWindow = {
+  days: number;
+  sampleSize: number;
+  onTimePercent: number;
+  medianHours: number;
+  p95Hours: number;
 };
 export type KnowledgeLink = {
   id: string;

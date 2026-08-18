@@ -93,4 +93,35 @@ public sealed class EditorialCommandPriorityTests
 
         Assert.All(result, item => Assert.Contains("CategoryCollision", item.ConflictReasons));
     }
+
+    [Fact]
+    public void Performance_policy_uses_real_completion_evidence_and_reports_legacy_gap()
+    {
+        var now = new DateTimeOffset(2026, 8, 17, 12, 0, 0, TimeSpan.Zero);
+        var rows = new[] {
+            new EditorialPerformanceRow(now.AddDays(-10), now.AddDays(-8), now.AddDays(-9)),
+            new EditorialPerformanceRow(now.AddDays(-20), now.AddDays(-18), now.AddDays(-17)),
+            new EditorialPerformanceRow(now.AddDays(-60), now.AddDays(-57), now.AddDays(-58)) };
+
+        var result = EditorialPerformancePolicy.Build(now, rows, 4);
+
+        Assert.Equal(2, result.Last30Days.SampleSize);
+        Assert.Equal(50, result.Last30Days.OnTimePercent);
+        Assert.Equal(3, result.Last90Days.SampleSize);
+        Assert.Equal(4, result.UnmeasuredCompleted);
+        Assert.Equal(13, result.WeeklyThroughput.Length);
+        Assert.Equal(3, result.WeeklyThroughput.Sum(week => week.Completed));
+    }
+
+    [Fact]
+    public void Performance_policy_excludes_impossible_or_future_completion_times()
+    {
+        var now = new DateTimeOffset(2026, 8, 17, 12, 0, 0, TimeSpan.Zero);
+        var result = EditorialPerformancePolicy.Build(now, [
+            new(now, now.AddDays(1), now.AddMinutes(-1)),
+            new(now, now.AddDays(1), now.AddMinutes(1))]);
+
+        Assert.Equal(0, result.Last90Days.SampleSize);
+        Assert.All(result.WeeklyThroughput, week => Assert.Equal(0, week.Completed));
+    }
 }
