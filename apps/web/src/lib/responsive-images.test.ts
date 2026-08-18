@@ -174,7 +174,13 @@ test("arama sayfasi mobil klavyeyi kendiliginden acmaz ve dar ekranda tasmaz", (
   assert.match(searchPage, /article\.categories\?\.map/);
   assert.match(searchPage, /article\.sourceCount/);
   assert.match(searchPage, /article\.cover \? undefined : "search-result-no-cover"/);
+  assert.match(searchPage, /maxLength=\{120\}/);
+  assert.match(searchPage, /getPublicArchiveIndex\(locale\)/);
+  assert.match(searchPage, /className="search-topic-grid"/);
+  assert.match(searchPage, /className="search-latest"/);
   assert.match(styles, /article\.search-result-no-cover \{ grid-template-columns:minmax\(0,760px\)/);
+  assert.match(styles, /\.search-topic-grid \{ display:grid; grid-template-columns:repeat\(3/);
+  assert.match(styles, /@media\(max-width:480px\)\{\.search-topic-grid\{display:flex; overflow-x:auto/);
   assert.match(styles, /@media \(max-width: 640px\)[\s\S]*?\.search-results article \{ grid-template-columns:1fr/);
 });
 

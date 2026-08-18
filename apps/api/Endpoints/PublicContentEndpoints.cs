@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Peletnapechkai.Api.Features.Search;
 using Peletnapechkai.Api.Domain.Content;
 using Peletnapechkai.Api.Infrastructure.Persistence;
 
@@ -160,8 +161,9 @@ public static class PublicContentEndpoints
 
     private static async Task<IResult> SearchAsync(string locale, string? q, PublishingDbContext database, int? limit, CancellationToken token)
     {
-        var term = q?.Trim();
-        if (string.IsNullOrWhiteSpace(term) || term.Length < 2) return Results.Ok(Array.Empty<object>());
+        var term = PublicSearchQueryPolicy.Normalize(q);
+        if (term is null || term.Length < PublicSearchQueryPolicy.MinimumLength) return Results.Ok(Array.Empty<object>());
+        if (term.Length > PublicSearchQueryPolicy.MaximumLength) return Results.BadRequest(new { error = $"Search query must not exceed {PublicSearchQueryPolicy.MaximumLength} characters." });
         var escaped = term.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
         var pattern = $"%{escaped}%";
         var take = Math.Clamp(limit ?? 20, 1, 50);

@@ -1,5 +1,5 @@
 ﻿{
-    "updatedAt":  "2026-08-18T07:48:46.9961804+00:00",
+    "updatedAt":  "2026-08-18T08:19:38.7987131+00:00",
     "items":  [
                   {
                       "id":  "public-sidebar",
@@ -11,7 +11,7 @@
                       "id":  "browser-push",
                       "title":  "Tarayıcı ve telefon push bildirimleri",
                       "outcome":  "İzin veren üyeye yeni Türkçe içerik ve doğrulanmış site güncellemelerini Web Push ile gönder; konu tercihleri, sessiz saatler ve abonelikten çıkma ekle.",
-                      "status":  "queued"
+                      "status":  "active"
                   },
                   {
                       "id":  "visual-service",
@@ -47,7 +47,7 @@
                       "id":  "search-recommendation",
                       "title":  "Arama ve öneri kalitesi",
                       "outcome":  "Yazım toleransı, ilgili içerik, konu kümeleri ve boş sonuç kurtarmasıyla keşfi geliştir.",
-                      "status":  "active"
+                      "status":  "completed"
                   },
                   {
                       "id":  "editorial-console",
@@ -119,6 +119,12 @@
                       "id":  "content-freshness-next-1",
                       "title":  "Ä°Ã§erik tazelik ve gÃ¼ncelleme merkezi",
                       "outcome":  "Eskiyen yayÄ±nlarÄ± kaynak, trafik ve deÄŸiÅŸen bilgi sinyalleriyle bul; revizyon, SEO ve yeniden daÄŸÄ±tÄ±m akÄ±ÅŸÄ±nÄ± tamamla.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "member-reading-digest",
+                      "title":  "Üye okuma özeti ve geri dönüş rotası",
+                      "outcome":  "Üyeye takip ettiği konular, yarım kalan okumalar ve yeni kaynaklı yayınlardan açıklanabilir haftalık bir geri dönüş özeti sun.",
                       "status":  "queued"
                   }
               ]

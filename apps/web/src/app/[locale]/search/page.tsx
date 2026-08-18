@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { hasLocale } from "@/i18n/config";
-import { searchPublishedArticles } from "@/lib/public-api";
+import { getPublicArchiveIndex, getPublishedArticles, searchPublishedArticles } from "@/lib/public-api";
 
 export const dynamic = "force-dynamic";
 
@@ -21,12 +21,18 @@ export default async function SearchPage({
   if (!hasLocale(locale)) notFound();
   const queryValue = (await searchParams).q;
   const query = typeof queryValue === "string" ? queryValue.trim() : "";
-  const [dictionary, results] = await Promise.all([
+  const [dictionary, results, archive, latest] = await Promise.all([
     getDictionary(locale),
     searchPublishedArticles(locale, query),
+    getPublicArchiveIndex(locale),
+    getPublishedArticles(locale, 4),
   ]);
   const formatDate = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(value));
   const searchCopy = dictionary.search;
+  const discoveryCategories = archive.categories
+    .filter(category => category.articleCount > 0)
+    .sort((left, right) => right.articleCount - left.articleCount)
+    .slice(0, 6);
   return (
     <div className="site-shell">
       <SiteHeader locale={locale} />
@@ -46,6 +52,7 @@ export default async function SearchPage({
               enterKeyHint="search"
               defaultValue={query}
               minLength={2}
+              maxLength={120}
               required
             />
             <button type="submit">{dictionary.search.submit}</button>
@@ -60,7 +67,7 @@ export default async function SearchPage({
               )}
             </h2>
             {results.length === 0 ? (
-              <div className="search-empty"><strong>{searchCopy.emptyTitle}</strong><p>{searchCopy.empty}</p></div>
+              <div className="search-empty"><strong>{searchCopy.emptyTitle}</strong><p>{searchCopy.empty}</p><a href="#search-discovery">{searchCopy.exploreTopics} ↓</a></div>
             ) : (
               <ul className="search-results">
                 {results.map((article) => (
@@ -82,6 +89,19 @@ export default async function SearchPage({
             )}
           </section>
         )}
+        <section className="search-discovery" id="search-discovery" aria-labelledby="search-discovery-title">
+          <header>
+            <div><p className="section-kicker">{searchCopy.discoveryEyebrow}</p><h2 id="search-discovery-title">{searchCopy.discoveryTitle}</h2></div>
+            <p>{searchCopy.discoveryDescription}</p>
+          </header>
+          {discoveryCategories.length > 0 && <nav aria-label={searchCopy.discoveryTitle} className="search-topic-grid">
+            {discoveryCategories.map(category => <Link key={category.slug} href={`/${locale}/categories/${category.slug}`}><span>{category.title}</span><small>{searchCopy.stories.replace("{count}", String(category.articleCount))}</small></Link>)}
+          </nav>}
+          {latest.length > 0 && <div className="search-latest">
+            <h3>{searchCopy.latestTitle}</h3>
+            <ol>{latest.map(article => <li key={article.slug}><Link href={`/${locale}/articles/${article.slug}`}><span>{article.title}</span><time dateTime={article.publishedAt}>{formatDate(article.publishedAt)}</time></Link></li>)}</ol>
+          </div>}
+        </section>
       </main>
     </div>
   );
