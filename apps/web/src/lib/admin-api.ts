@@ -530,6 +530,8 @@ export type TrafficDashboard = {
 export function getTrafficDashboard(locale: string) {
   return apiGet<TrafficDashboard>(`/api/v1/admin/traffic/${encodeURIComponent(locale)}`);
 }
+export type WebVitalsDashboard = { checkedAt:string; windowDays:number; minimumSamples:number; privacy:string; cohorts:{locale:string;route:string;viewport:string;metric:"LCP"|"CLS"|"INP";samples:number;p75:number;budget:number;passes:boolean}[] };
+export function getWebVitalsDashboard(){return apiGet<WebVitalsDashboard>("/api/v1/admin/web-vitals");}
 export type DevelopmentStatus = {
   task: string;
   phase: string;

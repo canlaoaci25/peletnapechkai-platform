@@ -18,6 +18,7 @@ builder.Services.AddSingleton<ProductionHealthSnapshotReader>();
 builder.Services.AddSingleton<DeploymentSnapshotReader>();
 builder.Services.AddHostedService<ScheduledPublishingWorker>();
 builder.Services.AddHostedService<AutomaticContentWorker>();
+builder.Services.AddHostedService<WebVitalRetentionWorker>();
 
 var app = builder.Build();
 
@@ -61,6 +62,7 @@ app.MapHomepageEndpoints();
 app.MapDevelopmentStatusEndpoints();
 app.MapMemberAccountEndpoints();
 app.MapTrafficGrowthEndpoints();
+app.MapWebVitalsEndpoints();
 
 app.MapGet("/api/v1/locales", async (PublishingDbContext database, CancellationToken cancellationToken) =>
     Results.Ok(new

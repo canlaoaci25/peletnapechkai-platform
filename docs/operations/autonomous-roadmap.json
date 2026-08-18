@@ -94,8 +94,8 @@
                   {
                       "id":  "performance-budget",
                       "title":  "Core Web Vitals bütçesi",
-                      "outcome":  "Mobil LCP, CLS ve INP metriklerini ölçülen bütçeler ve release kapılarıyla koru.",
-                      "status":  "queued"
+                      "outcome":  "Açık rızalı ve kimliksiz LCP/CLS/INP saha örnekleri sabit route, locale ve viewport kohortlarında 28 günlük p75 bütçesine dönüştürülüp admin trafik ekranında gösteriliyor; yerel migration, retention ve kalite kapıları hazır, staging migration/render ile production terfisi bekleniyor.",
+                      "status":  "blocked"
                   },
                   {
                       "id":  "resilience-operations",

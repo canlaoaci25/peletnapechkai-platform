@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasLocale, type Locale } from "@/i18n/config";
-import { getAdminSession, getTrafficDashboard } from "@/lib/admin-api";
+import { getAdminSession, getTrafficDashboard, getWebVitalsDashboard } from "@/lib/admin-api";
+import { WebVitalsBudget } from "@/components/admin/web-vitals-budget";
 
 const copy = {
   "tr-TR": { kicker:"İÇERİK OTORİTESİ", title:"Kaynak kalitesi ve trafik fırsatları", intro:"Türkçe yayın arşivini kaynak çeşitliliği, SEO bütünlüğü ve gerçek okuma etkisiyle önceliklendirin.", published:"Yayındaki içerik", score:"Ortalama otorite", strong:"Güçlü içerik", critical:"Kritik açık", sourceGap:"Kaynağı olmayan", single:"Tek kaynaklı", evidence:"Kaynak kapsamı", evidenceIntro:"Puan yalnız mevcut kaynak, bağımsız alan adı, HTTPS, SEO, kapak ve taxonomy kanıtlarından hesaplanır; doğrulanmış kaynak iddiası değildir.", domains:"Kaynak ekosistemi", domainsIntro:"Arşivde en çok atıf alan alan adları", articles:"içerik", citations:"atıf", queue:"Öncelikli iyileştirme kuyruğu", queueIntro:"En düşük otorite puanı ve ardından mevcut trafik etkisine göre sıralı.", edit:"İyileştir →", sources:"kaynak", independent:"alan adı", views:"görüntülenme", empty:"Kaynak kalitesi açığı bulunamadı.", risks:{missing_sources:"Kaynak yok",single_source:"Tek kaynağa dayanıyor",single_domain:"Kaynaklar aynı alan adında",insecure_source:"HTTPS olmayan kaynak",missing_seo:"SEO alanları eksik",missing_cover:"Kapak eksik",missing_category:"Kategori eksik",missing_tags:"Etiket eksik"}},
@@ -16,7 +17,7 @@ export default async function TrafficPage({ params }: PageProps<"/[locale]/admin
   const session = await getAdminSession();
   if (!session) redirect(`/${locale}/admin/login`);
   if (!session.roles.some((role) => ["Owner", "Admin"].includes(role))) redirect(`/${locale}/admin`);
-  const data = await getTrafficDashboard(locale);
+  const [data,vitals] = await Promise.all([getTrafficDashboard(locale),getWebVitalsDashboard()]);
   const c = copy[locale as Locale];
   if (!data) return <main className="admin-shell"><p>{c.empty}</p></main>;
   return <main className="admin-shell admin-dashboard-shell">
@@ -24,5 +25,6 @@ export default async function TrafficPage({ params }: PageProps<"/[locale]/admin
     <section className="overview-kpis authority-kpis"><article><span>{c.published}</span><strong>{data.published}</strong><small>{locale}</small></article><article><span>{c.strong}</span><strong>{data.authority.strong}</strong><small>80–100</small></article><article><span>{c.critical}</span><strong>{data.authority.critical}</strong><small>0–49</small></article><article><span>{c.sourceGap}</span><strong>{data.authority.withoutSources}</strong><small>{c.single}: {data.authority.singleSource}</small></article></section>
     <div className="traffic-grid authority-grid"><section className="admin-panel"><p className="section-kicker">{c.evidence}</p><h2>{c.score}: {data.authority.averageScore}/100</h2><p>{c.evidenceIntro}</p><div className="authority-band"><span><b>{data.authority.strong}</b> 80–100</span><span><b>{data.authority.needsWork}</b> 50–79</span><span><b>{data.authority.critical}</b> 0–49</span></div></section><section className="admin-panel"><p className="section-kicker">{c.domains}</p><h2>{c.domainsIntro}</h2><div className="source-domain-list">{data.sourceDomains.map(item=><div key={item.domain}><strong>{item.domain}</strong><span>{item.articles} {c.articles} · {item.citations} {c.citations}</span></div>)}</div></section></div>
     <section className="admin-panel"><p className="section-kicker">{c.queue}</p><h2>{c.queueIntro}</h2><div className="authority-queue">{data.opportunities.map(item=><article key={item.id}><strong className={`score score-${item.authorityScore<50?"critical":"review"}`}>{item.authorityScore}</strong><div><h3>{item.title}</h3><p>{item.risks.map(risk=>c.risks[risk]).join(" · ")}</p><small>{item.sourceCount} {c.sources} · {item.domainCount} {c.independent} · {item.views} {c.views}</small></div><Link href={`/${locale}/admin/articles/${item.id}`}>{c.edit}</Link></article>)}{data.opportunities.length===0&&<p>{c.empty}</p>}</div></section>
+    {vitals&&<WebVitalsBudget data={vitals} locale={locale as Locale}/>}
   </main>;
 }

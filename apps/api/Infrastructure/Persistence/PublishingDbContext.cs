@@ -46,6 +46,7 @@ public sealed class PublishingDbContext(DbContextOptions<PublishingDbContext> op
     public DbSet<FollowedCategory> FollowedCategories => Set<FollowedCategory>();
     public DbSet<ArticleReadingProgress> ArticleReadingProgress => Set<ArticleReadingProgress>();
     public DbSet<VisualReviewTask> VisualReviewTasks => Set<VisualReviewTask>();
+    public DbSet<WebVitalSample> WebVitalSamples => Set<WebVitalSample>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
