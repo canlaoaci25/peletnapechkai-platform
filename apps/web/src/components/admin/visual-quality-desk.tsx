@@ -45,7 +45,7 @@ export type VisualQualityReport = {
   queued: number;
   approved: number;
   rejected: number;
-  batch: null | { id: string; status: string; totalItems: number; processed: number; remaining: number; successful: number; rejected: number; activeArticle: string | null; currentPhase: number; lastMessage: string | null; updatedAt: string };
+  batch: null | { id: string; status: string; totalItems: number; processed: number; remaining: number; successful: number; rejected: number; activeArticle: string | null; currentPhase: number; lastMessage: string | null; updatedAt: string; isStale: boolean; staleAfterMinutes: number };
   items: {
     id: string;
     locale: string;
@@ -339,6 +339,13 @@ const copy = {
   },
 } satisfies Record<Locale, Record<string, string>>;
 
+const recoveryCopy = {
+  "tr-TR": { healthy: "Operasyon kalp atışı güncel", stale: "Operasyon kalp atışı bayat", staleHelp: "Güvenlik süresi içinde ilerleme kaydedilmedi. Devam etmeden önce kayıtlı checkpoint'ten yeniden kuyruğa alın.", lastUpdate: "Son güncelleme", recover: "Checkpoint'ten kurtar" },
+  "en-US": { healthy: "Operation heartbeat is current", stale: "Operation heartbeat is stale", staleHelp: "No progress was recorded within the safety window. Requeue from the saved checkpoint before continuing.", lastUpdate: "Last update", recover: "Recover from checkpoint" },
+  "de-DE": { healthy: "Der Operations-Heartbeat ist aktuell", stale: "Der Operations-Heartbeat ist veraltet", staleHelp: "Im Sicherheitsfenster wurde kein Fortschritt erfasst. Stellen Sie den gespeicherten Checkpoint wieder in die Warteschlange.", lastUpdate: "Letzte Aktualisierung", recover: "Vom Checkpoint wiederherstellen" },
+  "fr-FR": { healthy: "Le signal de l’opération est à jour", stale: "Le signal de l’opération est périmé", staleHelp: "Aucune progression n’a été enregistrée dans la fenêtre de sécurité. Remettez le checkpoint enregistré en file.", lastUpdate: "Dernière mise à jour", recover: "Récupérer depuis le checkpoint" },
+} satisfies Record<Locale, { healthy: string; stale: string; staleHelp: string; lastUpdate: string; recover: string }>;
+
 export function VisualQualityDesk({
   locale,
   report,
@@ -346,7 +353,7 @@ export function VisualQualityDesk({
   locale: Locale;
   report: VisualQualityReport;
 }) {
-  const c = copy[locale],
+  const c = copy[locale], r = recoveryCopy[locale],
     router = useRouter(),
     [busy, setBusy] = useState(""),
     [message, setMessage] = useState("");
@@ -443,6 +450,11 @@ export function VisualQualityDesk({
             <strong>{report.batch.processed} / {report.batch.totalItems}</strong>
           </header>
           <div className="visual-operation-meter" aria-hidden="true"><span style={{width: `${report.batch.totalItems ? report.batch.processed / report.batch.totalItems * 100 : 0}%`}} /></div>
+          <div className={`visual-operation-health ${report.batch.isStale ? "is-stale" : "is-healthy"}`} role={report.batch.isStale ? "alert" : "status"}>
+            <strong>{report.batch.isStale ? r.stale : r.healthy}</strong>
+            <span>{r.lastUpdate}: {new Intl.DateTimeFormat(locale,{dateStyle:"medium",timeStyle:"short"}).format(new Date(report.batch.updatedAt))}</span>
+            {report.batch.isStale && <p>{r.staleHelp}</p>}
+          </div>
           <div className="visual-operation-stats">
             {[[c.processed,report.batch.processed],[c.remaining,report.batch.remaining],[c.successful,report.batch.successful],[c.rejectedCount,report.batch.rejected]].map(([label,value])=><article key={label}><small>{label}</small><strong>{value}</strong></article>)}
           </div>
@@ -451,6 +463,7 @@ export function VisualQualityDesk({
             {report.batch.status === "Queued" && <button type="button" disabled={Boolean(busy)} onClick={()=>void send(`batch/${report.batch!.id}/start`)}>{c.start}</button>}
             {report.batch.status === "Running" && <button type="button" disabled={Boolean(busy)} onClick={()=>void send(`batch/${report.batch!.id}/pause`)}>{c.pause}</button>}
             {report.batch.status === "Paused" && <button type="button" disabled={Boolean(busy)} onClick={()=>void send(`batch/${report.batch!.id}/resume`)}>{c.resume}</button>}
+            {report.batch.isStale && <button type="button" disabled={Boolean(busy)} onClick={()=>void send(`batch/${report.batch!.id}/recover`)}>{r.recover}</button>}
             {!["Completed","Cancelled"].includes(report.batch.status) && <button type="button" disabled={Boolean(busy)} onClick={()=>void send(`batch/${report.batch!.id}/cancel`)}>{c.cancel}</button>}
           </div>
         </section>

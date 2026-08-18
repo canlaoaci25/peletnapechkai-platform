@@ -152,6 +152,16 @@ public sealed class AutomationJob
         UpdatedAt = now;
     }
 
+    public void RecoverStaleRun(DateTimeOffset now)
+    {
+        if (Type != AutomationJobType.VisualRenewal || Status != AutomationJobStatus.Running)
+            throw new InvalidOperationException("Only a running visual renewal job can be recovered.");
+        Status = AutomationJobStatus.Queued;
+        LastMessage = "Bayat çalışan görsel işi checkpoint korunarak yeniden kuyruğa alındı.";
+        UpdatedAt = now;
+        CompletedAt = null;
+    }
+
     public void Complete(string? message, string? reportText, DateTimeOffset now)
     {
         if (Status != AutomationJobStatus.Running) throw new InvalidOperationException("Only running jobs can complete.");

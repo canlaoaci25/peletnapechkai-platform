@@ -13,6 +13,7 @@ namespace Peletnapechkai.Api.Endpoints;
 
 public static class AutomationEndpoints
 {
+    private static readonly TimeSpan VisualBatchStaleAfter = TimeSpan.FromMinutes(15);
     public static IEndpointRouteBuilder MapAutomationEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/v1/admin/automation")
@@ -83,7 +84,9 @@ public static class AutomationEndpoints
                 successful = taskRows.Count(task => task.AutomationJobId == activeBatch.Id && task.Status == VisualReviewStatus.Approved),
                 rejected = taskRows.Count(task => task.AutomationJobId == activeBatch.Id && task.Status == VisualReviewStatus.Rejected),
                 activeArticle = items.FirstOrDefault(item => item.visualTask != null && taskRows.Any(task => task.Id == item.visualTask.Id && task.AutomationJobId == activeBatch.Id && task.Status is VisualReviewStatus.Pending or VisualReviewStatus.InReview or VisualReviewStatus.RetryRequested))?.Title,
-                activeBatch.CurrentPhase, activeBatch.LastMessage, activeBatch.UpdatedAt }, items
+                activeBatch.CurrentPhase, activeBatch.LastMessage, activeBatch.UpdatedAt,
+                isStale = activeBatch.status == nameof(AutomationJobStatus.Running) && activeBatch.UpdatedAt <= DateTimeOffset.UtcNow.Subtract(VisualBatchStaleAfter),
+                staleAfterMinutes = (int)VisualBatchStaleAfter.TotalMinutes }, items
         });
     }
 
@@ -133,6 +136,8 @@ public static class AutomationEndpoints
         var job = await database.AutomationJobs.SingleOrDefaultAsync(candidate => candidate.Id == jobId && candidate.Type == AutomationJobType.VisualRenewal, token);
         if (job is null) return Results.NotFound();
         var now = DateTimeOffset.UtcNow;
+        var previousStatus = job.Status;
+        var previousUpdatedAt = job.UpdatedAt;
         try
         {
             switch (action.ToLowerInvariant())
@@ -141,13 +146,23 @@ public static class AutomationEndpoints
                 case "pause": job.Pause(now); break;
                 case "resume": job.Resume(now); break;
                 case "cancel": job.Cancel(now); break;
+                case "recover":
+                    if (job.Status != AutomationJobStatus.Running || job.UpdatedAt > now.Subtract(VisualBatchStaleAfter))
+                        return Results.Conflict(new { message = "Only a stale running visual batch can be recovered." });
+                    job.RecoverStaleRun(now);
+                    break;
                 default: return Results.ValidationProblem(new Dictionary<string, string[]> { ["action"] = ["Unsupported batch action."] });
             }
         }
         catch (InvalidOperationException error) { return Results.Conflict(new { message = error.Message }); }
         database.AuditLogs.Add(new AuditLog(actor.Id, $"visual-renewal.batch_{action.ToLowerInvariant()}", nameof(AutomationJob), job.Id,
-            JsonSerializer.Serialize(new { status = job.Status.ToString(), job.CurrentPhase }), now));
-        await database.SaveChangesAsync(token);
+            JsonSerializer.Serialize(new { previousStatus = previousStatus.ToString(), status = job.Status.ToString(), previousUpdatedAt,
+                staleThresholdMinutes = (int)VisualBatchStaleAfter.TotalMinutes, job.CompletedItems, job.FailedItems, job.CurrentPhase }), now));
+        try { await database.SaveChangesAsync(token); }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Results.Conflict(new { message = "The visual batch changed while this action was being applied. Refresh before retrying." });
+        }
         return Results.Ok(new { job.Id, status = job.Status.ToString(), job.CurrentPhase, job.UpdatedAt });
     }
 

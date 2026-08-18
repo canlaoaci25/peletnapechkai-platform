@@ -22,7 +22,7 @@ public sealed class AutomationJobConfiguration : IEntityTypeConfiguration<Automa
         builder.Property(job => job.ReportText).HasColumnName("report_text");
         builder.Property(job => job.CreatedByUserId).HasColumnName("created_by_user_id");
         builder.Property(job => job.CreatedAt).HasColumnName("created_at");
-        builder.Property(job => job.UpdatedAt).HasColumnName("updated_at");
+        builder.Property(job => job.UpdatedAt).HasColumnName("updated_at").IsConcurrencyToken();
         builder.Property(job => job.CompletedAt).HasColumnName("completed_at");
         builder.Property(job => job.CategoryId).HasColumnName("category_id");
         builder.Property(job => job.RequestedArticleType).HasColumnName("requested_article_type").HasMaxLength(32);

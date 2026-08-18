@@ -29,6 +29,35 @@ public sealed class AutomationJobTests
     }
 
     [Fact]
+    public void Stale_visual_run_can_be_requeued_without_losing_checkpoint()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var job = new AutomationJob(AutomationJobType.VisualRenewal, ["tr-TR"], 12, Guid.CreateVersion7(), now);
+        job.Start(2, now.AddSeconds(1));
+        job.ReportProgress(5, 1, 3, "Altı kayıt işlendi.", now.AddSeconds(2));
+
+        job.RecoverStaleRun(now.AddMinutes(20));
+
+        Assert.Equal(AutomationJobStatus.Queued, job.Status);
+        Assert.Equal(5, job.CompletedItems);
+        Assert.Equal(1, job.FailedItems);
+        Assert.Equal(3, job.CurrentPhase);
+        Assert.Contains("checkpoint", job.LastMessage);
+    }
+
+    [Fact]
+    public void Non_visual_or_non_running_jobs_cannot_use_stale_recovery()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var visual = new AutomationJob(AutomationJobType.VisualRenewal, ["tr-TR"], 1, Guid.CreateVersion7(), now);
+        var generic = new AutomationJob(AutomationJobType.SystemReport, [], 1, Guid.CreateVersion7(), now);
+        generic.Start(1, now);
+
+        Assert.Throws<InvalidOperationException>(() => visual.RecoverStaleRun(now));
+        Assert.Throws<InvalidOperationException>(() => generic.RecoverStaleRun(now));
+    }
+
+    [Fact]
     public void Ready_content_job_can_be_marked_as_automatically_scheduled()
     {
         var job = new AutomationJob(AutomationJobType.ReadyContentGeneration, ["de-DE"], 1, Guid.CreateVersion7(), DateTimeOffset.UtcNow);
