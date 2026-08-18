@@ -55,7 +55,7 @@ export default async function ArchivePage({ params,searchParams }: Props) {
   return (
     <div className="site-shell">
       <SiteHeader locale={locale} />
-      <main className="archive-page">
+      <main id="main-content" className="archive-page">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema).replace(/</g, "\\u003c") }} />
         <nav className="archive-breadcrumbs" aria-label="Breadcrumb"><Link href={`/${locale}`}>{dictionary.navigation.home}</Link><span aria-hidden="true">/</span>{collection === "categories" && <><Link href={`/${locale}/topics`}>{copy.allTopics}</Link><span aria-hidden="true">/</span></>}{archive.parent && <><Link href={`/${locale}/categories/${archive.parent.slug}`}>{archive.parent.title}</Link><span aria-hidden="true">/</span></>}<span aria-current="page">{archive.title}</span></nav>
         <header className="archive-authority-hero">

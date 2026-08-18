@@ -73,6 +73,7 @@ export function TaxonomyManager({
     await request(`/${id}`, "PUT", {
       slug: data.get("slug"),
       name: data.get("name"),
+      ...(category ? { parentCategoryId: data.get("parentCategoryId") || null } : {}),
     });
   }
   return (
@@ -107,6 +108,7 @@ export function TaxonomyManager({
             placeholder={category ? "yapay-zeka" : "uretken-yapay-zeka"}
           />
         </label>
+        {category&&<label>Ana alan<select name="parentCategoryId" defaultValue=""><option value="">Üst düzey</option>{turkish.filter(item=>!item.parentCategoryId).map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
         <button disabled={pending}>
           {category ? "Kategori" : "Etiket"} ekle
         </button>

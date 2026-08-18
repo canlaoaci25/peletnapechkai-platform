@@ -10,9 +10,11 @@ const privacyMigration = readFileSync(new URL("../../../api/Infrastructure/Persi
 const smartHomeMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260817030000_AddSmartHomeConnectedLivingTaxonomy.cs", import.meta.url), "utf8");
 const hierarchyMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260817042309_AddCategoryHierarchyAndMobilityTaxonomy.cs", import.meta.url), "utf8");
 const knowledgeMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260817124500_AddKnowledgeManagementNotesTaxonomy.cs", import.meta.url), "utf8");
+const focusMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260818090000_AddTimeFocusPlanningTaxonomy.cs", import.meta.url), "utf8");
 const parityMigration = readFileSync(new URL("../../../api/Infrastructure/Persistence/Migrations/20260817043000_RepairMobilityTaxonomyLocaleParity.cs", import.meta.url), "utf8");
 const publicApi = readFileSync(new URL("../../../api/Endpoints/PublicContentEndpoints.cs", import.meta.url), "utf8");
 const supportingApi = readFileSync(new URL("../../../api/Endpoints/SupportingContentEndpoints.cs", import.meta.url), "utf8");
+const taxonomyManager = readFileSync(new URL("../components/admin/taxonomy-manager.tsx", import.meta.url), "utf8");
 const proxy = readFileSync(new URL("../proxy.ts", import.meta.url), "utf8");
 
 test("konu merkezi locale-aware canonical, hreflang ve gerçek yayın kapakları sunar", () => {
@@ -130,4 +132,24 @@ test("URL'de açıkça seçilen locale ülke sinyaliyle değiştirilmez", () => 
   const explicitLocaleBranch = proxy.slice(proxy.indexOf("if (firstSegment && hasLocale(firstSegment))"), proxy.indexOf("const directory = await localeDirectory();", proxy.indexOf("if (firstSegment && hasLocale(firstSegment))")));
   assert.doesNotMatch(explicitLocaleBranch, /NextResponse\.redirect/);
   assert.match(explicitLocaleBranch, /NextResponse\.next/);
+});
+
+test("time focus planning taxonomy links the evidenced cluster across four locales",()=>{
+  for(const slug of ["zaman-odak-ve-planlama","time-focus-and-planning","zeit-fokus-und-planung","temps-concentration-et-planification"]) assert.match(focusMigration,new RegExp(slug));
+  for(const locale of ["tr-TR","en-US","de-DE","fr-FR"]) assert.match(focusMigration,new RegExp(locale));
+  assert.match(focusMigration,/parent_category_id/);
+  assert.match(focusMigration,/article_group_id/);
+  assert.match(focusMigration,/RAISE EXCEPTION/);
+  assert.match(focusMigration,/migration\.time_focus_planning_taxonomy_added/);
+  assert.match(focusMigration,/ON CONFLICT DO NOTHING/);
+  assert.match(focusMigration,/protected override void Down/);
+});
+
+test("admin category create and update submit the same parent field",()=>{
+  assert.ok((taxonomyManager.match(/parentCategoryId: data\.get\("parentCategoryId"\) \|\| null/g)??[]).length>=2);
+  assert.match(taxonomyManager,/name="parentCategoryId" defaultValue=""/);
+});
+
+test("archive main preserves the global skip-link target",()=>{
+  assert.match(archive,/<main id="main-content"/);
 });

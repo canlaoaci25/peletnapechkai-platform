@@ -1,5 +1,6 @@
 [CmdletBinding()]
 param(
+    [ValidateSet('Development','Staging','Production')][string]$Environment = 'Development',
     [string]$Database = 'peletnapechkai_dev',
     [string]$HostName = '127.0.0.1',
     [int]$Port = 5432,
@@ -11,6 +12,23 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$site = if ($Environment -eq 'Production') { 'Peletnapechkai API' } elseif ($Environment -eq 'Staging') { 'BOECL Staging API' } else { $null }
+if ($site) {
+    $appcmd = Join-Path $env:windir 'System32\inetsrv\appcmd.exe'
+    $raw = (& $appcmd list config "$site/" /section:system.webServer/aspNetCore /xml) -join "`n"
+    $match = [regex]::Match($raw, 'name="ConnectionStrings__Database"\s+value="([^"]+)"')
+    if (-not $match.Success) { throw "Database connection setting is missing for $site." }
+    $connection = [Net.WebUtility]::HtmlDecode($match.Groups[1].Value)
+    $parts = @{}
+    foreach ($part in $connection -split ';') {
+        $pair = $part -split '=', 2
+        if ($pair.Count -eq 2) { $parts[$pair[0].Trim()] = $pair[1].Trim() }
+    }
+    $Database = if ($parts.Database) { $parts.Database } else { $parts.'Initial Catalog' }
+    $HostName = if ($parts.Host) { $parts.Host } else { $parts.Server }
+    if ($parts.Port) { $Port = [int]$parts.Port }
+    if (-not $Database -or -not $HostName) { throw "Database target is incomplete for $site." }
+}
 $postgresBin = 'C:\Program Files\PostgreSQL\18\bin'
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $dailyDirectory = Join-Path $BackupRoot (Get-Date -Format 'yyyy-MM-dd')
@@ -52,6 +70,7 @@ try {
     if (Test-Path -LiteralPath $OffsiteConfigPath) {
         & (Join-Path $PSScriptRoot 'Send-BackupSftp.ps1') -BackupPath $backupPath -ConfigPath $OffsiteConfigPath
     }
+    [pscustomobject]@{ Environment=$Environment; Database=$Database; Backup=$backupPath; Checksum=$checksumPath; Result='Success' }
 }
 catch {
     "$(Get-Date -Format o) FAILURE $($_.Exception.Message)" | Add-Content -LiteralPath $logPath

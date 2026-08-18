@@ -186,12 +186,22 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
     if ($finalCommit -eq $baselineCommit) { throw 'Otonom cevrim anlamli bir commit uretmedi.' }
     Merge-BoeclAutonomousWorktree -Repository $repository -Context $worktreeContext
     if ($changedFiles | Where-Object { $_ -like 'apps/api/*' -or $_ -like 'tests/api/*' }) {
-        & (Join-Path $repository 'ops\windows\Backup-PostgreSql.ps1')
-        if ($LASTEXITCODE -ne 0) { throw 'Dağıtım öncesi PostgreSQL yedeği başarısız.' }
         $hasMigrations = [bool]($changedFiles | Where-Object { $_ -like 'apps/api/Infrastructure/Persistence/Migrations/*' })
-        if ($hasMigrations) { & (Join-Path $repository 'ops\windows\Update-BoeclDatabase.ps1') -Environment Staging -RepositoryPath $repository }
+        if ($hasMigrations) {
+            $stagingBackup = & (Join-Path $repository 'ops\windows\Backup-PostgreSql.ps1') -Environment Staging
+            if (-not $stagingBackup -or $stagingBackup.Result -ne 'Success') { throw 'Staging PostgreSQL yedeği başarısız.' }
+            & (Join-Path $repository 'ops\windows\Test-PostgreSqlRestore.ps1') -BackupPath $stagingBackup.Backup
+            if ($LASTEXITCODE -ne 0) { throw 'Staging PostgreSQL yedeği geri yükleme testini geçemedi.' }
+            & (Join-Path $repository 'ops\windows\Update-BoeclDatabase.ps1') -Environment Staging -RepositoryPath $repository
+        }
         & (Join-Path $repository 'ops\windows\Deploy-AspNetApiRelease.ps1') -Environment Staging -RepositoryPath $repository
-        if ($hasMigrations) { & (Join-Path $repository 'ops\windows\Update-BoeclDatabase.ps1') -Environment Production -RepositoryPath $repository }
+        if ($hasMigrations) {
+            $productionBackup = & (Join-Path $repository 'ops\windows\Backup-PostgreSql.ps1') -Environment Production
+            if (-not $productionBackup -or $productionBackup.Result -ne 'Success') { throw 'Production PostgreSQL yedeği başarısız.' }
+            & (Join-Path $repository 'ops\windows\Test-PostgreSqlRestore.ps1') -BackupPath $productionBackup.Backup
+            if ($LASTEXITCODE -ne 0) { throw 'Production PostgreSQL yedeği geri yükleme testini geçemedi.' }
+            & (Join-Path $repository 'ops\windows\Update-BoeclDatabase.ps1') -Environment Production -RepositoryPath $repository
+        }
         & (Join-Path $repository 'ops\windows\Deploy-AspNetApiRelease.ps1') -Environment Production -RepositoryPath $repository
     }
     if ($changedFiles | Where-Object { $_ -like 'apps/web/*' -or $_ -like 'config/supported-locales.json' }) {

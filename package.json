@@ -9,7 +9,7 @@
     "typecheck": "npm --prefix apps/web run typecheck",
     "check:locales": "node --test tools/check-locales.test.mjs && node tools/check-locales.mjs",
     "sync:locales": "node tools/sync-locales.mjs",
-    "test:automation": "powershell -NoProfile -ExecutionPolicy Bypass -File ops/windows/Test-PowerShellScripts.ps1 && powershell -NoProfile -ExecutionPolicy Bypass -File ops/tests/Test-BoeclAutomationRecovery.ps1 && powershell -NoProfile -ExecutionPolicy Bypass -File ops/tests/Test-DeploymentJournal.ps1 && powershell -NoProfile -ExecutionPolicy Bypass -File ops/tests/Test-ReleasePromotion.ps1",
+    "test:automation": "powershell -NoProfile -ExecutionPolicy Bypass -File ops/windows/Test-PowerShellScripts.ps1 && powershell -NoProfile -ExecutionPolicy Bypass -File ops/tests/Test-BoeclAutomationRecovery.ps1 && powershell -NoProfile -ExecutionPolicy Bypass -File ops/tests/Test-DeploymentJournal.ps1 && powershell -NoProfile -ExecutionPolicy Bypass -File ops/tests/Test-ReleasePromotion.ps1 && powershell -NoProfile -ExecutionPolicy Bypass -File ops/tests/Test-DatabaseBackupPromotion.ps1",
     "test:api": "dotnet test Peletnapechkai.slnx",
     "build:api": "dotnet build Peletnapechkai.slnx --configuration Release"
   },

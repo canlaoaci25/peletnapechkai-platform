@@ -1,5 +1,6 @@
 [CmdletBinding()]
 param(
+    [string]$BackupPath = '',
     [string]$BackupRoot = 'C:\ProgramData\Peletnapechkai\Backups\PostgreSQL',
     [string]$PasswordFile = 'C:\ProgramData\Peletnapechkai\Secrets\pgpass.conf',
     [string]$HostName = '127.0.0.1',
@@ -9,9 +10,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $postgresBin = 'C:\Program Files\PostgreSQL\18\bin'
-$backup = Get-ChildItem -LiteralPath $BackupRoot -Filter '*.dump' -Recurse |
-    Sort-Object LastWriteTime -Descending |
-    Select-Object -First 1
+$backup = if ($BackupPath) { Get-Item -LiteralPath $BackupPath -ErrorAction Stop } else {
+    Get-ChildItem -LiteralPath $BackupRoot -Filter '*.dump' -Recurse |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+}
 
 if (-not $backup) {
     throw 'No PostgreSQL backup is available for restore testing.'
@@ -42,7 +45,7 @@ try {
     $localeCount = 'SELECT COUNT(*) FROM locales;' |
         & "$postgresBin\psql.exe" --host $HostName --port $Port --username $UserName --dbname $database --tuples-only --no-align
 
-    if ([int]$migrationCount -lt 4 -or [int]$localeCount -lt 3) {
+    if ([int]$migrationCount -lt 4 -or [int]$localeCount -ne 4) {
         throw "Restore validation failed: migrations=$migrationCount locales=$localeCount"
     }
 

@@ -1,5 +1,12 @@
 # BOECL otonom mimari ve ürün teklifleri
 
+> Çevrim 74 güncellemesi (18 Ağustos 2026): taxonomy fazı production arşiv kanıtıyla
+> **Zaman, Odak ve Planlama** keşif yolunu seçti. Otonom migration terfisindeki yanlış
+> geliştirme-veritabanı yedeği varsayımı kaldırıldı; staging ve production ayrı hedeflenip
+> her yedek exact-path izole restore testinden geçiyor. Production deploy ve canlı kanıt
+> tamamlanmadan operasyon maddesi tamamlanmış sayılmaz. Sonraki aday, mevcut bağlı tag
+> verisini kullanan ölçülebilir bir Etiket Atlası deneyidir.
+
 Son güncelleme: 17 Ağustos 2026 — Çevrim 69. Bu kayıt moda odaklı yeniden yazım listesi değil; depo, canlı sağlık ve ürün kanıtına dayalı kalıcı karar defteridir.
 
 ## 1. Görsel sağlayıcı ve vision adaptör katmanı

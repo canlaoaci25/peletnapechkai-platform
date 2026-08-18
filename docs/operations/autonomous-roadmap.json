@@ -1,5 +1,5 @@
 ﻿{
-    "updatedAt":  "2026-08-17T19:28:07.8723400+00:00",
+    "updatedAt":  "2026-08-18T07:48:46.9961804+00:00",
     "items":  [
                   {
                       "id":  "public-sidebar",
@@ -17,7 +17,7 @@
                       "id":  "visual-service",
                       "title":  "Bağımsız görsel üretim servisi",
                       "outcome":  "Makale bağlamından yazısız, konuya uygun kapak ve gövde görselleri üret; kalite kapıları ve sağlayıcı yedeği ekle.",
-                      "status":  "active"
+                      "status":  "queued"
                   },
                   {
                       "id":  "visual-backfill",
@@ -35,7 +35,7 @@
                       "id":  "taxonomy-growth",
                       "title":  "Kategori ve konu genişlemesi",
                       "outcome":  "Arşiv ve arama niyeti boşluklarından yeni Türkçe kategori, etiket ve seri fırsatlarını belirleyip yerelleştir.",
-                      "status":  "queued"
+                      "status":  "completed"
                   },
                   {
                       "id":  "membership-retention",
@@ -47,7 +47,7 @@
                       "id":  "search-recommendation",
                       "title":  "Arama ve öneri kalitesi",
                       "outcome":  "Yazım toleransı, ilgili içerik, konu kümeleri ve boş sonuç kurtarmasıyla keşfi geliştir.",
-                      "status":  "queued"
+                      "status":  "active"
                   },
                   {
                       "id":  "editorial-console",
@@ -113,6 +113,12 @@
                       "id":  "editorial-calendar",
                       "title":  "Editoryal takvim ve yayın dengesi",
                       "outcome":  "Planlanan yayınları locale, kategori, sorumlu ve tarih ekseninde çakışma uyarılarıyla yönetilebilir bir takvimde birleştir.",
+                      "status":  "queued"
+                  },
+                  {
+                      "id":  "content-freshness-next-1",
+                      "title":  "Ä°Ã§erik tazelik ve gÃ¼ncelleme merkezi",
+                      "outcome":  "Eskiyen yayÄ±nlarÄ± kaynak, trafik ve deÄŸiÅŸen bilgi sinyalleriyle bul; revizyon, SEO ve yeniden daÄŸÄ±tÄ±m akÄ±ÅŸÄ±nÄ± tamamla.",
                       "status":  "queued"
                   }
               ]
