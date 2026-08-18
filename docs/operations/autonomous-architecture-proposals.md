@@ -155,3 +155,11 @@ Son güncelleme: 17 Ağustos 2026 — Çevrim 69. Bu kayıt moda odaklı yeniden
 ## Ertelenen yaklaşım
 
 - **Reddedildi/ertelendi:** Platformu yeni framework ile baştan yazmak. Kanıtlanmış ölçülebilir fayda yok; mevcut Next.js/ASP.NET/PostgreSQL mimarisi build, test, locale SEO ve atomik deploy kapılarını karşılıyor.
+## Çevrim 85 güncellemesi — görsel sağlayıcı sağlık sözleşmesi
+
+18 Ağustos 2026'da editoryal kütüphane, resmî/doğrulanmış kaynak, lisanslı stok ve temsili AI
+sınıfları için yetenek, hak metadata ve editoryal inceleme sözleşmesi uygulandı. Admin Stüdyosu gerçek
+API durumunu gösterir. HTTPS endpoint, korumalı credential ve owner etkinleştirmesi olmayan dış
+sağlayıcı fail-closed kalır. Dış çağrı, ücret, secret yazımı veya veri aktarımı etkinleştirilmedi.
+Production generation/vision adaptörü hâlâ owner kararı gerektirir; sonraki uygulanabilir dilim
+locale-local bölüm/gövde görseli yerleşimidir.

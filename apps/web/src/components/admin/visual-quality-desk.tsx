@@ -45,6 +45,7 @@ export type VisualQualityReport = {
   queued: number;
   approved: number;
   rejected: number;
+  providers: { id: string; kind: string; status: string; canSupplyCandidates: boolean; requiresEditorialReview: boolean; rightsMetadataRequired: boolean; reasonCode: string }[];
   batch: null | { id: string; status: string; totalItems: number; processed: number; remaining: number; successful: number; rejected: number; activeArticle: string | null; currentPhase: number; lastMessage: string | null; updatedAt: string; isStale: boolean; staleAfterMinutes: number };
   items: {
     id: string;
@@ -64,6 +65,13 @@ export type VisualQualityReport = {
     visualTask: VisualTask | null;
   }[];
 };
+
+const providerCopy = {
+  "tr-TR": { title:"Sağlayıcı sağlığı", lead:"Yalnız yapılandırması ve kullanım hakkı kapıları doğrulanan kaynaklar aday sağlayabilir. Dış sağlayıcılar owner etkinleştirmesi olmadan kapalı kalır.", ready:"Hazır", disabled:"Kapalı", reviewOnly:"Yalnız inceleme", candidate:"Aday sağlayabilir", gated:"Otomatik aday kapalı", review:"Editoryal inceleme zorunlu", rights:"Lisans ve kaynak zorunlu", names:{"editorial-library":"Editoryal medya kütüphanesi","official-source":"Resmî / doğrulanmış kaynak","licensed-stock":"Lisanslı stok","generative-ai":"Temsili AI üretimi"}, reasons:{"media-library-ready":"Yerel medya deposu erişilebilir","media-storage-missing":"Medya deposu erişilemiyor","editorial-ingest-required":"Editör, hak bilgisini doğrulayarak içeri aktarmalı","owner-activation-required":"Owner etkinleştirmesi ve sağlayıcı kararı gerekli","secure-endpoint-missing":"Güvenli sağlayıcı adresi eksik","credential-missing":"Korumalı kimlik bilgisi eksik","configuration-ready":"Korumalı yapılandırma hazır"} },
+  "en-US": { title:"Provider health", lead:"Only sources with verified configuration and rights gates can supply candidates. External providers stay off until owner activation.", ready:"Ready", disabled:"Off", reviewOnly:"Review only", candidate:"Can supply candidates", gated:"Automatic candidates off", review:"Editorial review required", rights:"Licence and source required", names:{"editorial-library":"Editorial media library","official-source":"Official / verified source","licensed-stock":"Licensed stock","generative-ai":"Representative AI generation"}, reasons:{"media-library-ready":"Local media storage is available","media-storage-missing":"Media storage is unavailable","editorial-ingest-required":"An editor must verify rights during ingest","owner-activation-required":"Owner activation and provider decision required","secure-endpoint-missing":"Secure provider endpoint missing","credential-missing":"Protected credential missing","configuration-ready":"Protected configuration ready"} },
+  "de-DE": { title:"Anbieterstatus", lead:"Nur Quellen mit geprüfter Konfiguration und Rechtekontrolle dürfen Kandidaten liefern. Externe Anbieter bleiben bis zur Freigabe deaktiviert.", ready:"Bereit", disabled:"Aus", reviewOnly:"Nur Prüfung", candidate:"Kann Kandidaten liefern", gated:"Automatische Kandidaten aus", review:"Redaktionelle Prüfung erforderlich", rights:"Lizenz und Quelle erforderlich", names:{"editorial-library":"Redaktionelle Medienbibliothek","official-source":"Offizielle / geprüfte Quelle","licensed-stock":"Lizenzierte Stockmedien","generative-ai":"Repräsentative KI-Erzeugung"}, reasons:{"media-library-ready":"Lokaler Medienspeicher ist verfügbar","media-storage-missing":"Medienspeicher ist nicht verfügbar","editorial-ingest-required":"Rechte müssen beim Import redaktionell geprüft werden","owner-activation-required":"Freigabe und Anbieterentscheidung erforderlich","secure-endpoint-missing":"Sicherer Anbieter-Endpunkt fehlt","credential-missing":"Geschützte Zugangsdaten fehlen","configuration-ready":"Geschützte Konfiguration bereit"} },
+  "fr-FR": { title:"État des fournisseurs", lead:"Seules les sources dont la configuration et les droits sont vérifiés peuvent fournir des candidats. Les fournisseurs externes restent désactivés sans validation du propriétaire.", ready:"Prêt", disabled:"Désactivé", reviewOnly:"Révision seule", candidate:"Peut fournir des candidats", gated:"Candidats automatiques désactivés", review:"Révision éditoriale obligatoire", rights:"Licence et source obligatoires", names:{"editorial-library":"Médiathèque éditoriale","official-source":"Source officielle / vérifiée","licensed-stock":"Stock sous licence","generative-ai":"Génération IA représentative"}, reasons:{"media-library-ready":"Le stockage local est disponible","media-storage-missing":"Le stockage média est indisponible","editorial-ingest-required":"Un éditeur doit vérifier les droits à l’import","owner-activation-required":"Validation du propriétaire et choix du fournisseur requis","secure-endpoint-missing":"Point d’accès sécurisé manquant","credential-missing":"Identifiant protégé manquant","configuration-ready":"Configuration protégée prête"} },
+} satisfies Record<Locale, {title:string;lead:string;ready:string;disabled:string;reviewOnly:string;candidate:string;gated:string;review:string;rights:string;names:Record<string,string>;reasons:Record<string,string>}>;
 
 const base = {
   coverMissing: "Missing cover",
@@ -378,7 +386,9 @@ export function VisualQualityDesk({
   locale: Locale;
   report: VisualQualityReport;
 }) {
-  const c = copy[locale], r = recoveryCopy[locale],
+  const c = copy[locale], r = recoveryCopy[locale], p = providerCopy[locale],
+    providerNames: Record<string,string> = p.names,
+    providerReasons: Record<string,string> = p.reasons,
     router = useRouter(),
     [busy, setBusy] = useState(""),
     [message, setMessage] = useState("");
@@ -473,6 +483,16 @@ export function VisualQualityDesk({
           <span>/ 100</span>
         </div>
       </header>
+      <section className="admin-panel visual-provider-health" aria-labelledby="visual-provider-title">
+        <header><div><p className="section-kicker">API / PROVIDERS</p><h2 id="visual-provider-title">{p.title}</h2><p>{p.lead}</p></div><strong>{report.providers.filter(provider=>provider.canSupplyCandidates).length} / {report.providers.length}</strong></header>
+        <div className="visual-provider-grid">
+          {report.providers.map(provider=><article key={provider.id} data-status={provider.status}>
+            <div><h3>{providerNames[provider.id] ?? provider.id}</h3><span>{provider.status==="ready"?p.ready:provider.status==="review-only"?p.reviewOnly:p.disabled}</span></div>
+            <p>{providerReasons[provider.reasonCode] ?? provider.reasonCode}</p>
+            <ul><li>{provider.canSupplyCandidates?p.candidate:p.gated}</li>{provider.requiresEditorialReview&&<li>{p.review}</li>}{provider.rightsMetadataRequired&&<li>{p.rights}</li>}</ul>
+          </article>)}
+        </div>
+      </section>
       {report.batch && (
         <section className="admin-panel visual-operation" aria-label={c.operation}>
           <header>

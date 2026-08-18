@@ -35,7 +35,7 @@ public static class AutomationEndpoints
         return endpoints;
     }
 
-    private static async Task<IResult> VisualQualityAsync(PublishingDbContext database, CancellationToken token)
+    private static async Task<IResult> VisualQualityAsync(PublishingDbContext database, IConfiguration configuration, CancellationToken token)
     {
         var rows = await database.ArticleLocalizations.AsNoTracking()
             .Where(article => article.Status == PublicationStatus.Published)
@@ -78,6 +78,7 @@ public static class AutomationEndpoints
             queued = taskRows.Count(task => task.Status is VisualReviewStatus.Pending or VisualReviewStatus.InReview or VisualReviewStatus.RetryRequested),
             approved = taskRows.Count(task => task.Status == VisualReviewStatus.Approved),
             rejected = taskRows.Count(task => task.Status == VisualReviewStatus.Rejected),
+            providers = VisualProviderHealthPolicy.Assess(configuration),
             batch = activeBatch == null ? null : new { activeBatch.Id, activeBatch.status, activeBatch.TotalItems,
                 processed = taskRows.Count(task => task.AutomationJobId == activeBatch.Id && task.Status is VisualReviewStatus.Approved or VisualReviewStatus.Rejected),
                 remaining = taskRows.Count(task => task.AutomationJobId == activeBatch.Id && task.Status is VisualReviewStatus.Pending or VisualReviewStatus.InReview or VisualReviewStatus.RetryRequested),

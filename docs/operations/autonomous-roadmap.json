@@ -1,5 +1,5 @@
 ﻿{
-    "updatedAt":  "2026-08-18T10:58:00.0000000+00:00",
+    "updatedAt":  "2026-08-18T18:00:00.0000000+00:00",
     "items":  [
                   {
                       "id":  "public-sidebar",
@@ -16,7 +16,7 @@
                   {
                       "id":  "visual-service",
                       "title":  "Bağımsız görsel üretim servisi",
-                      "outcome":  "Makale bağlamından yazısız, konuya uygun kapak ve gövde görselleri üret; kalite kapıları ve sağlayıcı yedeği ekle.",
+                      "outcome":  "Makale bağlamından yazısız, konuya uygun kapak ve gövde görselleri üret; sağlayıcı yetenek/sağlığını fail-closed görünür kıl, kalite kapıları ve güvenli yedek ekle.",
                       "status":  "active"
                   },
                   {
