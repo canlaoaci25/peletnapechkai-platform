@@ -46,6 +46,37 @@ public sealed class AutomationJobTests
     }
 
     [Fact]
+    public void Visual_checkpoint_tracks_editorial_outcomes_and_completes_the_batch()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var job = new AutomationJob(AutomationJobType.VisualRenewal, ["tr-TR"], 3, Guid.CreateVersion7(), now);
+        job.Start(1, now);
+
+        job.ReconcileVisualCheckpoint(1, 1, 1, now.AddMinutes(1));
+
+        Assert.Equal(AutomationJobStatus.Running, job.Status);
+        Assert.Equal(1, job.CompletedItems);
+        Assert.Equal(1, job.FailedItems);
+        Assert.Contains("2/3", job.LastMessage);
+
+        job.ReconcileVisualCheckpoint(2, 1, 0, now.AddMinutes(2));
+
+        Assert.Equal(AutomationJobStatus.Completed, job.Status);
+        Assert.Equal(2, job.CompletedItems);
+        Assert.Equal(1, job.FailedItems);
+        Assert.Equal(4, job.CurrentPhase);
+        Assert.Equal(now.AddMinutes(2), job.CompletedAt);
+    }
+
+    [Fact]
+    public void Visual_checkpoint_rejects_inconsistent_totals()
+    {
+        var job = new AutomationJob(AutomationJobType.VisualRenewal, ["tr-TR"], 3, Guid.CreateVersion7(), DateTimeOffset.UtcNow);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            job.ReconcileVisualCheckpoint(1, 0, 1, DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
     public void Non_visual_or_non_running_jobs_cannot_use_stale_recovery()
     {
         var now = DateTimeOffset.UtcNow;

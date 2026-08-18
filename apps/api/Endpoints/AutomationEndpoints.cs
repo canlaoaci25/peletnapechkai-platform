@@ -206,6 +206,7 @@ public static class AutomationEndpoints
                 request.TextAndLogoFreeConfirmed, request.ArtifactFreeConfirmed, request.CropConfirmed, actor.Id, cropScore,
                 similarity.OriginalityScore, similarity.ClosestMediaAssetId, similarity.ClosestSimilarityPercent, DateTimeOffset.UtcNow); }
             catch (ArgumentException error) { return Results.ValidationProblem(new Dictionary<string, string[]> { ["candidate"] = [error.Message] }); }
+            await ReconcileVisualBatchAsync(task, database, DateTimeOffset.UtcNow, token);
             database.AuditLogs.Add(new AuditLog(actor.Id, "visual-review.candidate_attached", nameof(VisualReviewTask), task.Id,
                 JsonSerializer.Serialize(new { media.Id, request.Provider, request.LicenseName, evidence = "editorial-attestation-v2",
                     request.ArticleConfirmed, request.SectionConfirmed, request.LocaleConfirmed, request.TechnicalAccuracyConfirmed,
@@ -226,6 +227,7 @@ public static class AutomationEndpoints
             await using var transaction = await database.Database.BeginTransactionAsync(token); var now = DateTimeOffset.UtcNow;
             article.PromoteReviewedCover(candidate, task.CandidateAltText!, task.Attribution ?? task.LicenseName!, now);
             task.MarkPromoted(actor.Id, request.Note, now);
+            await ReconcileVisualBatchAsync(task, database, now, token);
             database.AuditLogs.Add(new AuditLog(actor.Id, "visual-review.promoted", nameof(VisualReviewTask), task.Id,
                 JsonSerializer.Serialize(new { task.ArticleLocalizationId, previousMediaAssetId = task.CurrentMediaAssetId, candidateMediaAssetId = candidate.Id, task.Provider, task.LicenseName }), now));
             try { await database.SaveChangesAsync(token); }
@@ -241,11 +243,24 @@ public static class AutomationEndpoints
         var invalidatedCandidateId = task.CandidateMediaAssetId;
         var invalidatedEvidence = task.CandidateMediaAssetId == null ? null : new { version = "editorial-attestation-v2", task.TopicScore, task.TextSafetyScore, task.CropScore, task.OriginalityScore };
         task.ChangeStatus(status.Value, actor.Id, request.Note, DateTimeOffset.UtcNow);
+        await ReconcileVisualBatchAsync(task, database, DateTimeOffset.UtcNow, token);
         database.AuditLogs.Add(new AuditLog(actor.Id, $"visual-review.{action.ToLowerInvariant()}", nameof(VisualReviewTask), task.Id,
             JsonSerializer.Serialize(new { task.ArticleLocalizationId, status = status.ToString(), note = request.Note, invalidatedCandidateId, invalidatedEvidence }), DateTimeOffset.UtcNow));
         try { await database.SaveChangesAsync(token); }
         catch (DbUpdateConcurrencyException) { return Results.Conflict(new { message = "The visual review changed. Refresh before retrying." }); }
         return Results.Ok(new { task.Id, status = task.Status.ToString(), task.AttemptCount, task.UpdatedAt });
+    }
+
+    private static async Task ReconcileVisualBatchAsync(VisualReviewTask task, PublishingDbContext database,
+        DateTimeOffset now, CancellationToken token)
+    {
+        if (task.AutomationJobId is not Guid jobId) return;
+        var job = await database.AutomationJobs.SingleOrDefaultAsync(candidate => candidate.Id == jobId, token);
+        if (job is null || job.Status == AutomationJobStatus.Cancelled) return;
+        var tasks = await database.VisualReviewTasks.Where(candidate => candidate.AutomationJobId == jobId).ToListAsync(token);
+        var successful = tasks.Count(candidate => candidate.Status == VisualReviewStatus.Approved);
+        var rejected = tasks.Count(candidate => candidate.Status == VisualReviewStatus.Rejected);
+        job.ReconcileVisualCheckpoint(successful, rejected, tasks.Count - successful - rejected, now);
     }
 
     private sealed record VisualReviewActionRequest(string? Note, Guid? MediaAssetId = null, string? Provider = null,

@@ -162,6 +162,36 @@ public sealed class AutomationJob
         CompletedAt = null;
     }
 
+    public void ReconcileVisualCheckpoint(int successfulItems, int rejectedItems, int remainingItems, DateTimeOffset now)
+    {
+        if (Type != AutomationJobType.VisualRenewal)
+            throw new InvalidOperationException("Only a visual renewal job can reconcile visual checkpoints.");
+        ArgumentOutOfRangeException.ThrowIfNegative(successfulItems);
+        ArgumentOutOfRangeException.ThrowIfNegative(rejectedItems);
+        ArgumentOutOfRangeException.ThrowIfNegative(remainingItems);
+        if (successfulItems + rejectedItems + remainingItems != TotalItems)
+            throw new ArgumentOutOfRangeException(nameof(remainingItems), "Visual checkpoint totals must match the batch total.");
+
+        CompletedItems = successfulItems;
+        FailedItems = rejectedItems;
+        UpdatedAt = now;
+        if (remainingItems == 0)
+        {
+            Status = AutomationJobStatus.Completed;
+            CurrentPhase = Math.Max(CurrentPhase, 4);
+            CompletedAt = now;
+            LastMessage = "Görsel yenileme işi tüm editoryal kararlarla tamamlandı.";
+            return;
+        }
+
+        if (Status == AutomationJobStatus.Completed)
+        {
+            Status = AutomationJobStatus.Queued;
+            CompletedAt = null;
+        }
+        LastMessage = $"Checkpoint güncellendi: {successfulItems + rejectedItems}/{TotalItems} görsel kararı tamamlandı.";
+    }
+
     public void Complete(string? message, string? reportText, DateTimeOffset now)
     {
         if (Status != AutomationJobStatus.Running) throw new InvalidOperationException("Only running jobs can complete.");
