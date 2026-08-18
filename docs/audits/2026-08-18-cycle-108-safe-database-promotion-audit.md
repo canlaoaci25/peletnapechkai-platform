@@ -39,5 +39,14 @@ bulunduğunu kanıtladı; migration ve deploy başlamadan durdu. Kök neden baş
 Fransa bölgesinin hiç bulunmamasıydı. Ayrı, idempotent ve planlama taxonomy migration'ından önce
 çalışan locale parity migration'ı eklendi; onarım 4/4 assertion geçmezse yine durur.
 
-Staging migration, gerçek 375/768/1440 açık-koyu render ve production disk sağlık kapısının düzelmesi
-beklenir. Bu nedenle birleşik faz ve `visual-focal-crops` henüz Completed değildir.
+İkinci terfi denemesinde eski yedek 3 locale ile eksiksiz geri yüklendi; parity migration önce
+çalıştı, ardından focal crop ve kalan migration'lar uygulandı. Staging API/Web dağıtımı ve sağlık
+kapısı PASS oldu. Migration sonrası alınan yeni staging yedeği izole veritabanında **49 migration ve
+4 locale** ile geri yüklendi.
+
+Staging public ana sayfa 375, 768 ve 1440 px açık/koyu headless browser görüntülerinde sidebar/drawer,
+tema ve taşma açısından PASS verdi; kanıtlar `C:\ProgramData\Peletnapechkai\Evidence\cycle-108`
+altındadır. Staging yayın envanteri Türkçe içerik döndürmediği ve seçilen article URL'si 404 olduğu
+için gerçek merkez-dışı focal crop public kanıtı üretilemedi. Admin kanıtı da yetkili oturum olmadan
+üretilmedi. Production disk sağlık kapısının düzelmesi ve bu iki gerçek render kanıtı beklenir. Bu
+nedenle birleşik faz ve `visual-focal-crops` henüz Completed değildir.

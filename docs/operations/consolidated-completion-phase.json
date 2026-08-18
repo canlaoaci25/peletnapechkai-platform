@@ -114,6 +114,14 @@
       "summary": "The operator-invoked release path now protects staging and production separately with an environment-specific backup, exact-path isolated restore test and migration order. A read-only production preflight blocks every production database or application mutation while the health gate is already failing. Staging deployment/render and production disk remediation remain required before completion.",
       "tests": ["4-locale consistency", "95 web tests", "web lint", "web typecheck", "110-route web build", "196 API tests", "API Release build", "automation regression suite"],
       "evidence": ["docs/audits/2026-08-18-cycle-108-safe-database-promotion-audit.md"]
+    },
+    {
+      "workstream": "visual-focal-crops",
+      "scope": "staging",
+      "status": "checkpoint",
+      "summary": "The protected staging backup restored, the missing canonical fr-FR database locale was repaired before dependent migrations, focal-point persistence migrated, and the API/Web staging health gate passed. A post-migration backup restored with 49 migrations and all four locales. Public light/dark shells rendered at 375, 768 and 1440px, but staging had no published Turkish article inventory and the sampled article was 404, so a real focal subject and authenticated admin crop matrix remain unproven.",
+      "tests": ["staging exact-backup restore", "staging EF migration", "staging API/Web health", "post-migration 49-migration 4-locale restore", "375/768/1440 light/dark public screenshots"],
+      "evidence": ["docs/audits/2026-08-18-cycle-108-safe-database-promotion-audit.md", "C:\\ProgramData\\Peletnapechkai\\Evidence\\cycle-108"]
     }
   ]
 }
