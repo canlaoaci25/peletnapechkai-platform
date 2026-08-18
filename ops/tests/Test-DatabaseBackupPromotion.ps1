@@ -13,6 +13,11 @@ $productionBackup = $cycle.IndexOf("Backup-PostgreSql.ps1') -Environment Product
 $productionApi = $cycle.IndexOf("Deploy-AspNetApiRelease.ps1') -Environment Production")
 if ($stagingHealth -lt 0 -or $productionBackup -le $stagingHealth -or $productionApi -le $stagingHealth) { throw 'Production must remain blocked until the complete staging cohort passes health checks.' }
 if ($cycle -notmatch 'Invoke-ProductionHealthCheck\.ps1') { throw 'Autonomous promotion must close with a production health gate.' }
+if (-not $cycle.Contains("`$productionCohortId = 'cohort-'") -or ([regex]::Matches($cycle,'-CohortId \$productionCohortId').Count -lt 2)) { throw 'Autonomous Web and API production deployments must share one release cohort id.' }
+$productionWeb = $cycle.IndexOf("Deploy-NextWebRelease.ps1') -Environment Production")
+$cohortRollback = $cycle.IndexOf('Rollback-BoeclReleaseCohort.ps1')
+if ($productionWeb -lt 0 -or $cohortRollback -le $productionWeb) { throw 'Autonomous production failures must invoke coordinated cohort rollback after deployment.' }
+if ($cycle -notmatch "ContainsKey\('WebRollbackPath'\)" -or $cycle -notmatch "ContainsKey\('ApiRollbackPath'\)") { throw 'Autonomous rollback must require a deployment artifact before mutation.' }
 if ($backup -notmatch "ValidateSet\('Development','Staging','Production'\)" -or $backup -notmatch 'ConnectionStrings__Database') { throw 'Backup script cannot resolve an explicit IIS environment target.' }
 if ($restore -notmatch '\[string\]\$BackupPath' -or $restore -notmatch 'Get-Item -LiteralPath \$BackupPath') { throw 'Restore test cannot pin the backup produced by the current promotion.' }
 if ($restore -notmatch '\[int\]\$localeCount -ne 4') { throw 'Restore validation must preserve all four supported locales.' }

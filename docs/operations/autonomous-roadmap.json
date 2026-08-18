@@ -1,5 +1,5 @@
 ﻿{
-    "updatedAt":  "2026-08-18T14:05:00.0000000-07:00",
+    "updatedAt":  "2026-08-18T15:30:00.0000000-07:00",
     "items":  [
                   {
                       "id":  "boecl-complete-all",
@@ -106,8 +106,8 @@
                   {
                       "id":  "canary-cohort-rollback",
                       "title":  "Canary ve sürüm kohortu geri alma",
-                      "outcome":  "Yeni sürümü sınırlı trafikle doğrula; Web ve API kohortunu yetkili operatörün tek eylemiyle önceki sağlıklı sürüme döndür.",
-                      "status":  "queued"
+                      "outcome":  "Gerçek otonom teslimat yolu Web ve API'yi ortak production cohort kimliğiyle dağıtıyor ve Web/final-health hatasında doğrulanmış artefaktları koordineli geri alıyor; sınırlı trafik, DB uyumluluk tatbikatı ve canlı kanıt bekleniyor.",
+                      "status":  "blocked"
                   },
                   {
                       "id":  "content-freshness",

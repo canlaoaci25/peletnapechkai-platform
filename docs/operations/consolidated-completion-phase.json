@@ -2,7 +2,7 @@
   "id": "boecl-complete-all",
   "title": "BOECL tek faz tamamlama programı",
   "status": "active",
-  "updatedAt": "2026-08-18T19:35:00Z",
+  "updatedAt": "2026-08-18T22:30:00Z",
   "policy": {
     "createNewBacklog": false,
     "completeOnlyWhenAllWorkstreamsPass": true,
@@ -98,6 +98,14 @@
       "status": "checkpoint",
       "summary": "Production promotion can no longer skip staging; Web and API share one release cohort identifier and a Web or aggregate-health failure invokes a path-validated coordinated application rollback. Component histories remain separately auditable. A limited real traffic cohort, database compatibility checkpoint, staging rollback drill and production evidence are still required before completion.",
       "tests": ["release promotion regression", "deployment journal regression", "PowerShell parse gate", "git diff check"]
+    },
+    {
+      "workstream": "canary-cohort-rollback",
+      "scope": "local",
+      "status": "passed",
+      "summary": "The real scheduled autonomous runner now assigns one production cohort id to changed Web and API components and invokes path-validated coordinated application rollback after Web deployment or aggregate-health failure. This closes the split-release gap left outside the helper promotion script. Limited traffic routing, database compatibility, staging rollback drill and production evidence are still required before completion.",
+      "tests": ["autonomous database promotion regression", "release promotion regression", "PowerShell parse gate", "git diff check"],
+      "evidence": ["docs/audits/2026-08-18-cycle-107-autonomous-cohort-rollback-audit.md"]
     }
   ]
 }

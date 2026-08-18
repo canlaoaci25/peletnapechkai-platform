@@ -225,6 +225,10 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
         & (Join-Path $repository 'ops\windows\Invoke-StagingHealthCheck.ps1')
         if ($LASTEXITCODE -ne 0) { throw 'Staging release cohort failed health checks; production promotion was blocked.' }
     }
+    $productionCohortId = 'cohort-' + [guid]::NewGuid().ToString('N')
+    $productionApiDeployment = $null
+    $productionWebDeployment = $null
+    try {
     if ($apiChanged) {
         if ($hasMigrations) {
             $productionBackup = & (Join-Path $repository 'ops\windows\Backup-PostgreSql.ps1') -Environment Production
@@ -233,16 +237,25 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
             if ($LASTEXITCODE -ne 0) { throw 'Production PostgreSQL yedeği geri yükleme testini geçemedi.' }
             & (Join-Path $repository 'ops\windows\Update-BoeclDatabase.ps1') -Environment Production -RepositoryPath $repository
         }
-        & (Join-Path $repository 'ops\windows\Deploy-AspNetApiRelease.ps1') -Environment Production -RepositoryPath $repository
+        $productionApiDeployment = & (Join-Path $repository 'ops\windows\Deploy-AspNetApiRelease.ps1') -Environment Production -RepositoryPath $repository -CohortId $productionCohortId
         if ($LASTEXITCODE -ne 0) { throw 'Production API deployment failed.' }
     }
     if ($webChanged) {
-        & (Join-Path $repository 'ops\windows\Deploy-NextWebRelease.ps1') -Environment Production -BuildRoot (Join-Path $cycleRepository 'apps\web')
+        $productionWebDeployment = & (Join-Path $repository 'ops\windows\Deploy-NextWebRelease.ps1') -Environment Production -BuildRoot (Join-Path $cycleRepository 'apps\web') -CohortId $productionCohortId
         if ($LASTEXITCODE -ne 0) { throw 'Production web deployment failed.' }
     }
     if ($apiChanged -or $webChanged) {
         & (Join-Path $repository 'ops\windows\Invoke-ProductionHealthCheck.ps1')
         if ($LASTEXITCODE -ne 0) { throw 'Production release cohort failed final health checks.' }
+    }
+    } catch {
+        $rollbackArguments = @{ CohortId = $productionCohortId }
+        if ($productionWebDeployment -and $productionWebDeployment.Rollback) { $rollbackArguments.WebRollbackPath = [string]$productionWebDeployment.Rollback }
+        if ($productionApiDeployment -and $productionApiDeployment.Rollback) { $rollbackArguments.ApiRollbackPath = [string]$productionApiDeployment.Rollback }
+        if ($rollbackArguments.ContainsKey('WebRollbackPath') -or $rollbackArguments.ContainsKey('ApiRollbackPath')) {
+            & (Join-Path $repository 'ops\windows\Rollback-BoeclReleaseCohort.ps1') @rollbackArguments | Out-Null
+        }
+        throw
     }
 
     Remove-BoeclAutonomousWorktree -Repository $repository -Context $worktreeContext
