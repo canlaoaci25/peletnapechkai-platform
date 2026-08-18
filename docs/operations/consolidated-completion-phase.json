@@ -1,0 +1,39 @@
+{
+  "id": "boecl-complete-all",
+  "title": "BOECL tek faz tamamlama programı",
+  "status": "active",
+  "updatedAt": "2026-08-18T14:15:00Z",
+  "policy": {
+    "createNewBacklog": false,
+    "completeOnlyWhenAllWorkstreamsPass": true,
+    "deployThroughStagingBeforeProduction": true,
+    "preserveRollbackAndAudit": true
+  },
+  "workstreams": [
+    { "id": "visual-service", "title": "Dayanıklı bağımsız görsel üretim servisi", "status": "pending" },
+    { "id": "visual-backfill", "title": "Mevcut yayınların konuya uygun yazısız görsellerle yenilenmesi", "status": "pending" },
+    { "id": "visual-worker-reliability", "title": "Görsel worker lease, retry, backoff ve dead-letter", "status": "pending" },
+    { "id": "visual-focal-crops", "title": "Mobil ve kartlar için kalıcı görsel odak/kırpma", "status": "pending" },
+    { "id": "browser-push", "title": "Konu tercihli Web Push ve sessiz saatler", "status": "pending" },
+    { "id": "performance-budget", "title": "Ölçülen Core Web Vitals bütçeleri ve release kapısı", "status": "pending" },
+    { "id": "canary-cohort-rollback", "title": "Web/API canary kohortu ve tek eylemli rollback", "status": "pending" },
+    { "id": "structured-discovery", "title": "Schema, breadcrumb, canonical ve hreflang bütünlüğü", "status": "pending" },
+    { "id": "corrections-workflow", "title": "Düzeltme ve okura görünür şeffaflık akışı", "status": "pending" },
+    { "id": "content-freshness", "title": "Kaynak, trafik, SEO ve yeniden dağıtım tazelik akışı", "status": "pending" },
+    { "id": "editorial-delivery-rhythm", "title": "Editoryal SLA ve üretim ritmi kanıtının canlı terfisi", "status": "pending" },
+    { "id": "member-reading-digest", "title": "Açıklanabilir üye okuma özeti ve geri dönüş rotası", "status": "pending" },
+    { "id": "planning-authority-hub", "title": "Zaman ve odak otorite merkezinin canlı terfisi", "status": "pending" },
+    { "id": "source-claim-citations", "title": "İddia düzeyi editör onaylı kaynak bağlantıları", "status": "pending" },
+    { "id": "final-system-audit", "title": "Kod, veri, içerik, çeviri, SEO, görsel ve operasyon kapanış denetimi", "status": "pending" }
+  ],
+  "acceptance": [
+    "Her workstream completed ve kanıt bağlantılıdır.",
+    "Locale, lint, typecheck, web build, API test ve Release build kapıları geçer.",
+    "Gerekli migrationlar önce staging sonra production üzerinde uygulanır.",
+    "Public ve admin kritik rotaları mobil/masaüstü ile açık/koyu temada doğrulanır.",
+    "Production sağlık, servis, worker, sitemap ve yedek bileşenleri sağlıklıdır.",
+    "Canlıya çıkan her özellik için rollback ve audit kanıtı vardır.",
+    "Umbrella yol haritası maddesi yalnız bütün koşullar sağlanınca completed olur."
+  ],
+  "evidence": []
+}

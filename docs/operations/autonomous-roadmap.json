@@ -2,6 +2,12 @@
     "updatedAt":  "2026-08-18T14:05:00.0000000-07:00",
     "items":  [
                   {
+                      "id":  "boecl-complete-all",
+                      "title":  "BOECL tek faz tamamlama programı",
+                      "outcome":  "Görsel, içerik, SEO, çeviri, üyelik, bildirim, performans, editoryal ve operasyon açıklarının tamamını tek acceptance kapısında canlıya al.",
+                      "status":  "active"
+                  },
+                  {
                       "id":  "public-sidebar",
                       "title":  "Yayın sidebar navigasyonu",
                       "outcome":  "Gerçek taxonomy, arama, üyelik ve tema akışlarını; masaüstünde kalıcı ve daraltılabilir yayın rayı, mobilde modal olarak izole edilen erişilebilir drawer içinde birleştir.",
@@ -17,7 +23,7 @@
                       "id":  "visual-service",
                       "title":  "Bağımsız görsel üretim servisi",
                       "outcome":  "Tam makale ve seçilmiş H2/H3 bağlamından yazısız, konuya uygun kapak ve gövde işleri üret; locale-local body terfisi tamamlandı, sırada dayanıklı sağlayıcı worker ve kalıcı hak/provenance modeli var.",
-                      "status":  "active"
+                      "status":  "blocked"
                   },
                   {
                       "id":  "home-navigation-hierarchy",

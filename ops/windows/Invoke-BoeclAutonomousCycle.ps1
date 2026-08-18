@@ -59,7 +59,9 @@ try {
         'otomasyon, hata kurtarma ve canli dagitim guvenilirligi'
     )
     $cycle = [int]$state.cycle + 1
-    $focus = $focuses[($cycle - 1) % $focuses.Count]
+    $completionPlanSource = Join-Path $repository 'docs\operations\consolidated-completion-phase.json'
+    $consolidatedMode = Test-Path -LiteralPath $completionPlanSource -PathType Leaf
+    $focus = if ($consolidatedMode) { 'BOECL tamamlama fazi: tum acik urun ve operasyon isleri' } else { $focuses[($cycle - 1) % $focuses.Count] }
     # Advance immediately so a failed deployment cannot trap every later run
     # on the same focus forever.
     $state.cycle = $cycle
@@ -68,6 +70,17 @@ try {
     $cycleRepository = [string]$worktreeContext.Path
     $roadmapPath = Join-Path $cycleRepository 'docs\operations\autonomous-roadmap.json'
     $roadmap = @(Repair-BoeclAutonomousRoadmap -Path $roadmapPath)
+    $completionPlanPath = Join-Path $cycleRepository 'docs\operations\consolidated-completion-phase.json'
+    $completionPlan = if ($consolidatedMode) { Get-Content -Raw -LiteralPath $completionPlanPath -Encoding UTF8 } else { '' }
+    $completionDirective = if ($consolidatedMode) {
+@"
+ONCELIKLI BIRLESIK TAMAMLAMA KARARI: Kullanici tum acik islerin tek fazda ele alinmasini istedi. Asagidaki plan tek yetkili fazdir. Rotasyon odaklari, her cevrimde yeni faz secme ve 12 yeni gelecek madde uretme talimatlari bu mod boyunca uygulanmaz. Her cevrim ayni `boecl-complete-all` fazinin bir veya daha fazla teslim edilebilir is akisini bitirir. Plan dosyasindaki her acceptance maddesi canlida kanitlanmadan umbrella fazi Completed yapma. Bir cevrime sigmayan islerde fazi active tut, workstream checkpointlerini ve kanitlarini ayni JSON dosyasinda guncelle, sonraki cevrimde ilk eksik workstreamden devam et. Bagimsiz isleri ayni cevrimde paralel arastirabilirsin; ayni dosya, migration ve production hedefindeki yazmalari sirala. Mikro is veya yeni backlog uretme; once bu planin tamamini kapat.
+
+----- BIRLESIK TAMAMLAMA PLANI -----
+$completionPlan
+----- BIRLESIK TAMAMLAMA PLANI SONU -----
+"@
+    } else { '' }
     $output = Join-Path $logRoot "$stamp-cycle-$cycle-result.txt"
     $events = Join-Path $logRoot "$stamp-cycle-$cycle.jsonl"
     $errors = Join-Path $logRoot "$stamp-cycle-$cycle-stderr.log"
@@ -82,6 +95,7 @@ try {
     Set-StateValue 'currentEventLog' $events
     Set-StateValue 'currentResultLog' $output
     Set-StateValue 'roadmap' $roadmap
+    Set-StateValue 'completionPlan' $(if ($consolidatedMode) { $completionPlan | ConvertFrom-Json } else { $null })
     $state.updatedAt = $state.currentStartedAt
     $state | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
     Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
@@ -99,6 +113,8 @@ $masterInstructions
 ----- KULLANICI MASTER TALIMATLARI SONU -----
 
 $deliveryPolicy
+
+$completionDirective
 
 Bu master talimatlar icin ilk calistirma denetimi gerekli mi: $masterAuditMode. Deger True ise once tam analiz ve oncelikli ilk 20 gelistirme raporunu depo altinda kalici dokuman olarak olustur, sonra ayni cevrimde kanitlanan en kritik guvenli isi uygula. Deger False ise daha onceki denetimi ve backlog'u okuyarak siradaki faza devam et; ilk analiz adimini gereksiz yere tekrarlama.
 
