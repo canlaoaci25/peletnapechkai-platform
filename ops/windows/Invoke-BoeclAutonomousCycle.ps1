@@ -7,6 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'AutonomousCycleRecovery.ps1')
 . (Join-Path $PSScriptRoot 'AutonomousRoadmap.ps1')
+. (Join-Path $PSScriptRoot 'AutonomousWorktree.ps1')
 $statePath = Join-Path $StateRoot 'state.json'
 $logRoot = Join-Path $StateRoot 'Logs'
 if (-not (Test-Path -LiteralPath $statePath)) { exit 0 }
@@ -17,6 +18,7 @@ if (Test-BoeclUtcDeadlinePending -Deadline ([string]$state.nextRetryAt)) { exit 
 New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
 $mutex = [Threading.Mutex]::new($false, 'Global\BOECL-Autonomous-Improvement')
 $mutexAcquired = $false
+$worktreeContext = $null
 try { $mutexAcquired = $mutex.WaitOne(0) }
 catch [Threading.AbandonedMutexException] { $mutexAcquired = $true }
 if (-not $mutexAcquired) { $mutex.Dispose(); exit 0 }
@@ -32,8 +34,7 @@ try {
     if (-not (Test-Path -LiteralPath (Join-Path $repository 'AGENTS.md'))) { throw 'Yetkili BOECL deposu doğrulanamadı.' }
     if (@(& git.exe -C $repository status --porcelain).Count -gt 0) { throw 'Çalışma ağacı temiz değil; kullanıcı değişikliklerini korumak için çevrim atlandı.' }
     $baselineCommit = (& git.exe -C $repository rev-parse HEAD).Trim()
-    $roadmapPath = Join-Path $repository 'docs\operations\autonomous-roadmap.json'
-    $roadmap = @(Repair-BoeclAutonomousRoadmap -Path $roadmapPath)
+    $worktreeRoot = Join-Path $StateRoot 'Worktrees'
     $masterInstructionsPath = 'C:\Users\Administrator\Desktop\New Text Document.txt'
     if (-not (Test-Path -LiteralPath $masterInstructionsPath -PathType Leaf)) { throw 'Kullanici master otonom talimat dosyasi bulunamadi.' }
     $masterInstructionsInfo = Get-Item -LiteralPath $masterInstructionsPath
@@ -63,6 +64,10 @@ try {
     # on the same focus forever.
     $state.cycle = $cycle
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $worktreeContext = New-BoeclAutonomousWorktree -Repository $repository -WorktreeRoot $worktreeRoot -Cycle $cycle -Stamp $stamp -BaselineCommit $baselineCommit
+    $cycleRepository = [string]$worktreeContext.Path
+    $roadmapPath = Join-Path $cycleRepository 'docs\operations\autonomous-roadmap.json'
+    $roadmap = @(Repair-BoeclAutonomousRoadmap -Path $roadmapPath)
     $output = Join-Path $logRoot "$stamp-cycle-$cycle-result.txt"
     $events = Join-Path $logRoot "$stamp-cycle-$cycle.jsonl"
     $errors = Join-Path $logRoot "$stamp-cycle-$cycle-stderr.log"
@@ -72,6 +77,8 @@ try {
     Set-StateValue 'currentStartedAt' ([DateTimeOffset]::UtcNow.ToString('o'))
     Set-StateValue 'heartbeatAt' $state.currentStartedAt
     Set-StateValue 'recoveryState' 'Healthy'
+    Set-StateValue 'recoveryBranch' ([string]$worktreeContext.Branch)
+    Set-StateValue 'recoveryWorktree' $cycleRepository
     Set-StateValue 'currentEventLog' $events
     Set-StateValue 'currentResultLog' $output
     Set-StateValue 'roadmap' $roadmap
@@ -79,6 +86,10 @@ try {
     $state | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
     Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
     $prompt = @"
+ONCELIKLI OWNER KARARI: Once docs/operations/owner-decisions.md dosyasini oku. Oradaki kararlar genel uzman tercihlerinin ustundedir.
+Bu cevrim yalitilmis Git worktree icindedir. Yalniz bu worktree icinde calis ve tum anlamli degisiklikleri mevcut cevrim dalina commit et. Git push, main dalina merge, staging/production deploy veya worktree temizligi yapma; kalite, birlestirme ve dagitim runner sorumlulugundadir.
+Urunle birlikte kendi orkestrasyon, test, kurtarma, rol koordinasyonu ve gozlemlenebilirlik sistemini de kanitli bicimde gelistir. Guvenlik ve kalite kapilarini kaldirma.
+
 BOECL tam yetkili otonom geliştirme çevrimi $cycle. Bu çevrimin odağı: $focus.
 
 Asagidaki CODEX MASTER INSTRUCTIONS metni kullanici tarafindan kalici ana talimat olarak verilmistir. Tamamini bu cevrimde uygula; cevrim odagi bu ana kurallari daraltmaz:
@@ -116,7 +127,7 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
     $env:CODEX_HOME = [string]$config.codexHome
     $inputPath = Join-Path $logRoot "$stamp-cycle-$cycle.stdin"
     $prompt | Set-Content -LiteralPath $inputPath -Encoding UTF8
-    $arguments = @('--search','exec','--ephemeral','--json','--sandbox','danger-full-access','--cd',$repository,'--output-last-message',$output,'-')
+    $arguments = @('--search','exec','--ephemeral','--json','--sandbox','danger-full-access','--cd',$cycleRepository,'--output-last-message',$output,'-')
     $argumentLine = ($arguments | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join ' '
     $process = Start-Process -FilePath ([string]$config.codexPath) -ArgumentList $argumentLine -NoNewWindow -PassThru `
         -RedirectStandardInput $inputPath -RedirectStandardOutput $events -RedirectStandardError $errors
@@ -153,24 +164,27 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
         @{ Command='dotnet.exe'; Arguments=@('test','Peletnapechkai.slnx','--configuration','Release') },
         @{ Command='dotnet.exe'; Arguments=@('build','Peletnapechkai.slnx','--configuration','Release') }
     )
-    Push-Location $repository
+    Push-Location $cycleRepository
     try {
         foreach ($check in $checks) { & $check.Command @($check.Arguments); if ($LASTEXITCODE -ne 0) { throw "Otonom kalite kapısı başarısız: $($check.Command)." } }
     } finally { Pop-Location }
 
     # Never deploy an incomplete standalone tree. A missing fallback module was
     # previously discovered only after the live swap had started.
-    $fallback = Join-Path $repository 'apps\web\.next\standalone\node_modules\next\dist\lib\fallback.js'
+    $fallback = Join-Path $cycleRepository 'apps\web\.next\standalone\node_modules\next\dist\lib\fallback.js'
     if (-not (Test-Path -LiteralPath $fallback -PathType Leaf)) {
-        Push-Location $repository
+        Push-Location $cycleRepository
         try { & npm.cmd run build:web; if ($LASTEXITCODE -ne 0) { throw 'Web release artifact rebuild failed.' } }
         finally { Pop-Location }
     }
     if (-not (Test-Path -LiteralPath $fallback -PathType Leaf)) { throw 'Web standalone release artifact is incomplete.' }
 
-    $finalCommit = (& git.exe -C $repository rev-parse HEAD).Trim()
-    $changedFiles = if ($finalCommit -ne $baselineCommit) { @(& git.exe -C $repository diff --name-only $baselineCommit $finalCommit) } else { @() }
+    $finalCommit = (& git.exe -C $cycleRepository rev-parse HEAD).Trim()
+    $changedFiles = if ($finalCommit -ne $baselineCommit) { @(& git.exe -C $cycleRepository diff --name-only $baselineCommit $finalCommit) } else { @() }
     if (@(& git.exe -C $repository status --porcelain).Count -gt 0) { throw 'Otonom çevrim temiz olmayan çalışma ağacı bıraktı; dağıtım durduruldu.' }
+    if (@(& git.exe -C $cycleRepository status --porcelain).Count -gt 0) { throw 'Otonom cevrim commit edilmemis degisiklik birakti; kurtarma worktree korunuyor.' }
+    if ($finalCommit -eq $baselineCommit) { throw 'Otonom cevrim anlamli bir commit uretmedi.' }
+    Merge-BoeclAutonomousWorktree -Repository $repository -Context $worktreeContext
     if ($changedFiles | Where-Object { $_ -like 'apps/api/*' -or $_ -like 'tests/api/*' }) {
         & (Join-Path $repository 'ops\windows\Backup-PostgreSql.ps1')
         if ($LASTEXITCODE -ne 0) { throw 'Dağıtım öncesi PostgreSQL yedeği başarısız.' }
@@ -181,9 +195,12 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
         & (Join-Path $repository 'ops\windows\Deploy-AspNetApiRelease.ps1') -Environment Production -RepositoryPath $repository
     }
     if ($changedFiles | Where-Object { $_ -like 'apps/web/*' -or $_ -like 'config/supported-locales.json' }) {
-        & (Join-Path $repository 'ops\windows\Deploy-NextWebRelease.ps1') -Environment Staging
-        & (Join-Path $repository 'ops\windows\Deploy-NextWebRelease.ps1') -Environment Production
+        & (Join-Path $repository 'ops\windows\Deploy-NextWebRelease.ps1') -Environment Staging -BuildRoot (Join-Path $cycleRepository 'apps\web')
+        & (Join-Path $repository 'ops\windows\Deploy-NextWebRelease.ps1') -Environment Production -BuildRoot (Join-Path $cycleRepository 'apps\web')
     }
+
+    Remove-BoeclAutonomousWorktree -Repository $repository -Context $worktreeContext
+    $worktreeContext = $null
 
     $state.cycle = $cycle
     $state.lastRunAt = [DateTimeOffset]::UtcNow.ToString('o')
@@ -191,11 +208,13 @@ Bir cevrimde gorunur urun sonucu cikaramiyorsan mikro commit uretme; nedeni Fail
     Set-StateValue 'consecutiveFailures' 0
     Set-StateValue 'nextRetryAt' $null
     Set-StateValue 'recoveryState' 'Healthy'
+    Set-StateValue 'recoveryBranch' $null
+    Set-StateValue 'recoveryWorktree' $null
     Set-StateValue 'heartbeatAt' $state.lastRunAt
     $state | Add-Member -NotePropertyName 'masterAuditCompleted' -NotePropertyValue $true -Force
     Set-StateValue 'currentStatus' 'Completed'
     $state.updatedAt = $state.lastRunAt
-    Set-StateValue 'roadmap' @(Repair-BoeclAutonomousRoadmap -Path $roadmapPath)
+    Set-StateValue 'roadmap' $roadmap
     $state | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath "$statePath.tmp" -Encoding UTF8
     Move-Item -LiteralPath "$statePath.tmp" -Destination $statePath -Force
 }
@@ -208,6 +227,10 @@ catch {
     Set-StateValue 'lastFailureAt' $state.lastRunAt
     Set-StateValue 'nextRetryAt' ([DateTimeOffset]::UtcNow.AddMinutes($retryDelay).ToString('o'))
     Set-StateValue 'recoveryState' 'Backoff'
+    if ($null -ne $worktreeContext) {
+        Set-StateValue 'recoveryBranch' ([string]$worktreeContext.Branch)
+        Set-StateValue 'recoveryWorktree' ([string]$worktreeContext.Path)
+    }
     Set-StateValue 'heartbeatAt' $state.lastRunAt
     Set-StateValue 'currentStatus' 'Failed'
     $state.updatedAt = $state.lastRunAt
