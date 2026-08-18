@@ -33,7 +33,35 @@ public static class MemberAccountEndpoints
         group.MapGet("/reading-ritual", GetReadingRitualAsync);
         group.MapPut("/reading-ritual", UpdateReadingRitualAsync).ValidateAntiforgery();
         group.MapGet("/reading-digest", GetReadingDigestAsync);
+        group.MapGet("/push", GetPushAsync);
+        group.MapPut("/push", UpsertPushAsync).ValidateAntiforgery();
+        group.MapDelete("/push", DisablePushAsync).ValidateAntiforgery();
         return endpoints;
+    }
+    private static async Task<IResult> GetPushAsync(System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,IConfiguration configuration,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
+        var item=await db.WebPushSubscriptions.AsNoTracking().Where(x=>x.UserId==user.Id&&x.IsEnabled).OrderByDescending(x=>x.UpdatedAt).Select(x=>new{x.Locale,x.QuietStartsAt,x.QuietEndsAt}).FirstOrDefaultAsync(token);
+        var publicKey=configuration["WebPush:PublicKey"];
+        var available=!string.IsNullOrWhiteSpace(publicKey)&&!string.IsNullOrWhiteSpace(configuration["WebPush:PrivateKey"])&&!string.IsNullOrWhiteSpace(configuration["WebPush:Subject"]);
+        return Results.Ok(new{available,publicKey=available?publicKey!:"",enabled=item!=null,preference=item});
+    }
+    private static async Task<IResult> UpsertPushAsync(PushRequest request,System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,IConfiguration configuration,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();
+        if(string.IsNullOrWhiteSpace(configuration["WebPush:PublicKey"])||string.IsNullOrWhiteSpace(configuration["WebPush:PrivateKey"])||string.IsNullOrWhiteSpace(configuration["WebPush:Subject"]))return Results.Problem("Web Push delivery is not configured.",statusCode:503);
+        try {
+            var existing=await db.WebPushSubscriptions.SingleOrDefaultAsync(x=>x.Endpoint==request.Endpoint,token);var now=DateTimeOffset.UtcNow;
+            if(existing is not null&&existing.UserId!=user.Id)return Results.Conflict(new{message="This browser subscription belongs to another account."});
+            if(existing is null)db.WebPushSubscriptions.Add(new WebPushSubscription(user,request.Endpoint??"",request.P256dh??"",request.Auth??"",request.Locale??"",request.QuietStartsAt,request.QuietEndsAt,now));else existing.Update(request.Endpoint??"",request.P256dh??"",request.Auth??"",request.Locale??"",request.QuietStartsAt,request.QuietEndsAt,now);
+            db.AuditLogs.Add(new AuditLog(user.Id,"member.web_push_enabled",nameof(ApplicationUser),user.Id,System.Text.Json.JsonSerializer.Serialize(new{request.Locale,request.QuietStartsAt,request.QuietEndsAt}),now));await db.SaveChangesAsync(token);return Results.NoContent();
+        } catch(ArgumentException exception){return Results.BadRequest(new{message=exception.Message});}
+    }
+    private static async Task<IResult> DisablePushAsync(System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,PublishingDbContext db,CancellationToken token)
+    {
+        var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();var now=DateTimeOffset.UtcNow;
+        foreach(var item in await db.WebPushSubscriptions.Where(x=>x.UserId==user.Id&&x.IsEnabled).ToArrayAsync(token))item.Disable(now);
+        db.AuditLogs.Add(new AuditLog(user.Id,"member.web_push_disabled",nameof(ApplicationUser),user.Id,null,now));await db.SaveChangesAsync(token);return Results.NoContent();
     }
     private static async Task<IResult> GetAsync(System.Security.Claims.ClaimsPrincipal principal,UserManager<ApplicationUser> users,IConfiguration configuration)
     {var user=await users.GetUserAsync(principal);if(user is null||!user.IsActive)return Results.Unauthorized();var roles=await users.GetRolesAsync(user);return Results.Ok(new{user.Id,user.Email,user.DisplayName,user.EmailConfirmed,roles,verificationAvailable=!string.IsNullOrWhiteSpace(configuration["Email:SmtpHost"]),user.CreatedAt});}
@@ -177,4 +205,5 @@ public static class MemberAccountEndpoints
     public sealed record ReadingProgressRequest(int Percent,string? Anchor);
     public sealed record ReadingRitualRequest(int Goal);
     public sealed record FollowingSetupRequest(string[]? Slugs);
+    public sealed record PushRequest(string? Endpoint,string? P256dh,string? Auth,string? Locale,int QuietStartsAt,int QuietEndsAt);
 }

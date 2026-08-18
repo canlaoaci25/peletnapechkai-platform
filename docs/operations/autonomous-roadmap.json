@@ -16,8 +16,8 @@
                   {
                       "id":  "browser-push",
                       "title":  "Tarayıcı ve telefon push bildirimleri",
-                      "outcome":  "İzin veren üyeye yeni Türkçe içerik ve doğrulanmış site güncellemelerini Web Push ile gönder; konu tercihleri, sessiz saatler ve abonelikten çıkma ekle.",
-                      "status":  "queued"
+                      "outcome":  "Üye hesabında dört locale açık rıza, cihaz aboneliği, sessiz saatler ve tek adım çıkış yerel olarak hazır; kalıcı dispatch kuyruğu, admin gönderim denetimi ve canlı etkinleştirme owner iletişim/retention kararı bekliyor.",
+                      "status":  "blocked"
                   },
                   {
                       "id":  "visual-service",

@@ -10,9 +10,11 @@ import type {
   SavedArticle,
   ReadingRitual,
   ReadingDigest,
+  PushPreference,
 } from "@/lib/admin-api";
 import type { Locale } from "@/i18n/config";
 import { memberCopy, memberHubCopy } from "@/i18n/member-copy";
+import { PushPreferences } from "@/components/push-preferences";
 
 export function AccountDashboard({
   account,
@@ -23,6 +25,7 @@ export function AccountDashboard({
   progressCount,
   initialRitual,
   initialDigest,
+  initialPush,
 }: {
   account: MemberAccount;
   locale: Locale;
@@ -32,6 +35,7 @@ export function AccountDashboard({
   progressCount: number;
   initialRitual: ReadingRitual | null;
   initialDigest: ReadingDigest | null;
+  initialPush: PushPreference | null;
 }) {
   const copy = memberCopy[locale],
     hub = memberHubCopy[locale],
@@ -335,6 +339,7 @@ export function AccountDashboard({
         )}
       </section>
       <div className="member-settings">
+        <PushPreferences locale={locale} initial={initialPush} />
         <form className="account-settings-card" onSubmit={profile}>
           <h2>{copy.profile}</h2>
           <label>

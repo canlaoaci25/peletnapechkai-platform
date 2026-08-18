@@ -42,6 +42,7 @@ public sealed class PublishingModelTests
         Assert.NotNull(context.Model.FindEntityType(typeof(ApplicationRole)));
         Assert.NotNull(context.Model.FindEntityType(typeof(SavedArticle)));
         Assert.NotNull(context.Model.FindEntityType(typeof(FollowedCategory)));
+        Assert.NotNull(context.Model.FindEntityType(typeof(WebPushSubscription)));
     }
 
     [Fact]
@@ -99,6 +100,15 @@ public sealed class PublishingModelTests
     {
         using var context = CreateContext();
         AssertUniqueIndex(context, typeof(FollowedCategory), "ux_followed_categories_user_category");
+    }
+
+    [Fact]
+    public void WebPushSubscription_HasUniqueEndpointAndRejectsUnsafeEndpoint()
+    {
+        using var context = CreateContext();
+        AssertUniqueIndex(context, typeof(WebPushSubscription), "ux_web_push_subscriptions_endpoint");
+        var user = new ApplicationUser { Id = Guid.CreateVersion7(), Email = "member@example.com", DisplayName = "Member", CreatedAt = DateTimeOffset.UtcNow };
+        Assert.Throws<ArgumentException>(() => new WebPushSubscription(user, "http://push.example/test", "key", "auth", "tr-TR", 22, 7, DateTimeOffset.UtcNow));
     }
 
     [Fact]

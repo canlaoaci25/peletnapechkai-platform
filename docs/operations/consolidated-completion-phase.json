@@ -84,6 +84,13 @@
       "status": "passed",
       "summary": "Consented anonymous field cohorts now show mobile and desktop evidence with locale-correct copy, while a deterministic fail-closed root JavaScript, client chunk and CSS artifact budget runs before any staging mutation. Staging migration, consent beacon, light/dark render, retention and production promotion evidence are still required before completion.",
       "tests": ["web release budget fixtures", "release promotion regression", "PowerShell parse gate", "93 web tests", "locale consistency", "web lint", "web typecheck", "web production build", "195 API tests", "API Release build"]
+    },
+    {
+      "workstream": "browser-push",
+      "scope": "local",
+      "status": "checkpoint",
+      "summary": "Members now have a four-locale, explicit-action Web Push consent and quiet-hours surface backed by an additive per-device subscription model, CSRF-protected account endpoints, append-only audit events and a same-origin service worker. The API remains fail-closed unless public key, private key and subject are all supplied from protected server configuration. Dispatch policy, durable outbox/retry/dead-letter, admin send controls, staging browser evidence and production promotion remain blocked on the recorded owner communication and retention decision; no automatic delivery was enabled.",
+      "tests": ["95 web tests", "web lint", "web typecheck", "web production build", "196 API tests", "API Release build"]
     }
   ]
 }

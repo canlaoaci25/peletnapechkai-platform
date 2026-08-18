@@ -10,6 +10,7 @@ import {
   getReadingDigest,
   getReadingRitual,
   getSavedArticles,
+  getPushPreference,
 } from "@/lib/admin-api";
 export default async function AccountPage({
   params,
@@ -18,13 +19,14 @@ export default async function AccountPage({
   if (!hasLocale(locale)) redirect("/tr-TR");
   const account = await getMemberAccount();
   if (!account) redirect(`/${locale}/account/login`);
-  const [saved, followed, feed, progress, ritual, digest] = await Promise.all([
+  const [saved, followed, feed, progress, ritual, digest, push] = await Promise.all([
     getSavedArticles(locale),
     getFollowedCategories(locale),
     getPersonalFeed(locale),
     getReadingProgress(locale),
     getReadingRitual(locale),
     getReadingDigest(locale),
+    getPushPreference(),
   ]);
   return (
     <main className="account-dashboard-page">
@@ -38,6 +40,7 @@ export default async function AccountPage({
         progressCount={progress.length}
         initialRitual={ritual}
         initialDigest={digest}
+        initialPush={push}
       />
     </main>
   );

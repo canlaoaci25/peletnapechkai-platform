@@ -641,3 +641,5 @@ export type ReadingDigest = {
 export async function getReadingDigest(locale: string) {
   return await apiGet<ReadingDigest>(`/api/v1/account/reading-digest?locale=${encodeURIComponent(locale)}`);
 }
+export type PushPreference={available:boolean;publicKey:string;enabled:boolean;preference:null|{locale:string;quietStartsAt:number;quietEndsAt:number}};
+export function getPushPreference(){return apiGet<PushPreference>("/api/v1/account/push");}
