@@ -5,8 +5,7 @@ $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'ContinuitySupervisorCore.ps1')
 $statePath=Join-Path $StateRoot 'state.json'
 $logPath=Join-Path $StateRoot 'events.jsonl'
-$mutex=[Threading.Mutex]::new($false,'Global\BOECL-Continuity-Supervisor')
-$acquired=$false
+$lockStream=$null
 $now=[DateTimeOffset]::UtcNow
 $components=[Collections.Generic.List[object]]::new()
 $newActions=[Collections.Generic.List[object]]::new()
@@ -27,8 +26,7 @@ function Invoke-Recovery([string]$Name,[scriptblock]$Action){
 }
 
 try{
-    try{$acquired=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$acquired=$true}
-    if(-not $acquired){exit 0}
+    try{$lockStream=[IO.File]::Open((Join-Path $StateRoot 'supervisor.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)}catch [IO.IOException]{exit 0}
 
     foreach($name in @('W3SVC','postgresql-x64-18','PeletnapechkaiWeb','BoeclStagingWeb')){
         $service=Get-Service -Name $name -ErrorAction SilentlyContinue
@@ -94,4 +92,4 @@ catch{
     [ordered]@{at=$now.ToString('o');component='supervisor';result='Failed';message=$_.Exception.Message}|ConvertTo-Json -Compress|Add-Content -LiteralPath $logPath -Encoding UTF8
     exit 1
 }
-finally{if($acquired){$mutex.ReleaseMutex()};$mutex.Dispose()}
+finally{if($null -ne $lockStream){$lockStream.Dispose()}}
