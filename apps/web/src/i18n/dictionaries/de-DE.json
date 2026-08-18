@@ -20,7 +20,9 @@
     "allTopics": "Alle Themen",
     "publicationPromise": "Technologie · Wissenschaft · Kultur",
     "menuDescription": "Entdecken Sie alle BOECL-Ressorts und aktuellen Themendossiers.",
-    "sources": "Quellen und Vertrauen"
+    "sources": "Quellen und Vertrauen",
+    "collapseMenu": "Menü einklappen",
+    "expandMenu": "Menü ausklappen"
   },
   "accessibility": { "skipToContent": "Zum Hauptinhalt springen" },
   "article": { "onThisPage": "In diesem Artikel", "published": "Veröffentlicht", "updated": "Aktualisiert", "minuteRead": "{minutes} Min. Lesezeit", "sourcesUsed": "{count} Quellen", "editorialTrust": "Wie ist dieser Beitrag entstanden?", "trustSummary": "BOECL macht Autorenschaft, Aktualität und verwendete Quellen sichtbar, damit Leser den Beitrag einordnen können.", "sourceHeading": "Verwendete Quellen", "sourceSummary": "Externe Quellen zur Prüfung von Aussagen und Details. Links öffnen sich in einem neuen Tab.", "relatedHeading": "Mehr zu diesem Thema", "editionHeading": "Sprachausgaben dieses Beitrags", "editionSummary": "In {available} von {total} unterstützten Sprachen veröffentlicht. Angezeigt werden nur echte Übersetzungen nach bestandener redaktioneller Prüfung.", "currentEdition": "Sie lesen diese Ausgabe" },

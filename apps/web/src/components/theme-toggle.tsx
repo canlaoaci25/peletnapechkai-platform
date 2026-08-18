@@ -13,17 +13,15 @@ const labels = {
 };
 
 export function ThemeToggle({ locale }: { locale: Locale }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem("boecl-theme");
-    const preferred = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    const next: Theme = saved === "light" || saved === "dark" ? saved : preferred;
-    const timer = window.setTimeout(() => setTheme(next), 0);
+    const applied = document.documentElement.dataset.theme;
+    const timer = window.setTimeout(() => setTheme(applied === "dark" ? "dark" : "light"), 0);
     return () => window.clearTimeout(timer);
   }, []);
 
-  useEffect(() => { document.documentElement.setAttribute("data-theme", theme); }, [theme]);
+  useEffect(() => { if (theme) document.documentElement.setAttribute("data-theme", theme); }, [theme]);
 
   function toggle() {
     const next = theme === "dark" ? "light" : "dark";

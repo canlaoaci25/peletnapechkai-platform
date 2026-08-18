@@ -1,5 +1,11 @@
 # BOECL otonom mimari ve ürün teklifleri
 
+> Çevrim 81 güncellemesi (18 Ağustos 2026): Public yayın navigasyonu masaüstünde kullanıcı
+> tercihini koruyan daraltılabilir raya dönüştürüldü; mobil drawer arka planı erişilebilirlik
+> ağacından izole ediyor, breakpoint değişiminde scroll kilidini bırakıyor ve tüm dokunma
+> hedefleri en az 44 px. Tema ve navigasyon tercihi paint öncesi uygulanarak görünür sıçrama
+> azaltıldı. Web regresyon paketi CI kalite kapısına bağlandı. Harici sistem veya veri değişmedi.
+
 > Çevrim 79 güncellemesi (18 Ağustos 2026): Görsel Yenileme Stüdyosu aday kanıtı tek bir genel
 > konu onayından; tam makale, ilgili bölüm, locale/kültür, teknik doğruluk, yazısızlık, artefact
 > ve tüm public crop kontrollerini ayrı ayrı gösteren fail-closed sözleşmeye taşındı. Retry veya

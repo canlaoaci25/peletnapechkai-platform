@@ -43,6 +43,9 @@ jobs:
       - name: Type-check
         run: npm run typecheck
 
+      - name: Web regression tests
+        run: npm run test:web
+
       - name: Production build
         run: npm run build:web
 

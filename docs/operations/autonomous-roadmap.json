@@ -1,10 +1,10 @@
 ﻿{
-    "updatedAt":  "2026-08-18T10:30:00.0000000+00:00",
+    "updatedAt":  "2026-08-18T10:58:00.0000000+00:00",
     "items":  [
                   {
                       "id":  "public-sidebar",
                       "title":  "Yayın sidebar navigasyonu",
-                      "outcome":  "Masaüstü ve mobilde kategori, arama, üyelik ve tema akışlarını tek erişilebilir navigasyonda birleştir.",
+                      "outcome":  "Gerçek taxonomy, arama, üyelik ve tema akışlarını; masaüstünde kalıcı ve daraltılabilir yayın rayı, mobilde modal olarak izole edilen erişilebilir drawer içinde birleştir.",
                       "status":  "completed"
                   },
                   {

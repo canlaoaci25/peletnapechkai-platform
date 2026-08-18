@@ -13,6 +13,7 @@ type NavigationCopy = {
   home: string; menu: string; sections: string; search: string; account: string;
   language: string; translationUnavailable: string; latest: string; allTopics: string;
   publicationPromise: string; menuDescription: string; sources: string;
+  collapseMenu: string; expandMenu: string;
 };
 
 type Props = {
@@ -25,10 +26,25 @@ type Props = {
 
 export function PublicNavigation({ locale, localeHrefs, homeActive, copy, categories }: Props) {
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const drawerId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("boecl-public-nav-collapsed") === "true";
+    document.documentElement.dataset.publicNav = saved ? "collapsed" : "expanded";
+    const timer = window.setTimeout(() => setCollapsed(saved), 0);
+    return () => { window.clearTimeout(timer); delete document.documentElement.dataset.publicNav; };
+  }, []);
+
+  function toggleCollapsed() {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem("boecl-public-nav-collapsed", String(next));
+    document.documentElement.dataset.publicNav = next ? "collapsed" : "expanded";
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -36,7 +52,9 @@ export function PublicNavigation({ locale, localeHrefs, homeActive, copy, catego
     const focusable = () => Array.from(drawer?.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),summary,[tabindex]:not([tabindex="-1"])') ?? []);
     const previousOverflow = document.body.style.overflow;
     const trigger = triggerRef.current;
+    const background = Array.from(document.querySelectorAll<HTMLElement>("#page-root main, #page-root footer, .public-mobile-bar"));
     document.body.style.overflow = "hidden";
+    background.forEach(element => { element.inert = true; element.setAttribute("aria-hidden", "true"); });
     focusable()[0]?.focus();
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") { event.preventDefault(); setOpen(false); return; }
@@ -48,8 +66,15 @@ export function PublicNavigation({ locale, localeHrefs, homeActive, copy, catego
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }
     document.addEventListener("keydown", onKeyDown);
-    return () => { document.removeEventListener("keydown", onKeyDown); document.body.style.overflow = previousOverflow; trigger?.focus(); };
+    return () => { document.removeEventListener("keydown", onKeyDown); document.body.style.overflow = previousOverflow; background.forEach(element => { element.inert = false; element.removeAttribute("aria-hidden"); }); trigger?.focus(); };
   }, [open]);
+
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const closeAtDesktop = (event: MediaQueryListEvent) => { if (event.matches) setOpen(false); };
+    desktop.addEventListener("change", closeAtDesktop);
+    return () => desktop.removeEventListener("change", closeAtDesktop);
+  }, []);
 
   const isCurrent = (href: string) => href === `/${locale}` ? homeActive || pathname === href : pathname === href || pathname.startsWith(`${href}/`);
   const mainLinks = [
@@ -66,12 +91,15 @@ export function PublicNavigation({ locale, localeHrefs, homeActive, copy, catego
       <Link className="mobile-brand" href={`/${locale}`}>{siteConfig.name}</Link>
       <Link className="mobile-search" href={`/${locale}/search`} aria-label={copy.search}><SearchIcon /><span>{copy.search}</span></Link>
     </header>
-    {open && <button className="drawer-backdrop" type="button" aria-label={copy.menu} onClick={() => setOpen(false)} />}
-    <aside ref={drawerRef} id={drawerId} className="public-sidebar" data-open={open} aria-label={copy.sections} onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setOpen(false); }}>
+    {open && <button className="drawer-backdrop" type="button" aria-hidden="true" tabIndex={-1} onClick={() => setOpen(false)} />}
+    <aside ref={drawerRef} id={drawerId} className="public-sidebar" data-open={open} data-collapsed={collapsed} role={open ? "dialog" : undefined} aria-modal={open || undefined} aria-label={copy.sections} onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setOpen(false); }}>
       <div className="sidebar-brand-row">
         <Link className="sidebar-brand" href={`/${locale}`} aria-label={`${siteConfig.name} — ${copy.home}`}><strong>{siteConfig.name}</strong><span>{copy.publicationPromise}</span></Link>
         <button className="drawer-close" type="button" aria-label={`${copy.menu} — ×`} onClick={() => setOpen(false)}>×</button>
       </div>
+      <button className="sidebar-collapse" type="button" aria-label={collapsed ? copy.expandMenu : copy.collapseMenu} title={collapsed ? copy.expandMenu : copy.collapseMenu} aria-pressed={collapsed} onClick={toggleCollapsed}>
+        <span aria-hidden="true">{collapsed ? "→" : "←"}</span><b>{collapsed ? copy.expandMenu : copy.collapseMenu}</b>
+      </button>
       <Link className="sidebar-search" href={`/${locale}/search`}><SearchIcon/><span>{copy.search}</span><kbd>/</kbd></Link>
       <nav className="sidebar-primary" aria-label={copy.sections}>
         {mainLinks.map((item, index) => <Link key={item.href} href={item.href} aria-current={isCurrent(item.href) ? "page" : undefined}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong></Link>)}

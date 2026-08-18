@@ -20,7 +20,9 @@
     "allTopics": "Tüm konular",
     "publicationPromise": "Teknoloji · Bilim · Kültür",
     "menuDescription": "BOECL'in tüm yayın alanlarını ve güncel dosyalarını keşfedin.",
-    "sources": "Kaynaklar ve güven"
+    "sources": "Kaynaklar ve güven",
+    "collapseMenu": "Menüyü daralt",
+    "expandMenu": "Menüyü genişlet"
   },
   "accessibility": { "skipToContent": "Ana içeriğe geç" },
   "article": { "onThisPage": "Bu yazıda", "published": "Yayımlandı", "updated": "Güncellendi", "minuteRead": "{minutes} dk okuma", "sourcesUsed": "{count} kaynak", "editorialTrust": "Bu içerik nasıl hazırlandı?", "trustSummary": "BOECL; yazar, güncellik ve başvurulan kaynakları okurun değerlendirmesine açık biçimde sunar.", "sourceHeading": "Başvurulan kaynaklar", "sourceSummary": "İddiaları ve ayrıntıları denetlemek için kullanılan dış kaynaklar. Bağlantılar yeni sekmede açılır.", "relatedHeading": "Bu konuda okumaya devam edin", "editionHeading": "Bu yazının dil baskıları", "editionSummary": "{total} desteklenen dilin {available} tanesinde yayımlandı. Yalnız gerçek, editoryal kapılardan geçmiş çeviriler listelenir.", "currentEdition": "Şu an okuyorsunuz" },

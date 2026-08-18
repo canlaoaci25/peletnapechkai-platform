@@ -75,6 +75,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: `var t,n;try{t=localStorage.getItem("boecl-theme")}catch(e){}if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t;try{n=localStorage.getItem("boecl-public-nav-collapsed")}catch(e){}document.documentElement.dataset.publicNav=n==="true"?"collapsed":"expanded";` }} /></head>
       <body><a className="skip-link" href="#main-content">{dictionary.accessibility.skipToContent}</a><div id="page-root">{children}</div><ConsentBanner locale={locale}/><ThirdPartyIntegrations/></body>
     </html>
   );
