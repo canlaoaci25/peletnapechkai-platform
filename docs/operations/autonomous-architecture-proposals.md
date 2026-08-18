@@ -1,5 +1,11 @@
 # BOECL otonom mimari ve ürün teklifleri
 
+> Çevrim 89 güncellemesi (18 Ağustos 2026): Public sidebar ve ana sayfa Konu Atlası, API'de zaten
+> bulunan parent/child taxonomy ilişkilerini koruyacak biçimde düzenlendi. Ana sayfa aynı no-store
+> archive yanıtını navigasyonla paylaşarak yinelenen isteği kaldırıyor; daraltılmış ray lokalize
+> erişilebilir adları koruyor ve küçük vurgu metni iki temada ayrı kontrast tokenı kullanıyor.
+> Veri modeli, production verisi ve harici servis değişmedi.
+
 > Çevrim 88 güncellemesi (18 Ağustos 2026): H2/H3 planı artık kalıcı bölüm hedefli göreve ve public gövde
 > görseli terfisine bağlıdır. Başlık değişimi, eksik intrinsic ölçü ve çift yerleşim fail-closed engellenir;
 > alt metin, kaynak, görev checkpoint'i ve audit izi atomik güncellenir. Harici sağlayıcı açılmadı.

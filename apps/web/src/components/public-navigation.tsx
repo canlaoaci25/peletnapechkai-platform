@@ -21,7 +21,11 @@ type Props = {
   localeHrefs?: Partial<Record<Locale, string>>;
   homeActive: boolean;
   copy: NavigationCopy;
-  categories: { slug: string; title: string; articleCount: number }[];
+  categories: {
+    slug: string; title: string; articleCount: number;
+    parent: { slug: string; title: string } | null;
+    children: { slug: string; title: string; articleCount: number }[];
+  }[];
 };
 
 export function PublicNavigation({ locale, localeHrefs, homeActive, copy, categories }: Props) {
@@ -82,6 +86,10 @@ export function PublicNavigation({ locale, localeHrefs, homeActive, copy, catego
     { href: `/${locale}/topics`, label: copy.allTopics },
     { href: `/${locale}/sources`, label: copy.sources },
   ];
+  const categorySlugs = new Set(categories.map(category => category.slug));
+  const categoryGroups = categories
+    .filter(category => !category.parent || !categorySlugs.has(category.parent.slug))
+    .map(category => ({ ...category, children: category.children.filter(child => categorySlugs.has(child.slug)) }));
 
   return <>
     <header className="public-mobile-bar">
@@ -102,11 +110,14 @@ export function PublicNavigation({ locale, localeHrefs, homeActive, copy, catego
       </button>
       <Link className="sidebar-search" href={`/${locale}/search`}><SearchIcon/><span>{copy.search}</span><kbd>/</kbd></Link>
       <nav className="sidebar-primary" aria-label={copy.sections}>
-        {mainLinks.map((item, index) => <Link key={item.href} href={item.href} aria-current={isCurrent(item.href) ? "page" : undefined}><span>{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong></Link>)}
+        {mainLinks.map((item, index) => <Link key={item.href} href={item.href} aria-label={item.label} title={collapsed ? item.label : undefined} aria-current={isCurrent(item.href) ? "page" : undefined}><span aria-hidden="true">{String(index + 1).padStart(2,"0")}</span><strong>{item.label}</strong></Link>)}
       </nav>
       <div className="sidebar-section-heading"><span>{copy.sections}</span><small>{categories.length}</small></div>
       <nav className="sidebar-categories" aria-label={copy.sections}>
-        {categories.map(category => { const href = `/${locale}/categories/${category.slug}`; return <Link key={category.slug} href={href} aria-current={isCurrent(href) ? "page" : undefined}><span>{category.title}</span><small>{category.articleCount}</small></Link>; })}
+        {categoryGroups.map(category => { const href = `/${locale}/categories/${category.slug}`; return <div className="sidebar-category-group" key={category.slug}>
+          <Link className="sidebar-category-parent" href={href} aria-label={category.title} title={collapsed ? category.title : undefined} aria-current={isCurrent(href) ? "page" : undefined}><span>{category.title}</span><small>{category.articleCount}</small></Link>
+          {category.children.length > 0 && <div className="sidebar-subcategories">{category.children.map(child => { const childHref = `/${locale}/categories/${child.slug}`; return <Link key={child.slug} href={childHref} aria-label={`${category.title}: ${child.title}`} title={collapsed ? child.title : undefined} aria-current={isCurrent(childHref) ? "page" : undefined}><span>{child.title}</span><small>{child.articleCount}</small></Link>; })}</div>}
+        </div>; })}
       </nav>
       <div className="sidebar-utilities">
         <div className="sidebar-account"><span>{copy.account}</span><AccountActions locale={locale}/></div>

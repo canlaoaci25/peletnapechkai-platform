@@ -44,7 +44,8 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
   const articles = [lead,...secondary,...trending,...picks,...latest].filter((item):item is PublicArticleSummary=>item!==null).filter((item,index,all)=>all.findIndex(candidate=>candidate.slug===item.slug)===index);
   const types = [...new Set(articles.map(article => article.type))].slice(0, 3);
   const atlasFeatureSlugs = new Set<string>();
-  const atlasCategories = archives.categories.slice(0, 6).map(category => {
+  const rootCategories = archives.categories.filter(category => category.parent === null);
+  const atlasCategories = (rootCategories.length > 0 ? rootCategories : archives.categories).slice(0, 6).map(category => {
     const feature = category.featured.find(article => !atlasFeatureSlugs.has(article.slug));
     if (feature) atlasFeatureSlugs.add(feature.slug);
     return { ...category, feature };
@@ -68,7 +69,7 @@ export default async function LocaleHome({ params }: PageProps<"/[locale]">) {
 
   return (
     <div className="site-shell home-shell">
-      <SiteHeader locale={locale} homeActive />
+      <SiteHeader locale={locale} homeActive archives={archives} />
       <main id="main-content">
         <nav className="topic-strip" aria-label={copy.currentTopics}>
           <strong><span aria-hidden="true" />{copy.currentTopics}</strong>

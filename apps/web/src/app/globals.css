@@ -6,6 +6,7 @@
   --muted: #68675f;
   --line: #cbc6ba;
   --accent: #c94f2d;
+  --accent-text: #a83a1d;
   --panel: #e4dfd3;
   --surface: #fff;
   --surface-soft: #ebe7dd;
@@ -28,6 +29,7 @@
   --muted: #aaa89f;
   --line: #393a35;
   --accent: #ff7651;
+  --accent-text: #ff8a69;
   --panel: #20211e;
   --surface: #181916;
   --surface-soft: #20211e;
@@ -52,6 +54,7 @@
     --muted: #aaa89f;
     --line: #393a35;
     --accent: #ff7651;
+    --accent-text: #ff8a69;
     --panel: #20211e;
     --surface: #181916;
     --surface-soft: #20211e;
@@ -3760,6 +3763,21 @@ select:focus-visible {
 }
 @media(max-width:420px){.hero h1,.lead-story h1{max-width:100%;font-size:clamp(2.65rem,13.5vw,3.35rem);overflow-wrap:anywhere}.drawer-trigger b{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.sidebar-brand-row{padding:24px 20px 20px}.sidebar-search{margin-inline:12px}.sidebar-primary,.sidebar-categories{padding-inline:12px}.sidebar-utilities{padding-inline:20px}.public-sidebar{width:min(92vw,340px)}}
 @media(prefers-reduced-motion:reduce){.public-sidebar,.site-shell{transition:none}}
+
+/* Cycle 89: preserve the editorial taxonomy hierarchy in the publication rail. */
+.sidebar-primary a>span{color:var(--accent-text)}
+.sidebar-primary a:hover>span,.sidebar-primary a[aria-current=page]>span{color:inherit}
+.sidebar-category-group{display:grid;border-bottom:1px solid var(--line)}
+.sidebar-category-parent{font-weight:800}
+.sidebar-subcategories{display:grid;padding:0 0 7px 13px;border-left:1px solid var(--line)}
+.sidebar-subcategories a{min-height:38px;font-size:.7rem}
+.sidebar-subcategories a:before{content:"";width:5px;height:5px;flex:0 0 5px;border-radius:50%;background:var(--line-strong)}
+.sidebar-subcategories a span{margin-right:auto}
+.sidebar-subcategories a[aria-current=page]:before{background:var(--accent)}
+@media(min-width:1024px){
+  :root[data-public-nav=collapsed] .sidebar-category-group{border:0}
+  :root[data-public-nav=collapsed] .sidebar-subcategories{display:none}
+}
 
 /* Cycle 67: member interest onboarding and instant personal stream */
 .member-onboarding{width:min(1320px,calc(100% - 40px));min-height:100vh;margin:auto;padding:clamp(44px,7vw,96px) 0 140px}.member-onboarding>header{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(280px,.7fr);align-items:end;gap:40px;padding-bottom:34px;border-bottom:3px solid var(--foreground)}.member-onboarding>header .section-kicker{grid-column:1/-1}.member-onboarding h1{max-width:12ch;margin:0;font-size:clamp(3.2rem,8vw,8rem);line-height:.84;letter-spacing:-.07em}.member-onboarding>header>p:last-child{max-width:560px;color:var(--muted);font-size:clamp(1rem,1.4vw,1.2rem);line-height:1.65}.onboarding-topic-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;margin-top:32px;border:1px solid var(--line);background:var(--line)}.onboarding-topic-grid>button{display:grid;grid-template-rows:auto 1fr;min-width:0;padding:0;border:0;background:var(--surface);color:var(--foreground);text-align:left;cursor:pointer}.onboarding-topic-grid>button:hover,.onboarding-topic-grid>button:focus-visible{background:var(--surface-soft)}.onboarding-topic-grid>button[aria-pressed=true]{box-shadow:inset 0 0 0 3px var(--accent)}.onboarding-topic-visual{position:relative;display:grid;min-height:210px;place-items:center;overflow:hidden;background:var(--inverse-surface);color:var(--inverse-foreground)}.onboarding-topic-visual:after{content:"";position:absolute;inset:40% 0 0;background:linear-gradient(transparent,var(--overlay))}.onboarding-topic-visual img{object-fit:cover}.onboarding-topic-visual>b{font-size:4rem}.onboarding-topic-visual i{position:absolute;z-index:1;right:16px;bottom:16px;display:grid;width:48px;height:48px;place-items:center;border-radius:50%;background:var(--surface-elevated);color:var(--foreground);font-style:normal;font-size:1.5rem;box-shadow:0 8px 28px var(--shadow)}.onboarding-topic-grid>button>span:last-child{display:grid;align-content:start;gap:9px;padding:24px}.onboarding-topic-grid small{color:var(--accent);font-weight:850;text-transform:uppercase}.onboarding-topic-grid strong{font-size:clamp(1.4rem,2vw,2rem);line-height:1}.onboarding-topic-grid em{display:-webkit-box;overflow:hidden;color:var(--muted);font-style:normal;line-height:1.5;-webkit-box-orient:vertical;-webkit-line-clamp:2}.member-onboarding>footer{position:fixed;z-index:40;right:0;bottom:0;left:0;display:flex;align-items:center;justify-content:center;gap:20px;min-height:92px;padding:16px 24px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface-elevated) 94%,transparent);box-shadow:0 -16px 44px var(--shadow);backdrop-filter:blur(12px)}.member-onboarding>footer>span strong{font-size:1.5rem}.member-onboarding>footer>button{min-height:48px;padding:12px 22px;border:0;background:var(--foreground);color:var(--background);font-weight:850}.member-onboarding>footer>button:disabled{opacity:.45}.member-onboarding>footer>a{color:var(--muted)}.member-onboarding>footer>p{color:var(--error)}@media(max-width:850px){.member-onboarding>header{grid-template-columns:1fr}.onboarding-topic-grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.member-onboarding{width:min(100% - 28px,1320px);padding-top:34px}.member-onboarding h1{font-size:clamp(3rem,15vw,4.8rem)}.onboarding-topic-grid{grid-template-columns:1fr}.onboarding-topic-visual{min-height:190px}.member-onboarding>footer{justify-content:space-between;gap:10px;padding:12px 14px}.member-onboarding>footer>span{font-size:.72rem}.member-onboarding>footer>button{padding-inline:14px}.member-onboarding>footer>p{position:absolute;bottom:78px;left:14px;padding:8px;background:var(--surface-elevated)}}

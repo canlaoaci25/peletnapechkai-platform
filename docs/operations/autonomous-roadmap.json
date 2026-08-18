@@ -20,6 +20,12 @@
                       "status":  "active"
                   },
                   {
+                      "id":  "home-navigation-hierarchy",
+                      "title":  "Ana sayfa ve yayın navigasyonu hiyerarşisi",
+                      "outcome":  "Global sidebar'da üst ve alt konuları gerçek taxonomy ilişkisiyle göster; ana sayfa atlasını pillar konulara odakla ve açık/koyu temada erişilebilir kompakt ray sun.",
+                      "status":  "completed"
+                  },
+                  {
                       "id":  "visual-backfill",
                       "title":  "Mevcut yayınların görsel yenilemesi",
                       "outcome":  "Eksik veya alakasız yayın görsellerini checkpoint ve geri dönüş korumasıyla yeniden üret.",
