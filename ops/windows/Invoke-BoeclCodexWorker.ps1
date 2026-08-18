@@ -8,7 +8,10 @@ $logRoot = 'C:\ProgramData\Peletnapechkai\Logs\AutomationWorker'
 . (Join-Path $PSScriptRoot 'BoeclAutomationRecovery.ps1')
 New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
 $mutex = [Threading.Mutex]::new($false, 'Global\BOECL-Codex-Automation-Worker')
-if (-not $mutex.WaitOne(0)) { exit 0 }
+$mutexAcquired = $false
+try { $mutexAcquired = $mutex.WaitOne(0) }
+catch [Threading.AbandonedMutexException] { $mutexAcquired = $true }
+if (-not $mutexAcquired) { $mutex.Dispose(); exit 0 }
 
 function Invoke-CodexProcess {
     param(
