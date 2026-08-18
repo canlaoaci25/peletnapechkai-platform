@@ -53,6 +53,23 @@ try{
         Add-Component $name 'AppPool' ([string](Get-Item "IIS:\AppPools\$name").State) $result 'IIS uygulama havuzu denetlendi.'
     }
 
+    $workerTask=Get-ScheduledTask -TaskName 'BOECL Codex Automation Worker' -ErrorAction SilentlyContinue
+    $workerInstallRoot='C:\ProgramData\Peletnapechkai\AutomationWorker'
+    $workerFiles=@('Invoke-BoeclCodexWorker.ps1','BoeclAutomationRecovery.ps1')
+    $integrityHealthy=$true
+    foreach($file in $workerFiles){
+        $source=Join-Path $PSScriptRoot $file; $installed=Join-Path $workerInstallRoot $file
+        if(-not(Test-Path -LiteralPath $source -PathType Leaf)){continue}
+        $matches=(Test-Path -LiteralPath $installed -PathType Leaf) -and ((Get-FileHash -LiteralPath $source).Hash -eq (Get-FileHash -LiteralPath $installed).Hash)
+        if($matches){continue}
+        if($null -ne $workerTask -and $workerTask.State -notin @('Running','Queued')){
+            $result=Invoke-Recovery "Worker file: $file" {Copy-Item -LiteralPath $source -Destination $installed -Force}
+            if($result -ne 'Recovered'){$integrityHealthy=$false}
+        }
+        else{$integrityHealthy=$false}
+    }
+    Add-Component 'Codex worker dosya butunlugu' 'FileSet' $(if($integrityHealthy){'Healthy'}else{'Mismatch'}) $(if($integrityHealthy){'Healthy'}else{'Manual'}) 'Worker ve kurtarma bagimliliklari hash ile denetlendi.'
+
     $taskPolicies=@(
         @{Name='BOECL Autonomous Watchdog';Max=6},@{Name='BOECL Codex Automation Worker';Max=5},
         @{Name='BOECL - Staging Health';Max=10},@{Name='Peletnapechkai - Production Health';Max=10},

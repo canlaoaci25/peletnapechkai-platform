@@ -3,7 +3,7 @@ Set-StrictMode -Version Latest
 function Get-BoeclContinuityDecision {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)][ValidateSet('Service','Task','Site','AppPool')][string]$Kind,
+        [Parameter(Mandatory)][ValidateSet('Service','Task','Site','AppPool','FileSet')][string]$Kind,
         [Parameter(Mandatory)][string]$State,
         [bool]$Enabled = $true,
         [Nullable[DateTimeOffset]]$LastRunAt,
