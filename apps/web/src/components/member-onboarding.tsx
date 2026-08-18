@@ -1,4 +1,29 @@
 "use client";
-import Image from "next/image";import Link from "next/link";import{useState}from"react";import{useRouter}from"next/navigation";import type{Locale}from"@/i18n/config";import{onboardingCopy}from"@/i18n/onboarding-copy";import type{PublicArchiveIndex}from"@/lib/public-api";
-type Topic=PublicArchiveIndex["categories"][number];
-export function MemberOnboarding({locale,topics}:{locale:Locale;topics:Topic[]}){const copy=onboardingCopy[locale],router=useRouter(),[selected,setSelected]=useState<string[]>([]),[busy,setBusy]=useState(false),[error,setError]=useState("");function toggle(slug:string){setSelected(current=>current.includes(slug)?current.filter(item=>item!==slug):current.length<5?[...current,slug]:current)}async function submit(){if(!selected.length)return;setBusy(true);setError("");try{const csrf=await fetch("/api/admin/auth/csrf",{cache:"no-store"}),{token}=await csrf.json()as{token:string};const response=await fetch(`/api/admin/account/following-setup/${encodeURIComponent(locale)}`,{method:"PUT",headers:{"content-type":"application/json","x-csrf-token":token},body:JSON.stringify({slugs:selected})});if(!response.ok)throw new Error();router.push(`/${locale}/account`);router.refresh()}catch{setError(copy.error);setBusy(false)}}return <main className="member-onboarding"><header><p className="section-kicker">{copy.kicker}</p><h1>{copy.title}</h1><p>{copy.description}</p></header><div className="onboarding-topic-grid">{topics.map((topic,index)=>{const active=selected.includes(topic.slug),cover=topic.featured.find(item=>item.cover)?.cover;return <button type="button" key={topic.slug} aria-pressed={active} onClick={()=>toggle(topic.slug)}><span className="onboarding-topic-visual">{cover?<Image src={cover.url} alt="" fill sizes="(max-width: 700px) 100vw, 30vw"/>:<b>{String(index+1).padStart(2,"0")}</b>}<i aria-hidden="true">{active?"✓":"+"}</i></span><span><small>{topic.articleCount} {copy.stories}</small><strong>{topic.title}</strong>{topic.description&&<em>{topic.description}</em>}</span></button>})}</div><footer><span aria-live="polite"><strong>{selected.length}</strong> {copy.selected}</span><button type="button" disabled={!selected.length||busy} onClick={()=>void submit()}>{copy.continue}</button><Link href={`/${locale}/account`}>{copy.skip}</Link>{error&&<p role="alert">{error}</p>}</footer></main>}
+import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import type { Locale } from "@/i18n/config";
+import { onboardingCopy } from "@/i18n/onboarding-copy";
+import type { PublicArchiveIndex } from "@/lib/public-api";
+import { focalPointStyle } from "@/lib/focal-point";
+
+type Topic = PublicArchiveIndex["categories"][number];
+export function MemberOnboarding({ locale, topics }: { locale: Locale; topics: Topic[] }) {
+  const copy = onboardingCopy[locale], router = useRouter(), [selected, setSelected] = useState<string[]>([]), [busy, setBusy] = useState(false), [error, setError] = useState("");
+  function toggle(slug: string) { setSelected(current => current.includes(slug) ? current.filter(item => item !== slug) : current.length<5 ? [...current, slug] : current); }
+  async function submit() {
+    if (!selected.length) return;
+    setBusy(true); setError("");
+    try {
+      const csrf = await fetch("/api/admin/auth/csrf", { cache: "no-store" }), { token } = await csrf.json() as { token: string };
+      const response = await fetch(`/api/admin/account/following-setup/${encodeURIComponent(locale)}`, { method:"PUT", headers: { "content-type": "application/json", "x-csrf-token": token }, body: JSON.stringify({ slugs: selected }) });
+      if (!response.ok) throw new Error();
+      router.push(`/${locale}/account`); router.refresh();
+    } catch { setError(copy.error); setBusy(false); }
+  }
+  return <main className="member-onboarding"><header><p className="section-kicker">{copy.kicker}</p><h1>{copy.title}</h1><p>{copy.description}</p></header><div className="onboarding-topic-grid">{topics.map((topic, index) => {
+    const active = selected.includes(topic.slug), cover = topic.featured.find(item => item.cover)?.cover;
+    return <button type="button" key={topic.slug} aria-pressed={active} onClick={() => toggle(topic.slug)}><span className="onboarding-topic-visual">{cover ? <Image src={cover.url} alt="" fill sizes="(max-width: 700px) 100vw, 30vw" style={focalPointStyle(cover)} /> : <b>{String(index + 1).padStart(2, "0")}</b>}<i aria-hidden="true">{active ? "✓" : "+"}</i></span><span><small>{topic.articleCount} {copy.stories}</small><strong>{topic.title}</strong>{topic.description && <em>{topic.description}</em>}</span></button>;
+  })}</div><footer><span aria-live="polite"><strong>{selected.length}</strong> {copy.selected}</span><button type="button" disabled={!selected.length || busy} onClick={() => void submit()}>{copy.continue}</button><Link href={`/${locale}/account`}>{copy.skip}</Link>{error && <p role="alert">{error}</p>}</footer></main>;
+}

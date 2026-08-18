@@ -178,7 +178,7 @@
                   {
                       "id":  "visual-focal-crops",
                       "title":  "Kalıcı görsel odak ve kırpma denetimi",
-                      "outcome":  "Editörün pointer veya klavyeyle seçtiği kalıcı odak noktası beş admin kırpma önizlemesine, ana sayfa kartlarına ve makale hero görseline taşındı; yerel migration ve testler hazır, staging/production render kanıtı bekleniyor.",
+                      "outcome":  "Editörün kalıcı odak noktası ana sayfa, makale, arşiv, konu, arama, kaynak, ilişkili yayın ve üye keşif kartlarının gerçek kırpmalarına taşındı; yerel kapılar geçti, merkez dışı staging/production render kanıtı bekleniyor.",
                       "status":  "blocked"
                   }
               ]

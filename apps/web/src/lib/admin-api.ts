@@ -568,7 +568,7 @@ export type SavedArticle = {
   locale: string;
   publishedAt: string;
   savedAt: string;
-  cover: null | { url: string; altText: string };
+  cover: null | { url: string; altText: string; focalX: number | null; focalY: number | null };
 };
 export type MemberAccount = {
   id: string;
@@ -608,7 +608,7 @@ export type ReadingProgressArticle = {
   percent: number;
   anchor: string | null;
   lastReadAt: string;
-  cover: null | { url: string; altText: string };
+  cover: null | { url: string; altText: string; focalX: number | null; focalY: number | null };
 };
 export async function getReadingProgress(locale: string) {
   return (await apiGet<ReadingProgressArticle[]>(`/api/v1/account/reading-progress?locale=${encodeURIComponent(locale)}`)) ?? [];
@@ -622,7 +622,7 @@ export type ReadingRitual = {
     slug: string;
     title: string;
     summary: string;
-    cover: null | { url: string; altText: string };
+    cover: null | { url: string; altText: string; focalX: number | null; focalY: number | null };
   };
 };
 export async function getReadingRitual(locale: string) {
@@ -635,7 +635,7 @@ export type ReadingDigest = {
     slug: string; title: string; summary: string; publishedAt: string;
     reason: "continue" | "followed" | "saved";
     progress: number | null; anchor: string | null; topic: string | null;
-    cover: null | { url: string; altText: string };
+    cover: null | { url: string; altText: string; focalX: number | null; focalY: number | null };
   }>;
 };
 export async function getReadingDigest(locale: string) {

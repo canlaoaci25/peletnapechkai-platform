@@ -1,2 +1,17 @@
-import Image from"next/image";import Link from"next/link";import type{Locale}from"@/i18n/config";import{memberCopy}from"@/i18n/member-copy";import type{ReadingProgressArticle}from"@/lib/admin-api";
-export function ContinueReading({locale,items}:{locale:Locale;items:ReadingProgressArticle[]}){const copy=memberCopy[locale];return <section className="continue-reading" aria-labelledby="continue-reading-title"><div className="reading-list-heading"><div><p className="section-kicker">BOECL CONTINUE</p><h2 id="continue-reading-title">{copy.continueTitle}</h2><p>{copy.continueDescription}</p></div><strong>{items.length}</strong></div>{items.length===0?<div className="saved-empty"><p>{copy.continueDescription}</p><Link href={`/${locale}/topics`}>{copy.savedEmptyAction} →</Link></div>:<div className="continue-grid">{items.map(item=>{const href=`/${locale}/articles/${item.slug}${item.anchor?`#${item.anchor}`:""}`;return <article key={item.slug}>{item.cover&&<Link className="continue-cover" href={href} tabIndex={-1}><Image src={item.cover.url} alt="" fill sizes="(max-width: 700px) 88vw, 340px"/></Link>}<div className="continue-card-body"><span>{item.percent}% {copy.progress}</span><div className="continue-meter" aria-hidden="true"><i style={{width:`${item.percent}%`}}/></div><h3><Link href={href}>{item.title}</Link></h3><Link className="continue-action" href={href}>{copy.continueAction} →</Link></div></article>})}</div>}</section>}
+import Image from "next/image";
+import Link from "next/link";
+import type { Locale } from "@/i18n/config";
+import { memberCopy } from "@/i18n/member-copy";
+import type { ReadingProgressArticle } from "@/lib/admin-api";
+import { focalPointStyle } from "@/lib/focal-point";
+
+export function ContinueReading({ locale, items }: { locale: Locale; items: ReadingProgressArticle[] }) {
+  const copy = memberCopy[locale];
+  return <section className="continue-reading" aria-labelledby="continue-reading-title">
+    <div className="reading-list-heading"><div><p className="section-kicker">BOECL CONTINUE</p><h2 id="continue-reading-title">{copy.continueTitle}</h2><p>{copy.continueDescription}</p></div><strong>{items.length}</strong></div>
+    {items.length === 0 ? <div className="saved-empty"><p>{copy.continueDescription}</p><Link href={`/${locale}/topics`}>{copy.savedEmptyAction} →</Link></div> : <div className="continue-grid">{items.map(item => {
+      const href = `/${locale}/articles/${item.slug}${item.anchor ? `#${item.anchor}` : ""}`;
+      return <article key={item.slug}>{item.cover && <Link className="continue-cover" href={href} tabIndex={-1}><Image src={item.cover.url} alt="" fill sizes="(max-width: 700px) 88vw, 340px" style={focalPointStyle(item.cover)} /></Link>}<div className="continue-card-body"><span>{item.percent}% {copy.progress}</span><div className="continue-meter" aria-hidden="true"><i style={{ width: `${item.percent}%` }} /></div><h3><Link href={href}>{item.title}</Link></h3><Link className="continue-action" href={href}>{copy.continueAction} →</Link></div></article>;
+    })}</div>}
+  </section>;
+}

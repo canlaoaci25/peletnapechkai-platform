@@ -15,6 +15,7 @@ import type {
 import type { Locale } from "@/i18n/config";
 import { memberCopy, memberHubCopy } from "@/i18n/member-copy";
 import { PushPreferences } from "@/components/push-preferences";
+import { focalPointStyle } from "@/lib/focal-point";
 
 export function AccountDashboard({
   account,
@@ -200,6 +201,7 @@ export function AccountDashboard({
                           ? "(max-width: 700px) 100vw, 50vw"
                           : "(max-width: 700px) 100vw, 280px"
                       }
+                      style={focalPointStyle(item.cover)}
                     />
                   </Link>
                 )}
@@ -280,6 +282,7 @@ export function AccountDashboard({
                           width={560}
                           height={315}
                           sizes="(max-width: 700px) calc(100vw - 48px), 320px"
+                          style={focalPointStyle(item.cover)}
                         />
                       </Link>
                     )}

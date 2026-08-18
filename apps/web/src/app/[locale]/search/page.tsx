@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { hasLocale } from "@/i18n/config";
 import { getPublicArchiveIndex, getPublishedArticles, searchPublishedArticles } from "@/lib/public-api";
+import { focalPointStyle } from "@/lib/focal-point";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +74,7 @@ export default async function SearchPage({
                 {results.map((article) => (
                   <li key={article.slug}>
                     <article className={article.cover ? undefined : "search-result-no-cover"}>
-                      {article.cover && <Link className="search-result-cover" href={`/${locale}/articles/${article.slug}`} tabIndex={-1} aria-hidden="true"><Image src={article.cover.url} alt="" fill sizes="(max-width: 640px) calc(100vw - 28px), 240px" /></Link>}
+                      {article.cover && <Link className="search-result-cover" href={`/${locale}/articles/${article.slug}`} tabIndex={-1} aria-hidden="true"><Image src={article.cover.url} alt="" fill sizes="(max-width: 640px) calc(100vw - 28px), 240px" style={focalPointStyle(article.cover)} /></Link>}
                       <div className="search-result-copy">
                         <div className="search-result-taxonomy">
                           {article.categories?.map(category => <Link key={category.slug} href={`/${locale}/categories/${category.slug}`}>{category.name}</Link>)}

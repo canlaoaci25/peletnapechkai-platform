@@ -130,6 +130,14 @@
       "summary": "The complete release cohort was rebuilt and promoted to staging after 95 web tests, 196 API tests, locale, lint, typecheck, Web/API Release builds and the automation regression suite passed. The staging database was backed up, restored in isolation with 49 migrations and four locales, confirmed current, and API/Web health passed. Anonymous admin access redirects to the locale-correct login and remains noindex. Authenticated admin rhythm rendering and production promotion remain unproven; production preflight is blocked because free disk space is below the 20 GB health threshold.",
       "tests": ["4-locale consistency", "95 web tests", "web lint", "web typecheck", "110-route web build", "196 API tests", "API Release build", "automation regression suite", "staging backup and 49-migration 4-locale restore", "staging API/Web health"],
       "evidence": ["docs/audits/2026-08-18-cycle-109-editorial-rhythm-staging-audit.md"]
+    },
+    {
+      "workstream": "visual-focal-crops",
+      "scope": "local",
+      "status": "passed",
+      "summary": "Persisted focal coordinates now flow through public archive, topic, search, source, related-story and member discovery payloads and render as the actual object-position with a safe center fallback. Staging still needs a rights-cleared off-center subject, authenticated admin crop proof and 390/768/1440 light-dark captures before completion.",
+      "tests": ["96 web tests", "web lint", "web typecheck", "110-route web production build", "196 API tests", "API Release build"],
+      "evidence": ["docs/audits/2026-08-18-cycle-110-public-focal-contract-audit.md"]
     }
   ]
 }

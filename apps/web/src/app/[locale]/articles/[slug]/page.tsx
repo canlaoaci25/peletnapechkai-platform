@@ -269,7 +269,7 @@ export default async function ArticlePage({
               </ul>
             </aside>
           )}
-          {related.length > 0 && <aside className="related-articles" aria-labelledby="related-title"><h2 id="related-title">{articleCopy.relatedHeading}</h2><div>{related.map(item=><article key={item.slug}>{item.cover && <Link className="related-article-cover" href={`/${locale}/articles/${item.slug}`} tabIndex={-1} aria-hidden="true"><Image src={item.cover.url} alt="" fill sizes="(max-width: 760px) calc(100vw - 40px), 370px" /></Link>}<div><p className="section-kicker">{item.type}</p><h3><Link href={`/${locale}/articles/${item.slug}`}>{item.title}</Link></h3><p>{item.summary}</p></div></article>)}</div></aside>}
+          {related.length > 0 && <aside className="related-articles" aria-labelledby="related-title"><h2 id="related-title">{articleCopy.relatedHeading}</h2><div>{related.map(item=><article key={item.slug}>{item.cover && <Link className="related-article-cover" href={`/${locale}/articles/${item.slug}`} tabIndex={-1} aria-hidden="true"><Image src={item.cover.url} alt="" fill sizes="(max-width: 760px) calc(100vw - 40px), 370px" style={focalPointStyle(item.cover)} /></Link>}<div><p className="section-kicker">{item.type}</p><h3><Link href={`/${locale}/articles/${item.slug}`}>{item.title}</Link></h3><p>{item.summary}</p></div></article>)}</div></aside>}
         </article>
         <script
           type="application/ld+json"

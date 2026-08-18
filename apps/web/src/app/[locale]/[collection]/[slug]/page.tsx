@@ -11,6 +11,7 @@ import { getPublicArchive } from "@/lib/public-api";
 import { FollowCategoryButton } from "@/components/follow-category-button";
 import { buildPlanningClusters, planningHubCopy, planningHubSlugs } from "@/lib/planning-authority-hub";
 import { absoluteUrl } from "@/lib/site-url";
+import { focalPointStyle } from "@/lib/focal-point";
 
 export const dynamic = "force-dynamic";
 const collections = ["categories", "tags", "authors"] as const;
@@ -86,7 +87,7 @@ export default async function ArchivePage({ params,searchParams }: Props) {
           <section className="archive-stream" aria-labelledby="archive-latest"><div className="archive-stream-heading"><p className="section-kicker">BOECL</p><h2 id="archive-latest">{copy.latest}</h2></div><div className="archive-lead-grid">
             {archive.articles.map((article, index) => (
               <article id={article.slug} className={index === 0 ? "archive-lead" : "public-card"} key={article.slug}>
-                {article.cover && <Link className="archive-card-cover" href={`/${locale}/articles/${article.slug}`} tabIndex={-1} aria-hidden="true"><Image src={article.cover.url} alt="" fill sizes="(max-width: 700px) 100vw, 33vw" /></Link>}
+                {article.cover && <Link className="archive-card-cover" href={`/${locale}/articles/${article.slug}`} tabIndex={-1} aria-hidden="true"><Image src={article.cover.url} alt="" fill sizes="(max-width: 700px) 100vw, 33vw" style={focalPointStyle(article.cover)} /></Link>}
                 <div className="archive-card-copy"><p className="section-kicker">{article.type}</p>
                 <h2>
                   <Link href={`/${locale}/articles/${article.slug}`}>
